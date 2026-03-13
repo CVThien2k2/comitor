@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 import type { ApiResponse, UserProfile } from "@workspace/shared/types"
-import { PrismaService } from "./prisma.service"
+import { PrismaService } from "./database/prisma.service"
 import { User } from "@workspace/database"
 
 @Injectable()

@@ -10,6 +10,7 @@
   "scripts": {
     "prepare": "prisma generate && tsc",
     "build": "prisma generate && tsc",
+    "build:docker": "tsc",
     "dev": "tsc --watch",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

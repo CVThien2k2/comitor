@@ -17,6 +17,7 @@
     "incremental": true,
     "noUncheckedIndexedAccess": false,
     "noImplicitAny": false,
+    "strictPropertyInitialization": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false
   }

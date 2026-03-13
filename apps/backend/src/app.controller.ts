@@ -1,6 +1,5 @@
-import { Controller, Get } from '@nestjs/common'
-import type { ApiResponse, UserProfile } from '@workspace/shared/types'
-import { AppService } from './app.service'
+import { Controller, Get } from "@nestjs/common"
+import { AppService } from "./app.service"
 
 @Controller()
 export class AppController {
@@ -9,10 +8,5 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello()
-  }
-
-  @Get('users')
-  async getUsers(): Promise<ApiResponse<UserProfile[]>> {
-    return this.appService.getUsers()
   }
 }

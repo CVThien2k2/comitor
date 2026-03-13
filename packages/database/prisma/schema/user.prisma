@@ -1,0 +1,22 @@
+model User {
+  id            String   @id @default(uuid())
+  userId        String?  @unique @map("user_id")
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  avatarUrl     String?  @map("avatar_url")
+  phone         String?  @unique @map("phone")
+  username      String?  @unique
+  roleId        String?  @map("role_id")
+  isActive      Boolean  @default(true) @map("is_active")
+  isOnline      Boolean  @default(false) @map("is_online")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  role         Role?         @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  accounts     Account[]
+  linkAccounts LinkAccount[]
+  sentMessages Message[]     @relation("MessageUser")
+
+  @@map("user")
+}

@@ -1,0 +1,36 @@
+model Message {
+  id                String        @id @default(uuid())
+  conversationId    String        @map("conversation_id")
+  senderType        MessageSender @map("sender_type")
+  accountCustomerId String?       @map("account_customer_id")
+  userId            String?       @map("user_id")
+  content           String?
+  metadata          Json?
+  isRead            Boolean       @default(false) @map("is_read")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  conversation    Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  accountCustomer AccountCustomer?    @relation("MessageAccountCustomer", fields: [accountCustomerId], references: [id], onDelete: Cascade)
+  user            User?               @relation("MessageUser", fields: [userId], references: [id], onDelete: Cascade)
+  attachments     MessageAttachment[]
+
+  @@index([conversationId], name: "conversation_id")
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id           String    @id @default(uuid())
+  messageId    String    @map("message_id")
+  fileName     String?   @map("file_name") @db.VarChar(255)
+  fileType     String?   @map("file_type") @db.VarChar(100)
+  fileUrl      String?   @map("file_url")
+  thumbnailUrl String?   @map("thumbnail_url")
+  fileMimeType String?   @map("file_mime_type") @db.VarChar(100)
+  metadata     Json?
+  createdAt    DateTime? @default(now()) @map("created_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}

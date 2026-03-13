@@ -1,0 +1,49 @@
+enum ChannelType {
+  zalo_personal
+  zalo_oa
+  facebook
+  gmail
+  phone
+}
+
+enum JourneyState {
+  searching
+  holding
+  ticketed
+  cancelled
+}
+
+enum MessageSender {
+  agent
+  customer
+  system
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum MemberTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum CustomerType {
+  individual
+  business
+  agent
+}
+
+enum ConversationType {
+  personal
+  group
+}
+
+enum ConversationTag {
+  other
+  business
+}

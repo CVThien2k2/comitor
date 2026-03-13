@@ -12,7 +12,7 @@ export class AppController {
   }
 
   @Get('users')
-  getUsers(): ApiResponse<UserProfile[]> {
+  async getUsers(): Promise<ApiResponse<UserProfile[]>> {
     return this.appService.getUsers()
   }
 }

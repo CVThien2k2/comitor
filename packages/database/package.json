@@ -1,0 +1,38 @@
+{
+  "name": "@workspace/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "prepare": "prisma generate && tsc",
+    "build": "prisma generate && tsc",
+    "dev": "tsc --watch",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset",
+    "db:status": "prisma migrate status",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "prisma": "^7.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.3"
+  }
+}

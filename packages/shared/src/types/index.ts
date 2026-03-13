@@ -1,5 +1,3 @@
-import type { UserRole } from "../enums/index"
-
 export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
@@ -9,6 +7,5 @@ export interface ApiResponse<T = unknown> {
 export interface UserProfile {
   id: string
   email: string
-  avatarUrl: string
-  role: UserRole
+  username: string
 }

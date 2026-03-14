@@ -5,6 +5,13 @@ import { PrismaService } from "../../database/prisma.service"
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findAll() {
+    return this.prisma.client.user.findMany({
+      omit: { password: true },
+      orderBy: { createdAt: "desc" },
+    })
+  }
+
   async findByUsername(username: string) {
     return this.prisma.client.user.findUnique({
       where: { username },

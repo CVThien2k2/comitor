@@ -17,7 +17,7 @@ export type {
   PrismaClient,
   User,
   Role,
-  Permission,
+  Permission as PrismaPermission,
   RolePermission,
   LinkAccount,
   AccountCustomer,
@@ -27,3 +27,7 @@ export type {
   Message,
   MessageAttachment,
 } from "./generated/client"
+
+// Permissions
+export { PERMISSION, P } from "./permissions"
+export type { PermissionKey, PermissionCode } from "./permissions"

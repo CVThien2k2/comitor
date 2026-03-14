@@ -5,7 +5,7 @@ import { ConfigService } from "@nestjs/config"
 import { UsersService } from "../../core/users/users.service"
 
 export interface JwtPayload {
-  sub: string
+  userId: string
   email: string
 }
 
@@ -23,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.usersService.findById(payload.sub)
+    const user = await this.usersService.findById(payload.userId)
     if (!user) throw new UnauthorizedException()
     return user
   }

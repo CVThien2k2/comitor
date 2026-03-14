@@ -2,7 +2,6 @@ export { prisma } from "./client"
 
 // Enums
 export {
-  ProviderType,
   ChannelType,
   JourneyState,
   MessageSender,
@@ -17,7 +16,6 @@ export {
 export type {
   PrismaClient,
   User,
-  Account,
   Role,
   Permission,
   RolePermission,

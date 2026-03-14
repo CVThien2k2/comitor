@@ -1,0 +1,29 @@
+import { ApiProperty } from "@nestjs/swagger"
+import { UserEntity } from "../../core/users/entities/user.entity"
+
+export class AuthEntity {
+  @ApiProperty({ example: "eyJhbGciOiJIUzI1NiIs..." })
+  accessToken: string
+
+  @ApiProperty({ example: 1710401100000 })
+  accessExpiresAt: number
+
+  @ApiProperty({ type: UserEntity })
+  user: UserEntity
+}
+
+export class RefreshEntity {
+  @ApiProperty({ example: "eyJhbGciOiJIUzI1NiIs..." })
+  accessToken: string
+
+  @ApiProperty({ example: 1710401100000 })
+  accessExpiresAt: number
+
+  @ApiProperty({ type: UserEntity })
+  user: UserEntity
+}
+
+export class MessageEntity {
+  @ApiProperty({ example: "Đăng xuất thành công" })
+  message: string
+}

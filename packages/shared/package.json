@@ -17,6 +17,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@workspace/database": "workspace:*"
+  },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",

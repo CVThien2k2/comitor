@@ -1,11 +1,16 @@
+import type { User } from "@workspace/database"
+
 export interface ApiResponse<T = unknown> {
-  success: boolean
+  statusCode: number
+  message: string
   data?: T
-  message?: string
+  errors?: string[]
 }
 
-export interface UserProfile {
-  id: string
-  email: string
-  username: string
+export type UserProfile = Omit<User, "password">
+
+export interface AuthResponse {
+  accessToken: string
+  accessExpiresAt: number
+  user: UserProfile
 }

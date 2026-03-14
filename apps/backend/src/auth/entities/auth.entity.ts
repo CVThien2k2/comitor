@@ -23,7 +23,3 @@ export class RefreshEntity {
   user: UserEntity
 }
 
-export class MessageEntity {
-  @ApiProperty({ example: "Đăng xuất thành công" })
-  message: string
-}

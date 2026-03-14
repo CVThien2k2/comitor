@@ -26,6 +26,7 @@ import type { Request as ExpressRequest, Response } from "express"
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard"
 import {
   ApiResponseOf,
+  MessageResponseEntity,
   BadRequestEntity,
   UnauthorizedEntity,
   InternalServerErrorEntity,
@@ -34,7 +35,6 @@ import { AuthService } from "./auth.service"
 import {
   AuthEntity,
   RefreshEntity,
-  MessageEntity,
 } from "./entities/auth.entity"
 import { UserEntity } from "../core/users/entities/user.entity"
 import { LoginDto } from "./dto/login.dto"
@@ -53,7 +53,7 @@ export class AuthController {
     private readonly configService: ConfigService
   ) {}
 
-  @ApiOperation({ summary: "Đăng nhập" })
+  @ApiOperation({ summary: "Login" })
   @ApiOkResponse({ type: ApiResponseOf(AuthEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
@@ -69,12 +69,12 @@ export class AuthController {
 
     this.setRefreshCookie(res, refreshToken)
     return {
-      message: "Đăng nhập thành công",
+      message: "Login successful",
       data: { accessToken, accessExpiresAt, user },
     }
   }
 
-  @ApiOperation({ summary: "Làm mới phiên" })
+  @ApiOperation({ summary: "Refresh session" })
   @ApiOkResponse({ type: ApiResponseOf(RefreshEntity) })
   @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
   @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
@@ -86,19 +86,19 @@ export class AuthController {
   ) {
     const oldToken = req.cookies?.[REFRESH_TOKEN_COOKIE]
     if (!oldToken)
-      throw new UnauthorizedException("Refresh token không tồn tại")
+      throw new UnauthorizedException("Refresh token not found")
 
     const { accessToken, accessExpiresAt, refreshToken, user } =
       await this.authService.refresh(oldToken)
     this.setRefreshCookie(res, refreshToken)
     return {
-      message: "Làm mới token thành công",
+      message: "Token refreshed successfully",
       data: { accessToken, accessExpiresAt, user },
     }
   }
 
-  @ApiOperation({ summary: "Đăng xuất" })
-  @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
+  @ApiOperation({ summary: "Logout" })
+  @ApiOkResponse({ type: MessageResponseEntity })
   @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("logout")
   @HttpCode(HttpStatus.OK)
@@ -111,10 +111,10 @@ export class AuthController {
       await this.authService.logout(token)
     }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: "/auth" })
-    return { message: "Đăng xuất thành công" }
+    return { message: "Logout successful" }
   }
 
-  @ApiOperation({ summary: "Lấy thông tin user hiện tại" })
+  @ApiOperation({ summary: "Get current user" })
   @ApiBearerAuth()
   @ApiOkResponse({ type: ApiResponseOf(UserEntity) })
   @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
@@ -123,7 +123,7 @@ export class AuthController {
   @Get("me")
   me(@Request() req: RequestWithUser) {
     return {
-      message: "Lấy thông tin thành công",
+      message: "User retrieved successfully",
       data: req.user,
     }
   }

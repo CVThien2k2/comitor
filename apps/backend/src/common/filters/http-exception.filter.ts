@@ -4,14 +4,21 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common"
-import type { Response } from "express"
+import { HttpAdapterHost } from "@nestjs/core"
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name)
+
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
+
   catch(exception: unknown, host: ArgumentsHost) {
+    const { httpAdapter } = this.httpAdapterHost
+
     const ctx = host.switchToHttp()
-    const response = ctx.getResponse<Response>()
+    const request = ctx.getRequest()
 
     const statusCode =
       exception instanceof HttpException
@@ -21,7 +28,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null
 
-    let message = "Lỗi hệ thống"
+    let message = "Internal server error"
     let errors: string[] | undefined
 
     if (typeof exceptionResponse === "string") {
@@ -40,10 +47,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     }
 
-    response.status(statusCode).json({
+    if (statusCode >= 500) {
+      this.logger.error(
+        `${httpAdapter.getRequestMethod(request)} ${httpAdapter.getRequestUrl(request)} ${statusCode}`,
+        exception instanceof Error ? exception.stack : undefined
+      )
+    }
+
+    const responseBody = {
       statusCode,
       message,
       ...(errors ? { errors } : {}),
-    })
+    }
+
+    httpAdapter.reply(ctx.getResponse(), responseBody, statusCode)
   }
 }

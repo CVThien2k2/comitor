@@ -23,7 +23,30 @@ export class UsersService {
     })
   }
 
+  async findByIdWithRole(id: string) {
+    return this.prisma.client.user.findUnique({
+      where: { id },
+      omit: { password: true },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+            },
+          },
+        },
+      },
+    })
+  }
+
   async findByIdWithPassword(id: string) {
     return this.prisma.client.user.findUnique({ where: { id } })
+  }
+
+  async setOnlineStatus(id: string, isOnline: boolean) {
+    return this.prisma.client.user.update({
+      where: { id },
+      data: { isOnline },
+    })
   }
 }

@@ -56,7 +56,7 @@ export class TokenService {
         secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
       })
     } catch {
-      throw new UnauthorizedException("Refresh token không hợp lệ")
+      throw new UnauthorizedException("Invalid refresh token")
     }
 
     const stored = await this.prisma.client.refreshToken.findUnique({
@@ -64,7 +64,7 @@ export class TokenService {
     })
 
     if (!stored || stored.revokedAt)
-      throw new UnauthorizedException("Refresh token đã bị thu hồi")
+      throw new UnauthorizedException("Refresh token has been revoked")
 
     return payload
   }

@@ -14,3 +14,9 @@ export interface AuthResponse {
   accessExpiresAt: number
   user: UserProfile
 }
+
+export type PresignedData = {
+  key: string
+  uploadUrl: string
+  url: string
+}

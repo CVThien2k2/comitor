@@ -8,13 +8,16 @@ import { AppModule } from "./app.module"
 import { LoggerInterceptor } from "./common/interceptors/logger.interceptor"
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter"
+import { NestExpressApplication } from "@nestjs/platform-express"
+import { join } from "path"
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule)
   const configService = app.get(ConfigService)
 
   app.use(cookieParser())
 
+  app.useStaticAssets(join(process.cwd(), 'public'));
   app.enableCors({
     origin:
       configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000",

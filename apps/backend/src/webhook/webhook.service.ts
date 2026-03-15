@@ -7,7 +7,7 @@ export class WebhookService {
     const msg = payload.message;
 
     return {
-      platform: "zalo-oa",
+      platform: "zalo_oa",
       messageId: msg.msg_id,
       conversationId: payload.sender.id,
       senderId: payload.sender.id,

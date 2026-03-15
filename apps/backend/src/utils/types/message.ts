@@ -1,4 +1,4 @@
-export type Platform = 'zalo' | 'zalo-oa' | 'meta';
+export type Platform = 'zalo_personal' | 'zalo_oa' | 'meta';
 
 export type MessageType =
   | 'text'

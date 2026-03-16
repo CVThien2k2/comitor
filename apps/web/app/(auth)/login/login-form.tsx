@@ -127,12 +127,12 @@ export function LoginForm() {
             </Button>
           </FieldGroup>
         </form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        {/* <p className="mt-4 text-center text-sm text-muted-foreground">
           Chưa có tài khoản?{" "}
           <Link href="/register" className="text-primary hover:underline">
             Đăng ký
           </Link>
-        </p>
+        </p> */}
       </CardContent>
     </Card>
   )

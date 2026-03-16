@@ -3,15 +3,20 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import { auth } from "@/api/auth"
 import { useAuthStore } from "@/stores/auth-store"
 
 export default function DashboardPage() {
   const router = useRouter()
   const { user, logout } = useAuthStore()
 
-  const handleLogout = () => {
-    logout()
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      await auth.logout()
+    } finally {
+      logout()
+      router.push("/login")
+    }
   }
 
   return (

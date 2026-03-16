@@ -3,20 +3,18 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores/auth-store"
-import { useStoreHydration } from "@/hooks/use-store-hydration"
 
 export function GuestWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const hydrated = useStoreHydration()
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   useEffect(() => {
-    if (hydrated && accessToken) {
+    if (isAuthenticated) {
       router.replace("/")
     }
-  }, [hydrated, accessToken, router])
+  }, [isAuthenticated, router])
 
-  if (!hydrated || accessToken) return null
+  if (isAuthenticated) return null
 
   return <>{children}</>
 }

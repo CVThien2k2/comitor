@@ -1,5 +1,5 @@
 import axios from "axios"
-import type { AxiosRequestConfig } from "axios"
+import type { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios"
 import { useAuthStore } from "@/stores/auth-store"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
@@ -8,6 +8,7 @@ const instance = axios.create({
   baseURL: API_URL,
   timeout: 15000,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 })
 
 // Request: auto attach access token
@@ -19,23 +20,54 @@ instance.interceptors.request.use((config) => {
   return config
 })
 
-// Routes that should not redirect to login on 401
-const SKIP_401_REDIRECT = ["/auth/login", "/auth/refresh"]
+// Routes that should not attempt refresh on 401
+const SKIP_REFRESH = ["/auth/login", "/auth/refresh", "/auth/logout"]
 
-// Response: unwrap response.data, handle 401
+let refreshPromise: Promise<string> | null = null
+
+function doRefresh(): Promise<string> {
+  if (refreshPromise) return refreshPromise
+
+  refreshPromise = axios
+    .post<{ data: { accessToken: string } }>(`${API_URL}/auth/refresh`, null, {
+      withCredentials: true,
+    })
+    .then((res) => {
+      const newToken = res.data.data.accessToken
+      useAuthStore.setState({ accessToken: newToken })
+      return newToken
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
+// Response: unwrap response.data, handle 401 with refresh
 instance.interceptors.response.use(
   (response) => response.data,
-  (error) => {
-    const requestUrl = error.config?.url ?? ""
-    const shouldRedirect =
-      error.response?.status === 401 && !SKIP_401_REDIRECT.some((route) => requestUrl.includes(route))
+  async (error) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retried?: boolean }
+    const requestUrl = originalRequest?.url ?? ""
+    const is401 = error.response?.status === 401
+    const shouldRefresh = is401 && !originalRequest._retried && !SKIP_REFRESH.some((r) => requestUrl.includes(r))
 
-    if (shouldRedirect) {
-      useAuthStore.getState().logout()
-      if (typeof window !== "undefined") {
-        window.location.href = "/login"
+    if (shouldRefresh) {
+      originalRequest._retried = true
+      try {
+        const newToken = await doRefresh()
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return instance(originalRequest).then((res) => res)
+      } catch {
+        useAuthStore.getState().logout()
+        if (typeof window !== "undefined") {
+          window.location.href = "/login"
+        }
+        return Promise.reject(error.response?.data ?? error)
       }
     }
+
     return Promise.reject(error.response?.data ?? error)
   }
 )

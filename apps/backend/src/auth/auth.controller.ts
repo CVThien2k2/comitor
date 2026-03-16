@@ -17,7 +17,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
-import { parseDaysToMs } from "@workspace/shared"
+import { parseDurationToMs } from "@workspace/shared"
 import type { Request as ExpressRequest, Response } from "express"
 import {
   ApiResponseOf,
@@ -100,7 +100,7 @@ export class AuthController {
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       path: "/auth",
-      maxAge: parseDaysToMs(this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"),
+      maxAge: parseDurationToMs(this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"),
     })
   }
 }

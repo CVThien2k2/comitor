@@ -7,7 +7,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "@workspace/ui/components/sonner"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { Icons } from "@/components/global/icons"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Checkbox } from "@workspace/ui/components/checkbox"
@@ -62,7 +62,7 @@ export function LoginForm() {
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="username">Tên đăng nhập</FieldLabel>
                   <div className="relative">
-                    <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Icons.mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       {...field}
                       id="username"
@@ -92,7 +92,7 @@ export function LoginForm() {
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Icons.lock className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       {...field}
                       id="password"
@@ -107,7 +107,7 @@ export function LoginForm() {
                       className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <Icons.eyeOff className="h-4 w-4" /> : <Icons.eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

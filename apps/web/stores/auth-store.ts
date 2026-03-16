@@ -5,6 +5,7 @@ import type { UserProfile } from "@workspace/shared"
 type AuthState = {
   accessToken: string | null
   user: UserProfile | null
+  isAuthenticated: boolean
 }
 
 type AuthActions = {
@@ -18,12 +19,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     (set) => ({
       accessToken: null,
       user: null,
+      isAuthenticated: false,
 
-      setAuth: (token, user) => set({ accessToken: token, user }),
+      setAuth: (token, user) => set({ accessToken: token, user, isAuthenticated: true }),
 
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user, isAuthenticated: true }),
 
-      logout: () => set({ accessToken: null, user: null }),
+      logout: () => set({ accessToken: null, user: null, isAuthenticated: false }),
     }),
     {
       name: "auth-storage",

@@ -3,6 +3,7 @@ import { Nunito, Geist_Mono } from "next/font/google"
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/providers/query-provider"
+import { AppProvider } from "@/components/providers/app-provider"
 import { cn } from "@workspace/ui/lib/utils"
 import { Toaster } from "@workspace/ui/components/sonner"
 
@@ -31,7 +32,7 @@ export default function RootLayout({
         <QueryProvider>
           <Toaster position="bottom-right" richColors />
           <ThemeProvider>
-            {children}
+            <AppProvider>{children}</AppProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>

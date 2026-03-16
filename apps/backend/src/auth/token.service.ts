@@ -1,13 +1,17 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common"
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { ConfigService } from "@nestjs/config"
 import * as crypto from "crypto"
 import { PrismaService } from "../database/prisma.service"
-import { parseDays, parseDurationToMs } from "@workspace/shared"
+import { parseDurationToMs } from "@workspace/shared"
 import type { JwtPayload } from "../common/strategies/jwt.strategy"
+
+const MAX_SESSIONS = 5
 
 @Injectable()
 export class TokenService {
+  private readonly logger = new Logger(TokenService.name)
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -16,8 +20,7 @@ export class TokenService {
 
   async generateTokens(userId: string, email: string) {
     const payload: JwtPayload = { userId, email }
-    const accessExpiresIn =
-      this.configService.get("JWT_ACCESS_EXPIRES_IN") ?? "15m"
+    const accessExpiresIn = this.configService.get("JWT_ACCESS_EXPIRES_IN") ?? "15m"
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>("JWT_SECRET"),
@@ -26,25 +29,21 @@ export class TokenService {
 
     const accessExpiresAt = Date.now() + parseDurationToMs(accessExpiresIn)
 
-    const refreshExpiresIn =
-      this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"
+    const refreshExpiresIn = this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
       expiresIn: refreshExpiresIn,
     })
 
-    const refreshDays = parseDays(refreshExpiresIn)
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + refreshDays)
+    const expiresAt = new Date(Date.now() + parseDurationToMs(refreshExpiresIn))
 
+    // Chỉ cần chờ tạo token, cleanup chạy nền
     await this.prisma.client.refreshToken.create({
-      data: {
-        userId,
-        token: this.hash(refreshToken),
-        expiresAt,
-      },
+      data: { userId, token: this.hash(refreshToken), expiresAt },
     })
+
+    this.runInBackground(this.cleanupExpired(userId), this.enforceMaxSessions(userId))
 
     return { accessToken, accessExpiresAt, refreshToken }
   }
@@ -63,40 +62,56 @@ export class TokenService {
       where: { token: this.hash(token) },
     })
 
-    if (!stored || stored.revokedAt)
-      throw new UnauthorizedException("Refresh token has been revoked")
+    if (!stored) throw new UnauthorizedException("Refresh token not found")
+
+    if (stored.expiresAt < new Date()) {
+      // Xóa token hết hạn nền, không cần chờ
+      this.runInBackground(this.prisma.client.refreshToken.delete({ where: { id: stored.id } }))
+      throw new UnauthorizedException("Refresh token has expired")
+    }
 
     return payload
   }
 
-  async revokeRefreshToken(token: string) {
-    const hashed = this.hash(token)
-    const stored = await this.prisma.client.refreshToken.findUnique({
-      where: { token: hashed },
+  revokeRefreshToken(token: string) {
+    this.runInBackground(
+      this.prisma.client.refreshToken.deleteMany({
+        where: { token: this.hash(token) },
+      })
+    )
+  }
+
+  revokeAllByUserId(userId: string) {
+    this.runInBackground(
+      this.prisma.client.refreshToken.deleteMany({
+        where: { userId },
+      })
+    )
+  }
+
+  private async cleanupExpired(userId: string) {
+    await this.prisma.client.refreshToken.deleteMany({
+      where: { userId, expiresAt: { lt: new Date() } },
+    })
+  }
+
+  private async enforceMaxSessions(userId: string) {
+    const tokens = await this.prisma.client.refreshToken.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
     })
 
-    if (stored && !stored.revokedAt) {
-      await this.prisma.client.refreshToken.update({
-        where: { id: stored.id },
-        data: { revokedAt: new Date() },
+    if (tokens.length >= MAX_SESSIONS) {
+      const tokensToDelete = tokens.slice(0, tokens.length - MAX_SESSIONS + 1)
+      await this.prisma.client.refreshToken.deleteMany({
+        where: { id: { in: tokensToDelete.map((t) => t.id) } },
       })
     }
   }
 
-  async revokeAllByUserId(userId: string) {
-    await this.prisma.client.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    })
-  }
-
-  async cleanupExpired() {
-    const { count } = await this.prisma.client.refreshToken.deleteMany({
-      where: {
-        OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { not: null } }],
-      },
-    })
-    return count
+  private runInBackground(...promises: Promise<unknown>[]) {
+    Promise.allSettled(promises).catch((err) => this.logger.error("Background task failed", err))
   }
 
   private hash(token: string): string {

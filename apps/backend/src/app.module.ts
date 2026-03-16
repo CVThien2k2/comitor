@@ -10,6 +10,7 @@ import { UploadModule } from "./upload/upload.module"
 import { EmailModule } from "./email/email.module"
 import { SocketModule } from "./websocket/socket.module"
 import { EventsModule } from "./events/events.module"
+import { ZaloPersonalModule } from "./events/zalo_personal/zalo_personal.module"
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { EventsModule } from "./events/events.module"
     EmailModule,
     SocketModule,
     EventsModule,
+    ZaloPersonalModule
   ],
   controllers: [],
   providers: [],

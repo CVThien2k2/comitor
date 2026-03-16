@@ -5,14 +5,7 @@ import Link from "next/link"
 import { ArrowLeft, Mail, CheckCircle } from "lucide-react"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { ROUTES } from "@/lib/routes"
 
 export function ForgotPasswordForm() {
@@ -33,22 +26,19 @@ export function ForgotPasswordForm() {
     return (
       <Card className="w-full max-w-md border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-neutral-800 flex items-center justify-center">
+          <div className="mb-4 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold text-white">Kiểm tra email của bạn</CardTitle>
           <CardDescription className="text-base text-neutral-400">
-            Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến{" "}
-            <span className="font-medium text-white">{email}</span>
+            Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến <span className="font-medium text-white">{email}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 text-sm text-neutral-400">
-            <p>
-              Không nhận được email? Kiểm tra thư mục spam hoặc thử lại với địa chỉ email khác.
-            </p>
+          <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4 text-sm text-neutral-400">
+            <p>Không nhận được email? Kiểm tra thư mục spam hoặc thử lại với địa chỉ email khác.</p>
           </div>
           <Button
             variant="outline"
@@ -61,7 +51,7 @@ export function ForgotPasswordForm() {
         <CardFooter className="flex justify-center">
           <Link
             href={ROUTES["sign-in"].path}
-            className="text-sm text-neutral-400 hover:text-white transition-colors inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Quay lại đăng nhập
@@ -74,9 +64,9 @@ export function ForgotPasswordForm() {
   return (
     <Card className="w-full max-w-md border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
       <CardHeader className="space-y-1 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="h-12 w-12 rounded-xl bg-white flex items-center justify-center">
-            <span className="text-neutral-900 font-bold text-xl">C</span>
+        <div className="mb-4 flex justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
+            <span className="text-xl font-bold text-neutral-900">C</span>
           </div>
         </div>
         <CardTitle className="text-2xl font-bold text-white">Quên mật khẩu?</CardTitle>
@@ -87,27 +77,23 @@ export function ForgotPasswordForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-neutral-300 text-sm font-medium">
+            <label htmlFor="email" className="text-sm font-medium text-neutral-300">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+              <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500" />
               <Input
                 id="email"
                 type="email"
                 placeholder="name@example.com"
-                className="h-10 pl-10 bg-neutral-800/50 border-neutral-700 text-white placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
+                className="h-10 border-neutral-700 bg-neutral-800/50 pl-10 text-white placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
           </div>
-          <Button
-            type="submit"
-            className="w-full bg-white text-neutral-900 hover:bg-neutral-200"
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full bg-white text-neutral-900 hover:bg-neutral-200" disabled={isLoading}>
             {isLoading ? "Đang gửi..." : "Gửi hướng dẫn đặt lại"}
           </Button>
         </form>
@@ -115,7 +101,7 @@ export function ForgotPasswordForm() {
       <CardFooter className="flex justify-center">
         <Link
           href={ROUTES["sign-in"].path}
-          className="text-sm text-neutral-400 hover:text-white transition-colors inline-flex items-center gap-2"
+          className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại đăng nhập

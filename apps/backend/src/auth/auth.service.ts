@@ -12,12 +12,10 @@ export class AuthService {
 
   async login(username: string, password: string) {
     const user = await this.usersService.findByUsernameWithPassword(username)
-    if (!user)
-      throw new UnauthorizedException("Invalid username or password")
+    if (!user) throw new UnauthorizedException("Tên đăng nhập hoặc mật khẩu không hợp lệ")
 
     const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch)
-      throw new UnauthorizedException("Invalid username or password")
+    if (!isMatch) throw new UnauthorizedException("Tên đăng nhập hoặc mật khẩu không hợp lệ")
 
     const tokens = await this.tokenService.generateTokens(user.id, user.email)
     const { password: _, ...userData } = user

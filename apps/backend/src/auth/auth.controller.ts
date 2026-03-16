@@ -32,10 +32,7 @@ import {
   InternalServerErrorEntity,
 } from "../common/entities/api-response.entity"
 import { AuthService } from "./auth.service"
-import {
-  AuthEntity,
-  RefreshEntity,
-} from "./entities/auth.entity"
+import { AuthEntity, RefreshEntity } from "./entities/auth.entity"
 import { UserEntity } from "../core/users/entities/user.entity"
 import { LoginDto } from "./dto/login.dto"
 
@@ -60,16 +57,15 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("login")
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() dto: LoginDto,
-    @Res({ passthrough: true }) res: Response
-  ) {
-    const { accessToken, accessExpiresAt, refreshToken, user } =
-      await this.authService.login(dto.username, dto.password)
+  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.login(
+      dto.username,
+      dto.password
+    )
 
     this.setRefreshCookie(res, refreshToken)
     return {
-      message: "Login successful",
+      message: "Đăng nhập thành công",
       data: { accessToken, accessExpiresAt, user },
     }
   }
@@ -80,16 +76,11 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
-  async refresh(
-    @Request() req: ExpressRequest,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  async refresh(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const oldToken = req.cookies?.[REFRESH_TOKEN_COOKIE]
-    if (!oldToken)
-      throw new UnauthorizedException("Refresh token not found")
+    if (!oldToken) throw new UnauthorizedException("Refresh token not found")
 
-    const { accessToken, accessExpiresAt, refreshToken, user } =
-      await this.authService.refresh(oldToken)
+    const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.refresh(oldToken)
     this.setRefreshCookie(res, refreshToken)
     return {
       message: "Token refreshed successfully",
@@ -102,10 +93,7 @@ export class AuthController {
   @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("logout")
   @HttpCode(HttpStatus.OK)
-  async logout(
-    @Request() req: ExpressRequest,
-    @Res({ passthrough: true }) res: Response
-  ) {
+  async logout(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.[REFRESH_TOKEN_COOKIE]
     if (token) {
       await this.authService.logout(token)
@@ -136,9 +124,7 @@ export class AuthController {
       secure: isProduction,
       sameSite: isProduction ? "strict" : "lax",
       path: "/auth",
-      maxAge: parseDaysToMs(
-        this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"
-      ),
+      maxAge: parseDaysToMs(this.configService.get("JWT_REFRESH_EXPIRES_IN") ?? "7d"),
     })
   }
 }

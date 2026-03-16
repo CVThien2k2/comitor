@@ -2,48 +2,58 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Mail, CheckCircle } from "lucide-react"
+import { useForm, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Icons } from "@/components/global/icons"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card"
+import { Field, FieldLabel, FieldError, FieldGroup } from "@workspace/ui/components/field"
 import { ROUTES } from "@/lib/routes"
+import { forgotPasswordSchema, type ForgotPasswordSchema } from "@/lib/schema/auth"
 
 export function ForgotPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [email, setEmail] = useState("")
+  const [submittedEmail, setSubmittedEmail] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    // Simulate API call
+  const form = useForm<ForgotPasswordSchema>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  })
+
+  const onSubmit = async (values: ForgotPasswordSchema) => {
+    // TODO: gọi API forgot password
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
+    setSubmittedEmail(values.email)
     setIsSubmitted(true)
   }
 
   if (isSubmitted) {
     return (
-      <Card className="w-full max-w-md border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+      <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800">
-              <CheckCircle className="h-8 w-8 text-white" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full">
+              <Icons.checkCircle className="h-8 w-8" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">Kiểm tra email của bạn</CardTitle>
-          <CardDescription className="text-base text-neutral-400">
-            Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến <span className="font-medium text-white">{email}</span>
+          <CardTitle className="text-2xl font-bold">Kiểm tra email của bạn</CardTitle>
+          <CardDescription className="text-base">
+            Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến{" "}
+            <span className="font-medium">{submittedEmail}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-4 text-sm text-neutral-400">
+          <div className="rounded-lg border p-4 text-sm">
             <p>Không nhận được email? Kiểm tra thư mục spam hoặc thử lại với địa chỉ email khác.</p>
           </div>
           <Button
             variant="outline"
-            className="w-full border-neutral-700 bg-transparent text-white hover:bg-neutral-800 hover:text-white"
-            onClick={() => setIsSubmitted(false)}
+            className="w-full"
+            onClick={() => {
+              setIsSubmitted(false)
+              form.reset()
+            }}
           >
             Thử lại với email khác
           </Button>
@@ -51,9 +61,9 @@ export function ForgotPasswordForm() {
         <CardFooter className="flex justify-center">
           <Link
             href={ROUTES["sign-in"].path}
-            className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <Icons.arrowLeft className="h-4 w-4" />
             Quay lại đăng nhập
           </Link>
         </CardFooter>
@@ -62,48 +72,55 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border-neutral-800 bg-neutral-900/50 backdrop-blur-sm">
+    <Card className="w-full max-w-md">
       <CardHeader className="space-y-1 text-center">
         <div className="mb-4 flex justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white">
-            <span className="text-xl font-bold text-neutral-900">C</span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl">
+            <span className="text-xl font-bold">C</span>
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold text-white">Quên mật khẩu?</CardTitle>
-        <CardDescription className="text-neutral-400">
+        <CardTitle className="text-2xl font-bold">Quên mật khẩu?</CardTitle>
+        <CardDescription>
           Nhập email của bạn và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-neutral-300">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                className="h-10 border-neutral-700 bg-neutral-800/50 pl-10 text-white placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <Button type="submit" className="w-full bg-white text-neutral-900 hover:bg-neutral-200" disabled={isLoading}>
-            {isLoading ? "Đang gửi..." : "Gửi hướng dẫn đặt lại"}
-          </Button>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <FieldGroup>
+            <Controller
+              name="email"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <div className="relative">
+                    <Icons.mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      {...field}
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      aria-invalid={fieldState.invalid}
+                      className="h-10 pl-10"
+                    />
+                  </div>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? "Đang gửi..." : "Gửi hướng dẫn đặt lại"}
+            </Button>
+          </FieldGroup>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <Link
           href={ROUTES["sign-in"].path}
-          className="inline-flex items-center gap-2 text-sm text-neutral-400 transition-colors hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <Icons.arrowLeft className="h-4 w-4" />
           Quay lại đăng nhập
         </Link>
       </CardFooter>

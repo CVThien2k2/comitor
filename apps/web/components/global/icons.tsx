@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Mail, Lock, Loader2, type LucideProps } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Loader2, type LucideProps, ArrowLeft, CheckCircle } from "lucide-react"
 
 export type Icon = React.ComponentType<LucideProps>
 
@@ -8,4 +8,6 @@ export const Icons = {
   mail: Mail,
   lock: Lock,
   spinner: Loader2,
+  arrowLeft: ArrowLeft,
+  checkCircle: CheckCircle,
 }

@@ -17,4 +17,12 @@ export const ROUTES = {
       robots: "noindex, nofollow",
     } satisfies Metadata,
   },
+  "reset-password": {
+    path: "/auth/reset-password",
+    metadata: {
+      title: "Đặt lại mật khẩu - Comitor",
+      description: "Đặt lại mật khẩu tài khoản của bạn",
+      robots: "noindex, nofollow",
+    } satisfies Metadata,
+  },
 } as const

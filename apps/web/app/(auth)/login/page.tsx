@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { ROUTES } from "@/lib/routes"
-import { SignInForm } from "@/components/forms/sign-in-form"
+import { SignInForm } from "@/app/(auth)/login/sign-in-form"
 
 export const metadata: Metadata = ROUTES["sign-in"].metadata
 

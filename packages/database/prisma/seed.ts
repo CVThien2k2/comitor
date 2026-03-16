@@ -2,12 +2,14 @@ import "dotenv/config"
 import { PrismaClient } from "../src/generated/client"
 import { hashSync } from "bcryptjs"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { DEFAULT_PERMISSIONS } from "../src/permissions"
+import { PERMISSION } from "../src/permissions"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
 const DEFAULT_PASSWORD = hashSync("123456", 10)
+
+const DEFAULT_PERMISSIONS: { code: string; description: string }[] = Object.values(PERMISSION)
 
 async function main() {
   // ─── Clean all data ────────────────────────────────────

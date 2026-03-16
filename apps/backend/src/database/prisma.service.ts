@@ -22,8 +22,11 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
         this.logger.log("Database connected")
         return
       } catch (error) {
-        this.logger.warn(`Connection attempt ${attempt}/${retries} failed`)
-        if (attempt === retries) throw error
+        this.logger.error(`Database connection attempt ${attempt}/${retries} failed: ${(error as Error).message}`)
+        if (attempt === retries) {
+          this.logger.error("Database connection failed after all retries")
+          throw error
+        }
         await new Promise((resolve) => setTimeout(resolve, delayMs * attempt))
       }
     }

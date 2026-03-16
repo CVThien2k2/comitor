@@ -11,12 +11,14 @@ import { EmailModule } from "./email/email.module"
 import { SocketModule } from "./websocket/socket.module"
 import { EventsModule } from "./events/events.module"
 import { ZaloPersonalModule } from "./events/zalo_personal/zalo_personal.module"
+import { RedisModule } from "./redis"
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
     DatabaseModule,
+    RedisModule,
     ResendModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         apiKey: configService.get<string>("RESEND_API_KEY", ""),

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common"
+import * as bcrypt from "bcryptjs"
 import { PrismaService } from "../../database/prisma.service"
 
 @Injectable()
@@ -48,6 +49,15 @@ export class UsersService {
 
   async findByIdWithPassword(id: string) {
     return this.prisma.client.user.findUnique({ where: { id } })
+  }
+
+  async updatePassword(id: string, newPassword: string) {
+    const hashed = await bcrypt.hash(newPassword, 10)
+    return this.prisma.client.user.update({
+      where: { id },
+      data: { password: hashed },
+      omit: { password: true },
+    })
   }
 
   async setOnlineStatus(id: string, isOnline: boolean) {

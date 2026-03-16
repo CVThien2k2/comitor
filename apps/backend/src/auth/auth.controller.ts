@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Request,
-  Res,
-  UnauthorizedException,
-} from "@nestjs/common"
+import { Body, Controller, HttpCode, HttpStatus, Post, Request, Res, UnauthorizedException } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import {
   ApiBadRequestResponse,
@@ -28,7 +19,9 @@ import {
 } from "../common/entities/api-response.entity"
 import { AuthService } from "./auth.service"
 import { AuthEntity, RefreshEntity } from "./entities/auth.entity"
+import { ForgotPasswordDto } from "./dto/forgot-password.dto"
 import { LoginDto } from "./dto/login.dto"
+import { ResetPasswordDto } from "./dto/reset-password.dto"
 
 const REFRESH_TOKEN_COOKIE = "refresh_token"
 
@@ -90,6 +83,28 @@ export class AuthController {
     }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: "/auth" })
     return { message: "Logout successful" }
+  }
+
+  @ApiOperation({ summary: "Forgot password - send reset email" })
+  @ApiOkResponse({ type: MessageResponseEntity })
+  @ApiBadRequestResponse({ type: BadRequestEntity })
+  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
+  @Post("forgot-password")
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto.username)
+    return { message: "Nếu tài khoản tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu qua email" }
+  }
+
+  @ApiOperation({ summary: "Reset password with token" })
+  @ApiOkResponse({ type: MessageResponseEntity })
+  @ApiBadRequestResponse({ type: BadRequestEntity })
+  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
+  @Post("reset-password")
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password)
+    return { message: "Đặt lại mật khẩu thành công" }
   }
 
   private setRefreshCookie(res: Response, token: string) {

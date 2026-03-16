@@ -1,13 +1,13 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Nunito, Geist_Mono } from "next/font/google"
 
 import "@workspace/ui/globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/providers/theme-provider"
 import { QueryProvider } from "@/providers/query-provider"
 import { cn } from "@workspace/ui/lib/utils"
 import { Toaster } from "@workspace/ui/components/sonner"
 
-const fontSans = Geist({
-  subsets: ["latin"],
+const fontSans = Nunito({
+  subsets: ["latin", "vietnamese"],
   variable: "--font-sans",
 })
 
@@ -29,8 +29,10 @@ export default function RootLayout({
     >
       <body>
         <QueryProvider>
-          <Toaster position="bottom-right" />
-          <ThemeProvider>{children}</ThemeProvider>
+          <Toaster position="bottom-right" richColors />
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

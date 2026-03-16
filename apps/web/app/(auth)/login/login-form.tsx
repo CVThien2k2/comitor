@@ -33,7 +33,7 @@ export function LoginForm() {
     onSuccess: (res) => {
       if (res.data) {
         setAuth(res.data.accessToken, res.data.user)
-        toast.success("Đăng nhập thành công")
+        toast.success(res.message)
         router.push("/")
       }
     },

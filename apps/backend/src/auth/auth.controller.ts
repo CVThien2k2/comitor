@@ -1,18 +1,15 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
   Request,
   Res,
   UnauthorizedException,
-  UseGuards,
 } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import {
-  ApiBearerAuth,
   ApiBadRequestResponse,
   ApiInternalServerErrorResponse,
   ApiOkResponse,
@@ -20,10 +17,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
-import type { User } from "@workspace/database"
 import { parseDaysToMs } from "@workspace/shared"
 import type { Request as ExpressRequest, Response } from "express"
-import { JwtAuthGuard } from "../common/guards/jwt-auth.guard"
 import {
   ApiResponseOf,
   MessageResponseEntity,
@@ -33,12 +28,7 @@ import {
 } from "../common/entities/api-response.entity"
 import { AuthService } from "./auth.service"
 import { AuthEntity, RefreshEntity } from "./entities/auth.entity"
-import { UserEntity } from "../core/users/entities/user.entity"
 import { LoginDto } from "./dto/login.dto"
-
-interface RequestWithUser extends ExpressRequest {
-  user: User
-}
 
 const REFRESH_TOKEN_COOKIE = "refresh_token"
 
@@ -100,20 +90,6 @@ export class AuthController {
     }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: "/auth" })
     return { message: "Logout successful" }
-  }
-
-  @ApiOperation({ summary: "Get current user" })
-  @ApiBearerAuth()
-  @ApiOkResponse({ type: ApiResponseOf(UserEntity) })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
-  @UseGuards(JwtAuthGuard)
-  @Get("me")
-  me(@Request() req: RequestWithUser) {
-    return {
-      message: "User retrieved successfully",
-      data: req.user,
-    }
   }
 
   private setRefreshCookie(res: Response, token: string) {

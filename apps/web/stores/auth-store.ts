@@ -5,11 +5,11 @@ import type { UserProfile } from "@workspace/shared"
 type AuthState = {
   accessToken: string | null
   user: UserProfile | null
-  isAuthenticated: boolean
 }
 
 type AuthActions = {
   setAuth: (token: string, user: UserProfile) => void
+  setUser: (user: UserProfile) => void
   logout: () => void
 }
 
@@ -18,20 +18,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     (set) => ({
       accessToken: null,
       user: null,
-      isAuthenticated: false,
 
-      setAuth: (token, user) =>
-        set({ accessToken: token, user, isAuthenticated: true }),
+      setAuth: (token, user) => set({ accessToken: token, user }),
 
-      logout: () =>
-        set({ accessToken: null, user: null, isAuthenticated: false }),
+      setUser: (user) => set({ user }),
+
+      logout: () => set({ accessToken: null, user: null }),
     }),
     {
       name: "auth-storage",
       partialize: (state) => ({
         accessToken: state.accessToken,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
       }),
     },
   ),

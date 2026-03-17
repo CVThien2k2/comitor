@@ -22,6 +22,7 @@ import { ZaloPersonalModule } from "./events/zalo_personal/zalo_personal.module"
 import { RedisModule } from "./redis"
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard"
 import { PermissionsGuard } from "./common/guards/permissions.guard"
+import { ApiModule } from "./api/api.module"
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { PermissionsGuard } from "./common/guards/permissions.guard"
     EmailModule,
     SocketModule,
     EventsModule,
-    ZaloPersonalModule
+    ZaloPersonalModule,
+    ApiModule,
   ],
   controllers: [],
   providers: [

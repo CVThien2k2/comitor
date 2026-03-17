@@ -9,6 +9,7 @@ import { EmailType } from "../utils/email"
 import { TokenService } from "./token.service"
 
 const RESET_TOKEN_PREFIX = "reset:"
+const RESET_USER_PREFIX = "reset_user:"
 
 @Injectable()
 export class AuthService {
@@ -56,10 +57,17 @@ export class AuthService {
     // Luôn trả success để tránh leak thông tin user tồn tại
     if (!user) return
 
+    // Xóa token cũ nếu có (mỗi user chỉ có 1 token active)
+    const existingHashedToken = await this.redisService.get<string>(`${RESET_USER_PREFIX}${user.id}`)
+    if (existingHashedToken) {
+      await this.redisService.del(`${RESET_TOKEN_PREFIX}${existingHashedToken}`)
+    }
+
     const token = crypto.randomBytes(32).toString("hex")
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
 
     await this.redisService.set(`${RESET_TOKEN_PREFIX}${hashedToken}`, user.id, this.resetTokenTtl)
+    await this.redisService.set(`${RESET_USER_PREFIX}${user.id}`, hashedToken, this.resetTokenTtl)
 
     const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:3000")
     const resetLink = `${frontendUrl}/reset-password?token=${token}`
@@ -83,8 +91,9 @@ export class AuthService {
 
     await this.usersService.updatePassword(userId, newPassword)
 
-    // Xóa token sau khi dùng
+    // Xóa token và reverse mapping sau khi dùng
     await this.redisService.del(redisKey)
+    await this.redisService.del(`${RESET_USER_PREFIX}${userId}`)
 
     // Revoke tất cả refresh token của user (buộc đăng nhập lại)
     this.tokenService.revokeAllByUserId(userId)

@@ -20,7 +20,7 @@ async function bootstrap() {
 
   app.use(cookieParser())
 
-  app.useStaticAssets(join(process.cwd(), 'public'));
+  app.useStaticAssets(join(process.cwd(), "public"))
   app.enableCors({
     origin: configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000",
     credentials: true,

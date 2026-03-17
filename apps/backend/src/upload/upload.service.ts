@@ -1,13 +1,10 @@
-import {
-  DeleteObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import type { PresignedData } from "@workspace/shared"
 import { randomUUID } from "crypto"
+import { Readable } from "stream"
 
 @Injectable()
 export class UploadService {
@@ -17,10 +14,7 @@ export class UploadService {
   private readonly region: string
 
   constructor(private readonly configService: ConfigService) {
-    const region = this.configService.get<string>(
-      "AWS_REGION",
-      "ap-southeast-1"
-    )
+    const region = this.configService.get<string>("AWS_REGION", "ap-southeast-1")
     const endpoint = this.configService.get<string>("AWS_ENDPOINT", "")
     this.s3 = new S3Client({
       region,
@@ -28,10 +22,7 @@ export class UploadService {
       forcePathStyle: Boolean(endpoint),
       credentials: {
         accessKeyId: this.configService.get<string>("AWS_ACCESS_KEY_ID", ""),
-        secretAccessKey: this.configService.get<string>(
-          "AWS_SECRET_ACCESS_KEY",
-          ""
-        ),
+        secretAccessKey: this.configService.get<string>("AWS_SECRET_ACCESS_KEY", ""),
       },
     })
     this.bucket = this.configService.get<string>("AWS_S3_BUCKET", "")
@@ -53,9 +44,7 @@ export class UploadService {
 
   async deleteBatch(keys: string[]) {
     const results = await Promise.all(
-      keys.map((key) =>
-        this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }))
-      )
+      keys.map((key) => this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key })))
     )
     if (results.some((r) => r.$metadata.httpStatusCode !== 204)) {
       throw new Error("Xóa tệp thất bại")
@@ -63,15 +52,9 @@ export class UploadService {
     return true
   }
 
-  buildObjectKey(params: {
-    folder: string
-    filename: string
-    prefix?: string
-  }) {
+  buildObjectKey(params: { folder: string; filename: string; prefix?: string }) {
     const { folder, filename, prefix } = params
-    const ext = filename.includes(".")
-      ? filename.substring(filename.lastIndexOf("."))
-      : ""
+    const ext = filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : ""
     const base = filename
       .replace(ext, "")
       .toLowerCase()
@@ -88,11 +71,28 @@ export class UploadService {
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`
   }
 
-  async getPresignedPutUrl(params: {
-    folder: string
-    filename: string
-    contentType: string
-  }): Promise<PresignedData> {
+  async getStream(key: string) {
+    const response = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      })
+    )
+
+    if (!(response.Body instanceof Readable)) {
+      throw new Error("Lấy dữ liệu từ S3 không thành công")
+    }
+
+    return {
+      stream: response.Body,
+      contentType: response.ContentType,
+      contentLength: response.ContentLength,
+      lastModified: response.LastModified,
+      name: key.split("/").pop() || "file",
+    }
+  }
+
+  async getPresignedPutUrl(params: { folder: string; filename: string; contentType: string }): Promise<PresignedData> {
     const key = this.buildObjectKey({
       folder: params.folder,
       filename: params.filename,

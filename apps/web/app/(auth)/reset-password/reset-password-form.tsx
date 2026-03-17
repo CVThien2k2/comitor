@@ -4,12 +4,15 @@ import { useState } from "react"
 import Link from "next/link"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "@workspace/ui/components/sonner"
 import { Icons } from "@/components/global/icons"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Field, FieldLabel, FieldError, FieldGroup } from "@workspace/ui/components/field"
 import { ROUTES } from "@/lib/routes"
+import { auth } from "@/api/auth"
 import { resetPasswordSchema, type ResetPasswordSchema } from "@/lib/schema/auth"
 
 interface ResetPasswordFormProps {
@@ -26,10 +29,20 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     defaultValues: { password: "", confirmPassword: "" },
   })
 
-  const onSubmit = async (values: ResetPasswordSchema) => {
-    // TODO: gọi API reset password
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSuccess(true)
+  const resetMutation = useMutation({
+    mutationFn: auth.resetPassword,
+    onSuccess: (res) => {
+      toast.success(res.message)
+      setIsSuccess(true)
+    },
+    onError: (error) => {
+      toast.error((error as { message?: string })?.message ?? "Có lỗi xảy ra. Vui lòng thử lại sau.")
+    },
+  })
+
+  const onSubmit = (values: ResetPasswordSchema) => {
+    console.log(token)
+    resetMutation.mutate({ token, password: values.password })
   }
 
   if (isSuccess) {
@@ -38,7 +51,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full">
-              <Icons.checkCircle className="h-8 w-8" />
+              <Icons.checkCircle className="h-8 w-8 ui-success-icon" />
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Đặt lại mật khẩu thành công!</h3>
@@ -124,8 +137,8 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+            <Button type="submit" className="w-full" disabled={resetMutation.isPending}>
+              {resetMutation.isPending ? "Đang xử lý..." : "Đặt lại mật khẩu"}
             </Button>
           </FieldGroup>
         </form>

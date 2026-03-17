@@ -5,17 +5,17 @@ import { ResetPasswordForm } from "@/app/(auth)/reset-password/reset-password-fo
 export const metadata: Metadata = ROUTES["reset-password"].metadata
 
 interface ResetPasswordPageProps {
-  searchParams: {
+  searchParams: Promise<{
     token?: string
-  }
+  }>
 }
 
-export default function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
-  const token = searchParams.token ?? ""
+export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+  const { token } = await searchParams
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-950 p-4">
-      <ResetPasswordForm token={token} />
+      <ResetPasswordForm token={token ?? ""} />
     </div>
   )
 }

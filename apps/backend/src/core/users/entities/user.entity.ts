@@ -37,3 +37,36 @@ export class UserEntity {
   @ApiProperty()
   updatedAt: Date
 }
+
+// ─── List ────────────────────────────────────────────────
+
+class RoleSummary {
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
+  id: string
+
+  @ApiProperty({ example: "admin" })
+  name: string
+}
+
+export class UserListEntity extends UserEntity {
+  @ApiProperty({ type: RoleSummary, nullable: true })
+  role: RoleSummary | null
+}
+
+// ─── Detail ──────────────────────────────────────────────
+
+class RoleDetail {
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
+  id: string
+
+  @ApiProperty({ example: "admin" })
+  name: string
+
+  @ApiProperty({ example: "Quản trị viên", nullable: true })
+  description: string | null
+}
+
+export class UserDetailEntity extends UserEntity {
+  @ApiProperty({ type: RoleDetail, nullable: true })
+  role: RoleDetail | null
+}

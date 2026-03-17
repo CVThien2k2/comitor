@@ -6,6 +6,7 @@ import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketSe
 import { EVENTS, type SocketEvent } from "@workspace/shared"
 import { Namespace, Socket } from "socket.io"
 import { WsExceptionFilter } from "../common/filters/ws-exception.filter"
+import { RoleService } from "../core/role/role.service"
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
@@ -21,7 +22,8 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly roleService: RoleService
   ) {}
 
   async handleConnection(client: Socket) {
@@ -44,10 +46,19 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.email = payload.email
 
       const userId = client.data.userId
-      const roomName = `user:${userId}`
-      await client.join(roomName)
 
-      const room = this.server.adapter?.rooms?.get(roomName)
+      // Join user room
+      const userRoom = `user:${userId}`
+      await client.join(userRoom)
+
+      // Join role room (dùng cache)
+      const roleName = await this.roleService.getUserRoleName(userId)
+      if (roleName) {
+        client.data.roleName = roleName
+        await client.join(`role:${roleName}`)
+      }
+
+      const room = this.server.adapter?.rooms?.get(userRoom)
       if (room && room.size === 1) {
         this.eventEmitter.emit(EVENTS.USER_ONLINE, { userId })
       }
@@ -57,7 +68,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
         next()
       })
 
-      this.logger.log(`Client connected: ${userId}`)
+      this.logger.log(`Client connected: ${userId} (role: ${roleName ?? "none"})`)
     } catch {
       client.disconnect()
     }
@@ -67,12 +78,11 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId
     if (!userId) return
 
-    const roomName = `user:${userId}`
+    const userRoom = `user:${userId}`
     const adapter = this.server.adapter
 
-    // 5s delay to handle page reloads gracefully
     setTimeout(() => {
-      const room = adapter?.rooms?.get(roomName)
+      const room = adapter?.rooms?.get(userRoom)
       if (!room || room.size === 0) {
         this.eventEmitter.emit(EVENTS.USER_OFFLINE, { userId })
       }
@@ -81,7 +91,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${userId}`)
   }
 
-  /** Send event to specific user(s) */
+  /** Gửi event đến user cụ thể */
   sendToUser(userIds: string[], event: SocketEvent, data?: unknown): boolean {
     try {
       let sent = false
@@ -103,8 +113,26 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  /** Broadcast event to all connected clients */
+  /** Broadcast đến tất cả trừ user chỉ định */
+  broadcastExcept(excludeUserIds: string[], event: SocketEvent, data?: unknown): void {
+    const excludeRooms = excludeUserIds.map((id) => `user:${id}`)
+    this.server.except(excludeRooms).emit(event, data || {})
+  }
+
+  /** Gửi event đến tất cả user trong 1 role */
+  sendToRole(roleName: string, event: SocketEvent, data?: unknown): void {
+    this.server.to(`role:${roleName}`).emit(event, data || {})
+  }
+
+  /** Gửi event đến 1 role, trừ user chỉ định */
+  sendToRoleExcept(roleName: string, excludeUserIds: string[], event: SocketEvent, data?: unknown): void {
+    const excludeRooms = excludeUserIds.map((id) => `user:${id}`)
+    this.server.to(`role:${roleName}`).except(excludeRooms).emit(event, data || {})
+  }
+
+  /** Broadcast đến tất cả */
   broadcast(event: SocketEvent, data?: unknown): void {
     this.server.emit(event, data || {})
   }
+
 }

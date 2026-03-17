@@ -8,6 +8,11 @@ import { AuthModule } from "./auth/auth.module"
 import { UsersModule } from "./core/users/users.module"
 import { RoleModule } from "./core/role/role.module"
 import { PermissionModule } from "./core/permission/permission.module"
+import { ConversationModule } from "./core/conversation/conversation.module"
+import { MessageModule } from "./core/message/message.module"
+import { GoldenProfileModule } from "./core/golden-profile/golden-profile.module"
+import { AccountCustomerModule } from "./core/account-customer/account-customer.module"
+import { LinkAccountModule } from "./core/link-account/link-account.module"
 import { WebhookModule } from "./webhook/webhook.module"
 import { UploadModule } from "./upload/upload.module"
 import { EmailModule } from "./email/email.module"
@@ -35,6 +40,11 @@ import { PermissionsGuard } from "./common/guards/permissions.guard"
     UsersModule,
     RoleModule,
     PermissionModule,
+    ConversationModule,
+    MessageModule,
+    GoldenProfileModule,
+    AccountCustomerModule,
+    LinkAccountModule,
     WebhookModule,
     UploadModule,
     EmailModule,

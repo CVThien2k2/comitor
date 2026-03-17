@@ -42,6 +42,24 @@ export const PERMISSION = {
   CUSTOMER_UPDATE: { code: "customer:update", description: "Update customer information" },
   CUSTOMER_DELETE: { code: "customer:delete", description: "Delete customers" },
 
+  // Golden Profile
+  GOLDEN_PROFILE_FULL: { code: "golden-profile:*", description: "Toàn quyền quản lý hồ sơ khách hàng" },
+  GOLDEN_PROFILE_READ: { code: "golden-profile:read", description: "Xem hồ sơ khách hàng" },
+  GOLDEN_PROFILE_UPDATE: { code: "golden-profile:update", description: "Cập nhật hồ sơ khách hàng" },
+  GOLDEN_PROFILE_DELETE: { code: "golden-profile:delete", description: "Xóa hồ sơ khách hàng" },
+
+  // Account Customer
+  ACCOUNT_CUSTOMER_FULL: { code: "account-customer:*", description: "Toàn quyền quản lý tài khoản khách" },
+  ACCOUNT_CUSTOMER_READ: { code: "account-customer:read", description: "Xem tài khoản khách" },
+  ACCOUNT_CUSTOMER_UPDATE: { code: "account-customer:update", description: "Cập nhật tài khoản khách" },
+  ACCOUNT_CUSTOMER_DELETE: { code: "account-customer:delete", description: "Xóa tài khoản khách" },
+
+  // Link Account
+  LINK_ACCOUNT_FULL: { code: "link-account:*", description: "Toàn quyền quản lý liên kết kênh" },
+  LINK_ACCOUNT_READ: { code: "link-account:read", description: "Xem liên kết kênh" },
+  LINK_ACCOUNT_UPDATE: { code: "link-account:update", description: "Cập nhật liên kết kênh" },
+  LINK_ACCOUNT_DELETE: { code: "link-account:delete", description: "Xóa liên kết kênh" },
+
   // Upload
   UPLOAD_FULL: { code: "upload:*", description: "Full access to file management" },
   UPLOAD_CREATE: { code: "upload:create", description: "Upload files" },

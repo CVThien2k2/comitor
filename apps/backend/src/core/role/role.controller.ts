@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common"
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -13,9 +13,10 @@ import {
 } from "@nestjs/swagger"
 import { P } from "@workspace/database"
 import { Permissions } from "../../common/decorators/permissions.decorator"
+import { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import {
+  ApiPaginatedResponseOf,
   ApiResponseOf,
-  ApiResponseOfArray,
   BadRequestEntity,
   ConflictEntity,
   ForbiddenEntity,
@@ -24,7 +25,7 @@ import {
   NotFoundEntity,
   UnauthorizedEntity,
 } from "../../common/entities/api-response.entity"
-import { RoleWithPermissionsEntity } from "./entities/role.entity"
+import { RoleEntity, RoleWithPermissionsEntity } from "./entities/role.entity"
 import { RoleService } from "./role.service"
 import { CreateRoleDto } from "./dto/create-role.dto"
 import { UpdateRoleDto } from "./dto/update-role.dto"
@@ -39,12 +40,12 @@ export class RoleController {
   constructor(private readonly roleService: RoleService) {}
 
   @ApiOperation({ summary: "Lấy danh sách vai trò" })
-  @ApiOkResponse({ type: ApiResponseOfArray(RoleWithPermissionsEntity) })
+  @ApiOkResponse({ type: ApiPaginatedResponseOf(RoleEntity) })
   @Permissions(P.ROLE_READ)
   @Get()
-  async findAll() {
-    const roles = await this.roleService.findAll()
-    return { message: "Lấy danh sách vai trò thành công", data: roles }
+  async findAll(@Query() query: PaginationQueryDto) {
+    const data = await this.roleService.findAll(query)
+    return { message: "Lấy danh sách vai trò thành công", data }
   }
 
   @ApiOperation({ summary: "Lấy thông tin vai trò theo ID" })

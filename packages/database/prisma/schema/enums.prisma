@@ -19,6 +19,12 @@ enum MessageSender {
   system
 }
 
+enum MessageStatus {
+  processing
+  success
+  failed
+}
+
 enum Gender {
   male
   female

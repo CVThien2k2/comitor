@@ -34,7 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (cached) return cached
 
     const user = await this.usersService.findById(payload.userId)
-    if (!user) throw new UnauthorizedException()
+    if (!user) throw new UnauthorizedException("Lỗi xác thực")
 
     await this.redisService.set(cacheKey, user, this.cacheTtl)
     return user

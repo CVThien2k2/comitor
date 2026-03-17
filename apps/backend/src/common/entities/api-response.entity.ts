@@ -75,6 +75,22 @@ export class InternalServerErrorEntity {
   message: string
 }
 
+// ─── Pagination ─────────────────────────────────────────
+
+export class PaginationMeta {
+  @ApiProperty({ example: 1 })
+  page: number
+
+  @ApiProperty({ example: 20 })
+  limit: number
+
+  @ApiProperty({ example: 100 })
+  total: number
+
+  @ApiProperty({ example: 5 })
+  totalPages: number
+}
+
 // ─── Helper ──────────────────────────────────────────────
 
 export function ApiResponseOf(dataType: Type) {
@@ -98,6 +114,31 @@ export function ApiResponseOfArray(dataType: Type) {
 
   Object.defineProperty(WrappedResponseEntity, "name", {
     value: `ApiResponseOfArray${dataType.name}`,
+  })
+
+  return WrappedResponseEntity
+}
+
+export function ApiPaginatedResponseOf(dataType: Type) {
+  class PaginatedData {
+    @ApiProperty({ type: [dataType] })
+    items: InstanceType<typeof dataType>[]
+
+    @ApiProperty({ type: PaginationMeta })
+    meta: PaginationMeta
+  }
+
+  Object.defineProperty(PaginatedData, "name", {
+    value: `PaginatedDataOf${dataType.name}`,
+  })
+
+  class WrappedResponseEntity extends ApiResponseEntity {
+    @ApiProperty({ type: PaginatedData })
+    declare data: PaginatedData
+  }
+
+  Object.defineProperty(WrappedResponseEntity, "name", {
+    value: `ApiPaginatedResponseOf${dataType.name}`,
   })
 
   return WrappedResponseEntity

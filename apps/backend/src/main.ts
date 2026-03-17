@@ -1,4 +1,5 @@
 import "dotenv/config"
+import { join } from "path"
 import { NestFactory } from "@nestjs/core"
 import { ConfigService } from "@nestjs/config"
 import { Logger, ValidationPipe } from "@nestjs/common"
@@ -10,7 +11,6 @@ import { LoggerInterceptor } from "./common/interceptors/logger.interceptor"
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter"
 import { NestExpressApplication } from "@nestjs/platform-express"
-import { join } from "path"
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
@@ -20,7 +20,7 @@ async function bootstrap() {
 
   app.use(cookieParser())
 
-  app.useStaticAssets(join(process.cwd(), 'public'));
+  app.useStaticAssets(join(process.cwd(), "public"))
   app.enableCors({
     origin: configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000",
     credentials: true,
@@ -38,7 +38,14 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter(httpAdapterHost))
 
   const config = new DocumentBuilder().setTitle("Comitor API").setVersion("1.0").addBearerAuth().build()
-  SwaggerModule.setup("docs", app, SwaggerModule.createDocument(app, config))
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup("docs", app, document, {
+    jsonDocumentUrl: "docs/json",
+    yamlDocumentUrl: "docs/yaml",
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  })
 
   const port = configService.get<number>("PORT") ?? 8000
   await app.listen(port)
@@ -46,6 +53,8 @@ async function bootstrap() {
   const env = configService.get("NODE_ENV", "development")
   logger.log(`Server is running on http://localhost:${port}`)
   logger.log(`Swagger: http://localhost:${port}/docs`)
+  logger.log(`Swagger JSON: http://localhost:${port}/docs/json`)
+  logger.log(`Swagger YAML: http://localhost:${port}/docs/yaml`)
   logger.log(`WebSocket: ws://localhost:${port}/ws`)
   logger.log(`Environment: ${env}`)
 }

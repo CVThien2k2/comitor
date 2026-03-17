@@ -10,7 +10,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(for dir:*)"
     ]
   }
 }

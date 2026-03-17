@@ -96,11 +96,35 @@ async function main() {
 
   // ─── Users ─────────────────────────────────────────────
   const users = [
-    { name: "System", email: "system@comitor.io", username: "admin", password: DEFAULT_PASSWORD, roleId: systemRole.id },
-    { name: "Alice Nguyễn", email: "alice@comitor.io", username: "alice", password: DEFAULT_PASSWORD, roleId: adminRole.id },
+    {
+      name: "System",
+      email: "system@comitor.io",
+      username: "admin",
+      password: DEFAULT_PASSWORD,
+      roleId: systemRole.id,
+    },
+    {
+      name: "Alice Nguyễn",
+      email: "alice@comitor.io",
+      username: "alice",
+      password: DEFAULT_PASSWORD,
+      roleId: adminRole.id,
+    },
     { name: "Bob Trần", email: "bob@comitor.io", username: "bob", password: DEFAULT_PASSWORD, roleId: userRole.id },
-    { name: "Charlie Lê", email: "charlie@comitor.io", username: "charlie", password: DEFAULT_PASSWORD, roleId: userRole.id },
-    { name: "Diana Phạm", email: "diana@comitor.io", username: "diana", password: DEFAULT_PASSWORD, roleId: adminRole.id },
+    {
+      name: "Charlie Lê",
+      email: "charlie@comitor.io",
+      username: "charlie",
+      password: DEFAULT_PASSWORD,
+      roleId: userRole.id,
+    },
+    {
+      name: "Diana Phạm",
+      email: "diana@comitor.io",
+      username: "diana",
+      password: DEFAULT_PASSWORD,
+      roleId: adminRole.id,
+    },
   ]
 
   for (const user of users) {
@@ -116,17 +140,64 @@ async function main() {
 
   // ─── Golden Profiles ───────────────────────────────────
   const goldenProfiles = [
-    { fullName: "Nguyễn Văn An", gender: "male" as const, primaryPhone: "0901234567", primaryEmail: "an.nguyen@gmail.com", city: "Hồ Chí Minh", customerType: "individual" as const, memberTier: "gold" as const },
-    { fullName: "Trần Thị Bình", gender: "female" as const, primaryPhone: "0912345678", primaryEmail: "binh.tran@gmail.com", city: "Hà Nội", customerType: "individual" as const, memberTier: "silver" as const },
-    { fullName: "Lê Hoàng Cường", gender: "male" as const, primaryPhone: "0923456789", primaryEmail: "cuong.le@gmail.com", city: "Đà Nẵng", customerType: "business" as const, memberTier: "platinum" as const },
-    { fullName: "Phạm Minh Dũng", gender: "male" as const, primaryPhone: "0934567890", primaryEmail: "dung.pham@gmail.com", city: "Hồ Chí Minh", customerType: "individual" as const },
-    { fullName: "Võ Thị Em", gender: "female" as const, primaryPhone: "0945678901", primaryEmail: "em.vo@gmail.com", city: "Cần Thơ", customerType: "individual" as const, memberTier: "bronze" as const },
+    {
+      fullName: "Nguyễn Văn An",
+      gender: "male" as const,
+      primaryPhone: "0901234567",
+      primaryEmail: "an.nguyen@gmail.com",
+      city: "Hồ Chí Minh",
+      customerType: "individual" as const,
+      memberTier: "gold" as const,
+    },
+    {
+      fullName: "Trần Thị Bình",
+      gender: "female" as const,
+      primaryPhone: "0912345678",
+      primaryEmail: "binh.tran@gmail.com",
+      city: "Hà Nội",
+      customerType: "individual" as const,
+      memberTier: "silver" as const,
+    },
+    {
+      fullName: "Lê Hoàng Cường",
+      gender: "male" as const,
+      primaryPhone: "0923456789",
+      primaryEmail: "cuong.le@gmail.com",
+      city: "Đà Nẵng",
+      customerType: "business" as const,
+      memberTier: "platinum" as const,
+    },
+    {
+      fullName: "Phạm Minh Dũng",
+      gender: "male" as const,
+      primaryPhone: "0934567890",
+      primaryEmail: "dung.pham@gmail.com",
+      city: "Hồ Chí Minh",
+      customerType: "individual" as const,
+    },
+    {
+      fullName: "Võ Thị Em",
+      gender: "female" as const,
+      primaryPhone: "0945678901",
+      primaryEmail: "em.vo@gmail.com",
+      city: "Cần Thơ",
+      customerType: "individual" as const,
+      memberTier: "bronze" as const,
+    },
   ]
 
   for (const gp of goldenProfiles) {
     await prisma.goldenProfile.create({ data: gp })
   }
-  const createdProfiles = await prisma.goldenProfile.findMany()
+  const createdProfiles = await prisma.goldenProfile.findMany({ orderBy: { createdAt: "asc" } })
+  if (createdProfiles.length < 5) {
+    throw new Error(`Expected at least 5 golden profiles, got ${createdProfiles.length}`)
+  }
+  const gp0 = createdProfiles[0]!
+  const gp1 = createdProfiles[1]!
+  const gp2 = createdProfiles[2]!
+  const gp3 = createdProfiles[3]!
+  const gp4 = createdProfiles[4]!
   console.log(`Seeded ${goldenProfiles.length} golden profiles`)
 
   // ─── Link Accounts ─────────────────────────────────────
@@ -134,9 +205,24 @@ async function main() {
   const aliceUser = userMap.get("alice")!
 
   const linkAccounts = [
-    { provider: "zalo_oa" as const, linkedByUserId: systemUser.id, displayName: "Comitor Zalo OA", accountId: "zalo_oa_001" },
-    { provider: "facebook" as const, linkedByUserId: systemUser.id, displayName: "Comitor Facebook", accountId: "fb_001" },
-    { provider: "zalo_personal" as const, linkedByUserId: aliceUser.id, displayName: "Alice Zalo", accountId: "zalo_personal_001" },
+    {
+      provider: "zalo_oa" as const,
+      linkedByUserId: systemUser.id,
+      displayName: "Comitor Zalo OA",
+      accountId: "zalo_oa_001",
+    },
+    {
+      provider: "facebook" as const,
+      linkedByUserId: systemUser.id,
+      displayName: "Comitor Facebook",
+      accountId: "fb_001",
+    },
+    {
+      provider: "zalo_personal" as const,
+      linkedByUserId: aliceUser.id,
+      displayName: "Alice Zalo",
+      accountId: "zalo_personal_001",
+    },
   ]
 
   for (const la of linkAccounts) {
@@ -150,46 +236,109 @@ async function main() {
   const facebook = createdLinkAccounts.find((la) => la.accountId === "fb_001")!
 
   const accountCustomers = [
-    { accountId: "cust_zalo_001", linkedAccountId: zaloOA.id, goldenProfileId: createdProfiles[0].id, avatarUrl: null },
-    { accountId: "cust_zalo_002", linkedAccountId: zaloOA.id, goldenProfileId: createdProfiles[1].id, avatarUrl: null },
-    { accountId: "cust_fb_001", linkedAccountId: facebook.id, goldenProfileId: createdProfiles[2].id, avatarUrl: null },
-    { accountId: "cust_zalo_003", linkedAccountId: zaloOA.id, goldenProfileId: createdProfiles[3].id, avatarUrl: null },
-    { accountId: "cust_fb_002", linkedAccountId: facebook.id, goldenProfileId: createdProfiles[4].id, avatarUrl: null },
+    { accountId: "cust_zalo_001", linkedAccountId: zaloOA.id, goldenProfileId: gp0.id, avatarUrl: null },
+    { accountId: "cust_zalo_002", linkedAccountId: zaloOA.id, goldenProfileId: gp1.id, avatarUrl: null },
+    { accountId: "cust_fb_001", linkedAccountId: facebook.id, goldenProfileId: gp2.id, avatarUrl: null },
+    { accountId: "cust_zalo_003", linkedAccountId: zaloOA.id, goldenProfileId: gp3.id, avatarUrl: null },
+    { accountId: "cust_fb_002", linkedAccountId: facebook.id, goldenProfileId: gp4.id, avatarUrl: null },
   ]
 
   for (const ac of accountCustomers) {
     await prisma.accountCustomer.create({ data: ac })
   }
-  const createdAccountCustomers = await prisma.accountCustomer.findMany()
+  const createdAccountCustomers = await prisma.accountCustomer.findMany({ orderBy: { createdAt: "asc" } })
+  if (createdAccountCustomers.length < 5) {
+    throw new Error(`Expected at least 5 account customers, got ${createdAccountCustomers.length}`)
+  }
+  const ac0 = createdAccountCustomers[0]!
+  const ac1 = createdAccountCustomers[1]!
+  const ac2 = createdAccountCustomers[2]!
+  const ac3 = createdAccountCustomers[3]!
+  const ac4 = createdAccountCustomers[4]!
   console.log(`Seeded ${accountCustomers.length} account customers`)
 
   // ─── Conversations ─────────────────────────────────────
   const conversations = [
-    { linkedAccountId: zaloOA.id, name: "Nguyễn Văn An", type: "personal" as const, tag: "business" as const, journeyState: "searching" as const, accountCustomerId: createdAccountCustomers[0].id, lastActivityAt: new Date("2026-03-17T08:00:00Z") },
-    { linkedAccountId: zaloOA.id, name: "Trần Thị Bình", type: "personal" as const, tag: "other" as const, accountCustomerId: createdAccountCustomers[1].id, lastActivityAt: new Date("2026-03-17T09:30:00Z") },
-    { linkedAccountId: facebook.id, name: "Lê Hoàng Cường", type: "personal" as const, tag: "business" as const, journeyState: "ticketed" as const, accountCustomerId: createdAccountCustomers[2].id, lastActivityAt: new Date("2026-03-16T15:00:00Z") },
-    { linkedAccountId: zaloOA.id, name: "Phạm Minh Dũng", type: "personal" as const, tag: "other" as const, journeyState: "holding" as const, accountCustomerId: createdAccountCustomers[3].id, lastActivityAt: new Date("2026-03-15T10:00:00Z") },
-    { linkedAccountId: facebook.id, name: "Võ Thị Em", type: "personal" as const, tag: "business" as const, journeyState: "searching" as const, accountCustomerId: createdAccountCustomers[4].id, lastActivityAt: new Date("2026-03-17T10:00:00Z") },
-    { linkedAccountId: zaloOA.id, name: "Nhóm tư vấn tour Đà Lạt", type: "group" as const, tag: "business" as const, idGroup: "group_001", lastActivityAt: new Date("2026-03-17T07:00:00Z") },
+    {
+      linkedAccountId: zaloOA.id,
+      name: "Nguyễn Văn An",
+      type: "personal" as const,
+      tag: "business" as const,
+      journeyState: "searching" as const,
+      accountCustomerId: ac0.id,
+      lastActivityAt: new Date("2026-03-17T08:00:00Z"),
+    },
+    {
+      linkedAccountId: zaloOA.id,
+      name: "Trần Thị Bình",
+      type: "personal" as const,
+      tag: "other" as const,
+      accountCustomerId: ac1.id,
+      lastActivityAt: new Date("2026-03-17T09:30:00Z"),
+    },
+    {
+      linkedAccountId: facebook.id,
+      name: "Lê Hoàng Cường",
+      type: "personal" as const,
+      tag: "business" as const,
+      journeyState: "ticketed" as const,
+      accountCustomerId: ac2.id,
+      lastActivityAt: new Date("2026-03-16T15:00:00Z"),
+    },
+    {
+      linkedAccountId: zaloOA.id,
+      name: "Phạm Minh Dũng",
+      type: "personal" as const,
+      tag: "other" as const,
+      journeyState: "holding" as const,
+      accountCustomerId: ac3.id,
+      lastActivityAt: new Date("2026-03-15T10:00:00Z"),
+    },
+    {
+      linkedAccountId: facebook.id,
+      name: "Võ Thị Em",
+      type: "personal" as const,
+      tag: "business" as const,
+      journeyState: "searching" as const,
+      accountCustomerId: ac4.id,
+      lastActivityAt: new Date("2026-03-17T10:00:00Z"),
+    },
+    {
+      linkedAccountId: zaloOA.id,
+      name: "Nhóm tư vấn tour Đà Lạt",
+      type: "group" as const,
+      tag: "business" as const,
+      idGroup: "group_001",
+      lastActivityAt: new Date("2026-03-17T07:00:00Z"),
+    },
   ]
 
   for (const conv of conversations) {
     await prisma.conversation.create({ data: conv })
   }
   const createdConversations = await prisma.conversation.findMany({ orderBy: { createdAt: "asc" } })
+  if (createdConversations.length < 6) {
+    throw new Error(`Expected at least 6 conversations, got ${createdConversations.length}`)
+  }
+  const c0 = createdConversations[0]!
+  const c1 = createdConversations[1]!
+  const c2 = createdConversations[2]!
+  const c3 = createdConversations[3]!
+  const c4 = createdConversations[4]!
+  const c5 = createdConversations[5]!
   console.log(`Seeded ${conversations.length} conversations`)
 
   // ─── Conversation Customers ────────────────────────────
   const conversationCustomers = [
-    { conversationId: createdConversations[0].id, accountCustomerId: createdAccountCustomers[0].id },
-    { conversationId: createdConversations[1].id, accountCustomerId: createdAccountCustomers[1].id },
-    { conversationId: createdConversations[2].id, accountCustomerId: createdAccountCustomers[2].id },
-    { conversationId: createdConversations[3].id, accountCustomerId: createdAccountCustomers[3].id },
-    { conversationId: createdConversations[4].id, accountCustomerId: createdAccountCustomers[4].id },
+    { conversationId: c0.id, accountCustomerId: ac0.id },
+    { conversationId: c1.id, accountCustomerId: ac1.id },
+    { conversationId: c2.id, accountCustomerId: ac2.id },
+    { conversationId: c3.id, accountCustomerId: ac3.id },
+    { conversationId: c4.id, accountCustomerId: ac4.id },
     // Nhóm: nhiều khách
-    { conversationId: createdConversations[5].id, accountCustomerId: createdAccountCustomers[0].id, isAdmin: true },
-    { conversationId: createdConversations[5].id, accountCustomerId: createdAccountCustomers[1].id },
-    { conversationId: createdConversations[5].id, accountCustomerId: createdAccountCustomers[3].id },
+    { conversationId: c5.id, accountCustomerId: ac0.id, isAdmin: true },
+    { conversationId: c5.id, accountCustomerId: ac1.id },
+    { conversationId: c5.id, accountCustomerId: ac3.id },
   ]
 
   for (const cc of conversationCustomers) {
@@ -202,32 +351,149 @@ async function main() {
 
   const messages = [
     // Conversation 1: An hỏi tour
-    { conversationId: createdConversations[0].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[0].id, content: "Xin chào, tôi muốn hỏi về tour Đà Lạt 3 ngày 2 đêm", status: "success" as const, createdAt: new Date("2026-03-17T08:00:00Z") },
-    { conversationId: createdConversations[0].id, senderType: "agent" as const, userId: aliceUser.id, content: "Chào anh An! Dạ bên em có tour Đà Lạt 3N2Đ giá 2.500.000đ/người ạ. Anh muốn đi ngày nào ạ?", status: "success" as const, createdAt: new Date("2026-03-17T08:02:00Z") },
-    { conversationId: createdConversations[0].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[0].id, content: "Tour bao gồm những gì vậy?", status: "success" as const, createdAt: new Date("2026-03-17T08:05:00Z") },
-    { conversationId: createdConversations[0].id, senderType: "agent" as const, userId: aliceUser.id, content: "Tour bao gồm xe đưa đón, khách sạn 3 sao, ăn sáng, hướng dẫn viên và vé tham quan các điểm: Thung lũng Tình Yêu, Langbiang, chùa Linh Phước ạ", status: "success" as const, createdAt: new Date("2026-03-17T08:07:00Z") },
+    {
+      conversationId: c0.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac0.id,
+      content: "Xin chào, tôi muốn hỏi về tour Đà Lạt 3 ngày 2 đêm",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T08:00:00Z"),
+    },
+    {
+      conversationId: c0.id,
+      senderType: "agent" as const,
+      userId: aliceUser.id,
+      content: "Chào anh An! Dạ bên em có tour Đà Lạt 3N2Đ giá 2.500.000đ/người ạ. Anh muốn đi ngày nào ạ?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T08:02:00Z"),
+    },
+    {
+      conversationId: c0.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac0.id,
+      content: "Tour bao gồm những gì vậy?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T08:05:00Z"),
+    },
+    {
+      conversationId: c0.id,
+      senderType: "agent" as const,
+      userId: aliceUser.id,
+      content:
+        "Tour bao gồm xe đưa đón, khách sạn 3 sao, ăn sáng, hướng dẫn viên và vé tham quan các điểm: Thung lũng Tình Yêu, Langbiang, chùa Linh Phước ạ",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T08:07:00Z"),
+    },
 
     // Conversation 2: Bình hỏi vé máy bay
-    { conversationId: createdConversations[1].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[1].id, content: "Cho mình hỏi giá vé máy bay HN - SGN ngày 25/3 với", status: "success" as const, createdAt: new Date("2026-03-17T09:30:00Z") },
-    { conversationId: createdConversations[1].id, senderType: "agent" as const, userId: bobUser.id, content: "Chào chị Bình! Em check giá cho chị nhé, chờ em 1 chút ạ", status: "success" as const, createdAt: new Date("2026-03-17T09:32:00Z") },
-    { conversationId: createdConversations[1].id, senderType: "agent" as const, userId: bobUser.id, content: "Dạ ngày 25/3 có các chuyến:\n- VN 201: 06:00 - 08:10 | 1.200.000đ\n- VJ 123: 09:30 - 11:40 | 890.000đ\n- BB 456: 14:00 - 16:10 | 950.000đ\nChị muốn đặt chuyến nào ạ?", status: "success" as const, createdAt: new Date("2026-03-17T09:35:00Z") },
+    {
+      conversationId: c1.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac1.id,
+      content: "Cho mình hỏi giá vé máy bay HN - SGN ngày 25/3 với",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T09:30:00Z"),
+    },
+    {
+      conversationId: c1.id,
+      senderType: "agent" as const,
+      userId: bobUser.id,
+      content: "Chào chị Bình! Em check giá cho chị nhé, chờ em 1 chút ạ",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T09:32:00Z"),
+    },
+    {
+      conversationId: c1.id,
+      senderType: "agent" as const,
+      userId: bobUser.id,
+      content:
+        "Dạ ngày 25/3 có các chuyến:\n- VN 201: 06:00 - 08:10 | 1.200.000đ\n- VJ 123: 09:30 - 11:40 | 890.000đ\n- BB 456: 14:00 - 16:10 | 950.000đ\nChị muốn đặt chuyến nào ạ?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T09:35:00Z"),
+    },
 
     // Conversation 3: Cường - đã có vé
-    { conversationId: createdConversations[2].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[2].id, content: "Tôi muốn đặt tour teambuilding cho công ty 30 người", status: "success" as const, createdAt: new Date("2026-03-16T14:00:00Z") },
-    { conversationId: createdConversations[2].id, senderType: "agent" as const, userId: aliceUser.id, content: "Chào anh Cường! Tour teambuilding 30 người bên em báo giá 45.000.000đ bao gồm xe, khách sạn, team building activities và ăn uống. Anh xem qua proposal em gửi nhé!", status: "success" as const, createdAt: new Date("2026-03-16T14:15:00Z") },
-    { conversationId: createdConversations[2].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[2].id, content: "OK, công ty đồng ý. Chuyển khoản đặt cọc 50% nhé", status: "success" as const, createdAt: new Date("2026-03-16T15:00:00Z") },
+    {
+      conversationId: c2.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac2.id,
+      content: "Tôi muốn đặt tour teambuilding cho công ty 30 người",
+      status: "success" as const,
+      createdAt: new Date("2026-03-16T14:00:00Z"),
+    },
+    {
+      conversationId: c2.id,
+      senderType: "agent" as const,
+      userId: aliceUser.id,
+      content:
+        "Chào anh Cường! Tour teambuilding 30 người bên em báo giá 45.000.000đ bao gồm xe, khách sạn, team building activities và ăn uống. Anh xem qua proposal em gửi nhé!",
+      status: "success" as const,
+      createdAt: new Date("2026-03-16T14:15:00Z"),
+    },
+    {
+      conversationId: c2.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac2.id,
+      content: "OK, công ty đồng ý. Chuyển khoản đặt cọc 50% nhé",
+      status: "success" as const,
+      createdAt: new Date("2026-03-16T15:00:00Z"),
+    },
 
     // Conversation 4: Dũng - holding
-    { conversationId: createdConversations[3].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[3].id, content: "Tour Phú Quốc cuối tuần này còn chỗ không?", status: "success" as const, createdAt: new Date("2026-03-15T10:00:00Z") },
+    {
+      conversationId: c3.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac3.id,
+      content: "Tour Phú Quốc cuối tuần này còn chỗ không?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-15T10:00:00Z"),
+    },
 
     // Conversation 5: Em - đang tìm
-    { conversationId: createdConversations[4].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[4].id, content: "Hi, mình muốn tìm tour châu Âu tháng 6", status: "success" as const, createdAt: new Date("2026-03-17T10:00:00Z") },
-    { conversationId: createdConversations[4].id, senderType: "agent" as const, userId: aliceUser.id, content: "Chào chị Em! Tháng 6 bên em có 2 tour châu Âu:\n1. Pháp - Thụy Sĩ - Ý 10N9Đ: 52.000.000đ\n2. Đức - Hà Lan - Bỉ 8N7Đ: 45.000.000đ\nChị quan tâm tour nào ạ?", status: "success" as const, createdAt: new Date("2026-03-17T10:05:00Z") },
+    {
+      conversationId: c4.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac4.id,
+      content: "Hi, mình muốn tìm tour châu Âu tháng 6",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T10:00:00Z"),
+    },
+    {
+      conversationId: c4.id,
+      senderType: "agent" as const,
+      userId: aliceUser.id,
+      content:
+        "Chào chị Em! Tháng 6 bên em có 2 tour châu Âu:\n1. Pháp - Thụy Sĩ - Ý 10N9Đ: 52.000.000đ\n2. Đức - Hà Lan - Bỉ 8N7Đ: 45.000.000đ\nChị quan tâm tour nào ạ?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T10:05:00Z"),
+    },
 
     // Conversation 6: Nhóm tư vấn
-    { conversationId: createdConversations[5].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[0].id, content: "Mọi người ơi, ai đi tour Đà Lạt không?", status: "success" as const, createdAt: new Date("2026-03-17T06:50:00Z") },
-    { conversationId: createdConversations[5].id, senderType: "customer" as const, accountCustomerId: createdAccountCustomers[1].id, content: "Mình đi nè! Đi ngày nào vậy?", status: "success" as const, createdAt: new Date("2026-03-17T06:55:00Z") },
-    { conversationId: createdConversations[5].id, senderType: "agent" as const, userId: bobUser.id, content: "Chào mọi người! Tour Đà Lạt gần nhất khởi hành ngày 22/3 ạ. Nhóm mình bao nhiêu người để em báo giá nhé!", status: "success" as const, createdAt: new Date("2026-03-17T07:00:00Z") },
+    {
+      conversationId: c5.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac0.id,
+      content: "Mọi người ơi, ai đi tour Đà Lạt không?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T06:50:00Z"),
+    },
+    {
+      conversationId: c5.id,
+      senderType: "customer" as const,
+      accountCustomerId: ac1.id,
+      content: "Mình đi nè! Đi ngày nào vậy?",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T06:55:00Z"),
+    },
+    {
+      conversationId: c5.id,
+      senderType: "agent" as const,
+      userId: bobUser.id,
+      content:
+        "Chào mọi người! Tour Đà Lạt gần nhất khởi hành ngày 22/3 ạ. Nhóm mình bao nhiêu người để em báo giá nhé!",
+      status: "success" as const,
+      createdAt: new Date("2026-03-17T07:00:00Z"),
+    },
   ]
 
   for (const msg of messages) {
@@ -237,10 +503,28 @@ async function main() {
 
   // ─── Message Attachments ───────────────────────────────
   const allMessages = await prisma.message.findMany({ orderBy: { createdAt: "asc" } })
+  if (allMessages.length < 14) {
+    throw new Error(`Expected at least 14 messages, got ${allMessages.length}`)
+  }
+  const m9 = allMessages[9]!
+  const m13 = allMessages[13]!
 
   const attachments = [
-    { messageId: allMessages[9].id, fileName: "proposal-teambuilding.pdf", fileType: "file", fileUrl: "https://storage.comitor.io/files/proposal-teambuilding.pdf", fileMimeType: "application/pdf" },
-    { messageId: allMessages[13].id, fileName: "tour-chau-au-brochure.jpg", fileType: "image", fileUrl: "https://storage.comitor.io/images/tour-chau-au-brochure.jpg", thumbnailUrl: "https://storage.comitor.io/thumbs/tour-chau-au-brochure.jpg", fileMimeType: "image/jpeg" },
+    {
+      messageId: m9.id,
+      fileName: "proposal-teambuilding.pdf",
+      fileType: "file",
+      fileUrl: "https://storage.comitor.io/files/proposal-teambuilding.pdf",
+      fileMimeType: "application/pdf",
+    },
+    {
+      messageId: m13.id,
+      fileName: "tour-chau-au-brochure.jpg",
+      fileType: "image",
+      fileUrl: "https://storage.comitor.io/images/tour-chau-au-brochure.jpg",
+      thumbnailUrl: "https://storage.comitor.io/thumbs/tour-chau-au-brochure.jpg",
+      fileMimeType: "image/jpeg",
+    },
   ]
 
   for (const att of attachments) {

@@ -17,6 +17,7 @@ import {
   UnauthorizedEntity,
   InternalServerErrorEntity,
 } from "../common/entities/api-response.entity"
+import { Public } from "../common/decorators/public.decorator"
 import { AuthService } from "./auth.service"
 import { AuthEntity, RefreshEntity } from "./entities/auth.entity"
 import { ForgotPasswordDto } from "./dto/forgot-password.dto"
@@ -26,6 +27,8 @@ import { ResetPasswordDto } from "./dto/reset-password.dto"
 const REFRESH_TOKEN_COOKIE = "refresh_token"
 
 @ApiTags("Auth")
+@Public()
+@ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -33,11 +36,10 @@ export class AuthController {
     private readonly configService: ConfigService
   ) {}
 
-  @ApiOperation({ summary: "Login" })
+  @ApiOperation({ summary: "Đăng nhập" })
   @ApiOkResponse({ type: ApiResponseOf(AuthEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
@@ -53,27 +55,25 @@ export class AuthController {
     }
   }
 
-  @ApiOperation({ summary: "Refresh session" })
+  @ApiOperation({ summary: "Làm mới phiên đăng nhập" })
   @ApiOkResponse({ type: ApiResponseOf(RefreshEntity) })
   @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   async refresh(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const oldToken = req.cookies?.[REFRESH_TOKEN_COOKIE]
-    if (!oldToken) throw new UnauthorizedException("Refresh token not found")
+    if (!oldToken) throw new UnauthorizedException("Không tìm thấy refresh token")
 
     const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.refresh(oldToken)
     this.setRefreshCookie(res, refreshToken)
     return {
-      message: "Token refreshed successfully",
+      message: "Làm mới token thành công",
       data: { accessToken, accessExpiresAt, user },
     }
   }
 
-  @ApiOperation({ summary: "Logout" })
+  @ApiOperation({ summary: "Đăng xuất" })
   @ApiOkResponse({ type: MessageResponseEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("logout")
   @HttpCode(HttpStatus.OK)
   async logout(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
@@ -82,13 +82,12 @@ export class AuthController {
       await this.authService.logout(token)
     }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: "/auth" })
-    return { message: "Logout successful" }
+    return { message: "Đăng xuất thành công" }
   }
 
-  @ApiOperation({ summary: "Forgot password - send reset email" })
+  @ApiOperation({ summary: "Quên mật khẩu - gửi email đặt lại" })
   @ApiOkResponse({ type: MessageResponseEntity })
   @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("forgot-password")
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -96,10 +95,9 @@ export class AuthController {
     return { message: "Nếu tài khoản tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu qua email" }
   }
 
-  @ApiOperation({ summary: "Reset password with token" })
+  @ApiOperation({ summary: "Đặt lại mật khẩu bằng token" })
   @ApiOkResponse({ type: MessageResponseEntity })
   @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {

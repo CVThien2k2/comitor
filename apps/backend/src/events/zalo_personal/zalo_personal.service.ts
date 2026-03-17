@@ -74,12 +74,12 @@ export class ZaloPersonalService {
 
           if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeExpired) {
             session.status = "failed"
-            session.error = "QR code expired"
+            session.error = "Mã QR đã hết hạn"
           }
 
           if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeDeclined) {
             session.status = "failed"
-            session.error = "QR code was declined"
+            session.error = "Mã QR đã bị từ chối"
           }
         })
         .then((api: any) => {
@@ -109,7 +109,7 @@ export class ZaloPersonalService {
         })
         .catch((error: unknown) => {
           const message =
-            error instanceof Error ? error.message : "Login with QR failed"
+            error instanceof Error ? error.message : "Đăng nhập bằng mã QR thất bại"
 
             session.status = "failed"
             session.error = message
@@ -125,7 +125,7 @@ export class ZaloPersonalService {
     const session = this.sessions.get(sessionId)
 
     if (!session) {
-      throw new NotFoundException("Login session not found")
+      throw new NotFoundException("Không tìm thấy phiên đăng nhập")
     }
 
     return session

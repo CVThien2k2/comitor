@@ -11,7 +11,7 @@ export class WsExceptionFilter extends BaseWsExceptionFilter {
     const error =
       exception instanceof WsException
         ? exception.getError()
-        : { message: "Internal server error" }
+        : { message: "Lỗi máy chủ nội bộ" }
 
     this.logger.error(`WebSocket error: ${JSON.stringify(error)}`)
 

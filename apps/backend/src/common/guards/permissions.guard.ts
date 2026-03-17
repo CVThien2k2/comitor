@@ -1,15 +1,25 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common"
+import { ConfigService } from "@nestjs/config"
 import { Reflector } from "@nestjs/core"
 import type { PermissionCode } from "@workspace/database"
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator"
 import { UsersService } from "../../core/users/users.service"
+import { RedisService } from "../../redis"
+
+const PERMISSIONS_CACHE_PREFIX = "permissions:"
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
+  private readonly cacheTtl: number
+
   constructor(
     private reflector: Reflector,
-    private usersService: UsersService
-  ) {}
+    private usersService: UsersService,
+    private redisService: RedisService,
+    private configService: ConfigService
+  ) {
+    this.cacheTtl = this.configService.get<number>("REDIS_CACHE_TTL", 300)
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<PermissionCode[]>(PERMISSIONS_KEY, [
@@ -20,10 +30,13 @@ export class PermissionsGuard implements CanActivate {
     if (!required || required.length === 0) return true
 
     const req = context.switchToHttp().getRequest()
-    const user = await this.usersService.findByIdWithRole(req.user?.id)
-    if (!user?.role?.rolePermissions) throw new ForbiddenException("No permissions assigned")
+    if (!req.user?.id) throw new ForbiddenException("Người dùng chưa được gán quyền nào")
 
-    const userPermissions = new Set<string>(user.role.rolePermissions.map((rp) => rp.permission.code))
+    const userPermissions = await this.getUserPermissions(req.user.id)
+    if (!userPermissions) {
+      throw new ForbiddenException("Người dùng chưa được gán quyền nào")
+    }
+
     if (userPermissions.has("*")) return true
 
     const hasAll = required.every((perm) => {
@@ -33,9 +46,24 @@ export class PermissionsGuard implements CanActivate {
     })
 
     if (!hasAll) {
-      throw new ForbiddenException("Insufficient permissions")
+      throw new ForbiddenException("Bạn không có đủ quyền để thực hiện hành động này")
     }
 
     return true
+  }
+
+  private async getUserPermissions(userId: string): Promise<Set<string> | null> {
+    const cacheKey = `${PERMISSIONS_CACHE_PREFIX}${userId}`
+
+    const cached = await this.redisService.get<string[]>(cacheKey)
+    if (cached) return new Set(cached)
+
+    const user = await this.usersService.findByIdWithRole(userId)
+    if (!user?.role?.rolePermissions) return null
+
+    const codes = user.role.rolePermissions.map((rp) => rp.permission.code)
+    await this.redisService.set(cacheKey, codes, this.cacheTtl)
+
+    return new Set(codes)
   }
 }

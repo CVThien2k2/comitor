@@ -55,19 +55,19 @@ export class TokenService {
         secret: this.configService.get<string>("JWT_REFRESH_SECRET"),
       })
     } catch {
-      throw new UnauthorizedException("Invalid refresh token")
+      throw new UnauthorizedException("Refresh token không hợp lệ")
     }
 
     const stored = await this.prisma.client.refreshToken.findUnique({
       where: { token: this.hash(token) },
     })
 
-    if (!stored) throw new UnauthorizedException("Refresh token not found")
+    if (!stored) throw new UnauthorizedException("Không tìm thấy refresh token")
 
     if (stored.expiresAt < new Date()) {
       // Xóa token hết hạn nền, không cần chờ
       this.runInBackground(this.prisma.client.refreshToken.delete({ where: { id: stored.id } }))
-      throw new UnauthorizedException("Refresh token has expired")
+      throw new UnauthorizedException("Refresh token đã hết hạn")
     }
 
     return payload

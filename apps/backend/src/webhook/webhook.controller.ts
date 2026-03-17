@@ -3,7 +3,9 @@ import { Response } from 'express';
 import { WebhookService } from "./webhook.service";
 import { ConfigService } from "@nestjs/config";
 import { MetaMessageWebhook, ZaloOAMessageWebhook } from "src/utils/types/webhook";
+import { Public } from "../common/decorators/public.decorator";
 
+@Public()
 @Controller('webhook')
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService, private readonly configService: ConfigService) {}

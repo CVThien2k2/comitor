@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from "@nestjs/common"
+import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common"
 import {
   ApiBearerAuth,
   ApiBadRequestResponse,
@@ -8,7 +8,6 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
-import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard"
 import {
   ApiResponseOf,
   ApiResponseOfArray,
@@ -25,16 +24,15 @@ import { PresignedEntity } from "./entities/upload.entity"
 
 @ApiTags("Upload")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@ApiUnauthorizedResponse({ type: UnauthorizedEntity })
+@ApiBadRequestResponse({ type: BadRequestEntity })
+@ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
 @Controller("upload")
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
-  @ApiOperation({ summary: "Get presigned upload URL" })
+  @ApiOperation({ summary: "Tạo presigned URL để upload" })
   @ApiOkResponse({ type: ApiResponseOf(PresignedEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("presign")
   @HttpCode(HttpStatus.OK)
   async presign(@Body() body: CreatePresignedDto) {
@@ -43,14 +41,11 @@ export class UploadController {
       filename: body.filename,
       contentType: body.contentType,
     })
-    return { message: "Presigned URL created successfully", data }
+    return { message: "Tạo presigned URL thành công", data }
   }
 
-  @ApiOperation({ summary: "Get presigned upload URLs in batch" })
+  @ApiOperation({ summary: "Tạo danh sách presigned URL để upload" })
   @ApiOkResponse({ type: ApiResponseOfArray(PresignedEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("presign-batch")
   @HttpCode(HttpStatus.OK)
   async presignBatch(@Body() body: CreatePresignedBatchDto) {
@@ -58,30 +53,24 @@ export class UploadController {
       folder: body.folder,
       files: body.files,
     })
-    return { message: "Presigned URLs created successfully", data }
+    return { message: "Tạo danh sách presigned URL thành công", data }
   }
 
-  @ApiOperation({ summary: "Delete a file from S3" })
+  @ApiOperation({ summary: "Xóa tệp trên S3" })
   @ApiOkResponse({ type: MessageResponseEntity })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("delete")
   @HttpCode(HttpStatus.OK)
   async delete(@Body() body: DeleteFileDto) {
     await this.uploadService.delete(body.key)
-    return { message: "File deleted successfully" }
+    return { message: "Xóa tệp thành công" }
   }
 
-  @ApiOperation({ summary: "Delete multiple files from S3" })
+  @ApiOperation({ summary: "Xóa nhiều tệp trên S3" })
   @ApiOkResponse({ type: MessageResponseEntity })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
   @Post("delete-batch")
   @HttpCode(HttpStatus.OK)
   async deleteBatch(@Body() body: DeleteFileBatchDto) {
     await this.uploadService.deleteBatch(body.keys.map((item) => item.key))
-    return { message: "Files deleted successfully" }
+    return { message: "Xóa danh sách tệp thành công" }
   }
 }

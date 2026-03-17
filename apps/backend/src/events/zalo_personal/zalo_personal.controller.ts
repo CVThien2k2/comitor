@@ -1,6 +1,8 @@
 import { Controller, Get, Param, Post } from "@nestjs/common"
 import { ZaloPersonalService } from "./zalo_personal.service"
+import { Public } from "../../common/decorators/public.decorator"
 
+@Public()
 @Controller("zalo-personal")
 export class ZaloPersonalController {
   constructor(private readonly zaloPersonalService: ZaloPersonalService) {}

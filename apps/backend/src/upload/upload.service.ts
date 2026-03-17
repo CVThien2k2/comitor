@@ -46,7 +46,7 @@ export class UploadService {
       })
     )
     if (command.$metadata.httpStatusCode !== 204) {
-      throw new Error("Delete failed")
+      throw new Error("Xóa tệp thất bại")
     }
     return true
   }
@@ -58,7 +58,7 @@ export class UploadService {
       )
     )
     if (results.some((r) => r.$metadata.httpStatusCode !== 204)) {
-      throw new Error("Delete failed")
+      throw new Error("Xóa tệp thất bại")
     }
     return true
   }

@@ -30,7 +30,7 @@ export class ResponseInterceptor implements NestInterceptor {
 
         return {
           statusCode,
-          message: "OK",
+          message: "Thành công",
           ...(body != null ? { data: body } : {}),
         }
       })

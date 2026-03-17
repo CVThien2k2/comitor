@@ -13,7 +13,7 @@ const RESET_USER_PREFIX = "reset_user:"
 
 @Injectable()
 export class AuthService {
-  private readonly resetTokenTtl: number
+  private readonly cacheTtl: number
 
   constructor(
     private readonly usersService: UsersService,
@@ -22,7 +22,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly configService: ConfigService
   ) {
-    this.resetTokenTtl = this.configService.get<number>("RESET_TOKEN_TTL", 900)
+    this.cacheTtl = this.configService.get<number>("REDIS_CACHE_TTL", 300)
   }
 
   async login(username: string, password: string) {
@@ -66,8 +66,8 @@ export class AuthService {
     const token = crypto.randomBytes(32).toString("hex")
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex")
 
-    await this.redisService.set(`${RESET_TOKEN_PREFIX}${hashedToken}`, user.id, this.resetTokenTtl)
-    await this.redisService.set(`${RESET_USER_PREFIX}${user.id}`, hashedToken, this.resetTokenTtl)
+    await this.redisService.set(`${RESET_TOKEN_PREFIX}${hashedToken}`, user.id, this.cacheTtl)
+    await this.redisService.set(`${RESET_USER_PREFIX}${user.id}`, hashedToken, this.cacheTtl)
 
     const frontendUrl = this.configService.get<string>("FRONTEND_URL", "http://localhost:3000")
     const resetLink = `${frontendUrl}/reset-password?token=${token}`

@@ -1,10 +1,13 @@
 import { Module } from "@nestjs/common"
+import { APP_GUARD } from "@nestjs/core"
 import { ConfigModule, ConfigService } from "@nestjs/config"
 import { EventEmitterModule } from "@nestjs/event-emitter"
 import { ResendModule } from "nestjs-resend"
 import { DatabaseModule } from "./database/database.module"
 import { AuthModule } from "./auth/auth.module"
 import { UsersModule } from "./core/users/users.module"
+import { RoleModule } from "./core/role/role.module"
+import { PermissionModule } from "./core/permission/permission.module"
 import { WebhookModule } from "./webhook/webhook.module"
 import { UploadModule } from "./upload/upload.module"
 import { EmailModule } from "./email/email.module"
@@ -12,6 +15,8 @@ import { SocketModule } from "./websocket/socket.module"
 import { EventsModule } from "./events/events.module"
 import { ZaloPersonalModule } from "./events/zalo_personal/zalo_personal.module"
 import { RedisModule } from "./redis"
+import { JwtAuthGuard } from "./common/guards/jwt-auth.guard"
+import { PermissionsGuard } from "./common/guards/permissions.guard"
 
 @Module({
   imports: [
@@ -28,6 +33,8 @@ import { RedisModule } from "./redis"
 
     AuthModule,
     UsersModule,
+    RoleModule,
+    PermissionModule,
     WebhookModule,
     UploadModule,
     EmailModule,
@@ -36,6 +43,15 @@ import { RedisModule } from "./redis"
     ZaloPersonalModule
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
+    },
+  ],
 })
 export class AppModule {}

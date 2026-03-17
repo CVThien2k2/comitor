@@ -28,7 +28,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse =
       exception instanceof HttpException ? exception.getResponse() : null
 
-    let message = "Internal server error"
+    let message = "Lỗi máy chủ nội bộ"
     let errors: string[] | undefined
 
     if (typeof exceptionResponse === "string") {

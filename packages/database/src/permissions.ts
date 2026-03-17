@@ -17,6 +17,10 @@ export const PERMISSION = {
   ROLE_UPDATE: { code: "role:update", description: "Update role information" },
   ROLE_DELETE: { code: "role:delete", description: "Delete roles" },
 
+  // Permission
+  PERMISSION_FULL: { code: "permission:*", description: "Full access to permission management" },
+  PERMISSION_READ: { code: "permission:read", description: "View permission details" },
+
   // Conversation
   CONVERSATION_FULL: { code: "conversation:*", description: "Full access to conversation management" },
   CONVERSATION_CREATE: { code: "conversation:create", description: "Create new conversations" },

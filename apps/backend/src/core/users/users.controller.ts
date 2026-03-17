@@ -1,4 +1,4 @@
-import { Controller, Get, Request, UseGuards } from "@nestjs/common"
+import { Controller, Get, Request } from "@nestjs/common"
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -10,8 +10,6 @@ import {
 } from "@nestjs/swagger"
 import type { User } from "@workspace/database"
 import type { Request as ExpressRequest } from "express"
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard"
-import { PermissionsGuard } from "../../common/guards/permissions.guard"
 import { Permissions } from "../../common/decorators/permissions.decorator"
 import {
   ApiResponseOf,
@@ -29,37 +27,32 @@ interface RequestWithUser extends ExpressRequest {
 }
 
 @ApiTags("Users")
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ type: UnauthorizedEntity })
+@ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @ApiOperation({ summary: "Get current user" })
-  @ApiBearerAuth()
+  @ApiOperation({ summary: "Lấy thông tin người dùng hiện tại" })
   @ApiOkResponse({ type: ApiResponseOf(UserEntity) })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
-  @UseGuards(JwtAuthGuard)
   @Get("me")
   me(@Request() req: RequestWithUser) {
     return {
-      message: "User retrieved successfully",
+      message: "Lấy thông tin người dùng thành công",
       data: req.user,
     }
   }
 
-  @ApiOperation({ summary: "Get all users" })
-  @ApiBearerAuth()
+  @ApiOperation({ summary: "Lấy danh sách người dùng" })
   @ApiOkResponse({ type: ApiResponseOfArray(UserEntity) })
-  @ApiUnauthorizedResponse({ type: UnauthorizedEntity })
   @ApiForbiddenResponse({ type: ForbiddenEntity })
-  @ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(P.USER_READ)
   @Get()
   async findAll() {
     const users = await this.usersService.findAll()
     return {
-      message: "Users retrieved successfully",
+      message: "Lấy danh sách người dùng thành công",
       data: users,
     }
   }

@@ -25,9 +25,9 @@ export function ForgotPasswordForm() {
 
   const forgotMutation = useMutation({
     mutationFn: auth.forgotPassword,
-    onSuccess: () => {
+    onSuccess: (res) => {
       setIsSubmitted(true)
-      toast.success("Nếu tài khoản tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu qua email.")
+      toast.success(res.message)
     },
     onError: (error) => {
       toast.error((error as { message?: string })?.message ?? "Không thể kết nối đến server. Vui lòng thử lại.")
@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full">
-              <Icons.checkCircle className="h-8 w-8 ui-success-icon" />
+              <Icons.checkCircle className="h-8 w-8 text-[color:var(--color-success)]" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Kiểm tra email của bạn</CardTitle>
@@ -119,7 +119,11 @@ export function ForgotPasswordForm() {
             />
 
             <Button type="submit" className="w-full" disabled={forgotMutation.isPending}>
-              {forgotMutation.isPending ? "Đang gửi..." : "Gửi hướng dẫn đặt lại"}
+              {forgotMutation.isPending ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                "Gửi hướng dẫn đặt lại"
+              )}
             </Button>
           </FieldGroup>
         </form>

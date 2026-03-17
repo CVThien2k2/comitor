@@ -14,7 +14,7 @@ export type ForgotPasswordSchema = z.infer<typeof forgotPasswordSchema>
 
 export const resetPasswordSchema = z
   .object({
-    password: z.string().min(6, "Mật khẩu phải có ít nhất 8 ký tự"),
+    password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
     confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
   })
   .refine((data) => data.password === data.confirmPassword, {

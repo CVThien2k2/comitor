@@ -41,7 +41,6 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   })
 
   const onSubmit = (values: ResetPasswordSchema) => {
-    console.log(token)
     resetMutation.mutate({ token, password: values.password })
   }
 
@@ -51,7 +50,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full">
-              <Icons.checkCircle className="h-8 w-8 ui-success-icon" />
+              <Icons.checkCircle className="h-8 w-8 text-[color:var(--color-success)]" />
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Đặt lại mật khẩu thành công!</h3>
@@ -138,7 +137,11 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             />
 
             <Button type="submit" className="w-full" disabled={resetMutation.isPending}>
-              {resetMutation.isPending ? "Đang xử lý..." : "Đặt lại mật khẩu"}
+              {resetMutation.isPending ? (
+                  <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                "Đặt lại mật khẩu"
+              )}
             </Button>
           </FieldGroup>
         </form>

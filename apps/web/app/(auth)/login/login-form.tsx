@@ -123,7 +123,11 @@ export function LoginForm() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-              {loginMutation.isPending ? "Đang đăng nhập" : "Đăng nhập"}
+              {loginMutation.isPending ? (
+                <Icons.spinner className="h-4 w-4 animate-spin" />
+              ) : (
+                "Đăng nhập"
+              )}
             </Button>
           </FieldGroup>
         </form>

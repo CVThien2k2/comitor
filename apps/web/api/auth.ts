@@ -7,7 +7,7 @@ export const auth = {
   login: (payload: LoginSchema) => api.post<ApiResponse<AuthResponse>>("/auth/login", payload),
   logout: () => api.post<ApiResponse<null>>("/auth/logout"),
   forgotPassword: (payload: ForgotPasswordSchema) =>
-    api.post<ApiResponse<null>>("/auth/forgot-password", payload),
+    api.post<ApiResponse<string>>("/auth/forgot-password", payload),
   resetPassword: (payload: { token: string; password: string }) =>
-    api.post<ApiResponse<null>>("/auth/reset-password", payload),
+    api.post<ApiResponse<string>>("/auth/reset-password", payload),
 }

@@ -1,37 +1,22 @@
-"use client"
+"use client";
 
-import { useRouter } from "next/navigation"
-import { Button } from "@workspace/ui/components/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
-import { auth } from "@/api/auth"
-import { useAuthStore } from "@/stores/auth-store"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function DashboardPage() {
-  const router = useRouter()
-  const { user, logout } = useAuthStore()
+export default function Page() {
+  const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await auth.logout()
-    } finally {
-      logout()
-      router.push("/login")
-    }
-  }
+  useEffect(() => {
+    // Redirect đến trang conversations
+    router.replace("/conversations");
+  }, [router]);
 
+  // Hiển thị loading trong lúc redirect
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Thông tin người dùng</CardTitle>
-          <Button variant="destructive" size="sm" onClick={handleLogout}>
-            Đăng xuất
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <pre className="overflow-auto rounded-md bg-muted p-4 text-sm">{JSON.stringify(user, null, 2)}</pre>
-        </CardContent>
-      </Card>
+    <div className="flex items-center justify-center min-h-svh">
+      <div className="flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">Đang chuyển hướng...</p>
+      </div>
     </div>
-  )
+  );
 }

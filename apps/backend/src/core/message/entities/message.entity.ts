@@ -22,6 +22,9 @@ export class MessageAttachmentEntity {
   @ApiProperty({ example: "image/jpeg", nullable: true })
   fileMimeType: string | null
 
+  @ApiProperty({ example: "uploads/photo.jpg", nullable: true })
+  key: string | null
+
   @ApiProperty({ nullable: true })
   createdAt: Date | null
 }
@@ -74,6 +77,9 @@ export class MessageBaseEntity {
 
   @ApiProperty({ example: "success", enum: ["processing", "success", "failed"] })
   status: string
+
+  @ApiProperty({ example: null, nullable: true })
+  externalId: string | null
 
   @ApiProperty({ example: false })
   isRead: boolean

@@ -1,12 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateGoldenProfileDto } from "./dto/update-golden-profile.dto"
+import { ProfileFetcherRegistry } from "../../platform/profile-fetchers/profile-fetcher.registry"
 
 @Injectable()
 export class GoldenProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(GoldenProfileService.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly profileFetcherRegistry: ProfileFetcherRegistry
+  ) {}
 
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
@@ -55,6 +61,44 @@ export class GoldenProfileService {
         journeyState: dto.journeyState as any,
       },
     })
+  }
+
+  async getOrCreate(userId: string, provider: string) {
+    // Lấy profile từ provider
+    const fetcher = this.profileFetcherRegistry.get(provider)
+    const profileData = fetcher ? await fetcher.getProfile(userId) : {}
+
+    // Match theo email hoặc phone
+    if (profileData.primaryEmail || profileData.primaryPhone) {
+      const conditions: { primaryEmail?: string; primaryPhone?: string }[] = []
+      if (profileData.primaryEmail) conditions.push({ primaryEmail: profileData.primaryEmail })
+      if (profileData.primaryPhone) conditions.push({ primaryPhone: profileData.primaryPhone })
+
+      const existing = await this.prisma.client.goldenProfile.findFirst({
+        where: { OR: conditions },
+      })
+
+      if (existing) {
+        this.logger.log(`Match GoldenProfile: ${existing.id}`)
+        return existing
+      }
+    }
+
+    // Tạo mới
+    const profile = await this.prisma.client.goldenProfile.create({
+      data: {
+        fullName: profileData.fullName,
+        gender: profileData.gender,
+        dateOfBirth: profileData.dateOfBirth,
+        primaryPhone: profileData.primaryPhone,
+        primaryEmail: profileData.primaryEmail,
+        address: profileData.address,
+        city: profileData.city,
+      },
+    })
+
+    this.logger.log(`Tạo GoldenProfile mới: ${profile.id}`)
+    return profile
   }
 
   async delete(id: string) {

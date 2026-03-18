@@ -15,7 +15,7 @@ class ConversationBase {
   name: string | null
 
   @ApiProperty({ example: null, nullable: true })
-  idGroup: string | null
+  externalId: string | null
 
   @ApiProperty({ example: "personal", enum: ["personal", "group"] })
   type: string

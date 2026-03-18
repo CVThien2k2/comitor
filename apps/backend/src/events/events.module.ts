@@ -1,14 +1,15 @@
 import { Module } from "@nestjs/common"
 import { UsersModule } from "../core/users/users.module"
+import { MessageModule } from "../core/message/message.module"
 import { UserStatusListener } from "./user-status.listener"
 import { MessageListener } from "./message.listener"
-import { MessageSenderRegistry } from "./message-senders/message-sender.registry"
-import { ZaloOaSender } from "./message-senders/zalo-oa.sender"
-import { FacebookSender } from "./message-senders/facebook.sender"
-import { ZaloPersonalSender } from "./message-senders/zalo-personal.sender"
+import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
+import { ZaloOaSender } from "../platform/message-senders/zalo-oa.sender"
+import { FacebookSender } from "../platform/message-senders/facebook.sender"
+import { ZaloPersonalSender } from "../platform/message-senders/zalo-personal.sender"
 
 @Module({
-  imports: [UsersModule],
+  imports: [UsersModule, MessageModule],
   providers: [
     UserStatusListener,
     MessageListener,

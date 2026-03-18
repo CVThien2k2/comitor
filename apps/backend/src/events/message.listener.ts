@@ -1,7 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
 import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
-import { MessageSenderRegistry } from "./message-senders/message-sender.registry"
+import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
+import { MessageService } from "../core/message/message.service"
 import { SocketGateway } from "../websocket/socket.gateway"
 
 @Injectable()
@@ -10,6 +11,7 @@ export class MessageListener {
 
   constructor(
     private readonly senderRegistry: MessageSenderRegistry,
+    private readonly messageService: MessageService,
     private readonly socketGateway: SocketGateway
   ) {}
 
@@ -28,6 +30,7 @@ export class MessageListener {
 
     try {
       await sender.send(event)
+      await this.messageService.updateStatus(event.messageId, "success")
       this.logger.log(`Gửi tin nhắn thành công [${event.provider}]: ${event.messageId}`)
 
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, {
@@ -38,7 +41,9 @@ export class MessageListener {
         timestamp: new Date().toISOString(),
       })
     } catch (error) {
+      await this.messageService.updateStatus(event.messageId, "failed")
       this.logger.error(`Gửi tin nhắn thất bại [${event.provider}]: ${error}`)
+
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
         messageId: event.messageId,
         conversationId: event.conversationId,

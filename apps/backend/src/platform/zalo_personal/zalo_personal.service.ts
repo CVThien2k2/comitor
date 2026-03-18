@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { randomUUID } from "crypto"
 import {
   Attachment,
@@ -6,6 +6,7 @@ import {
   MessageType,
   ZaloPersonalMessageListener
 } from "src/utils/types"
+import { QueueService } from "src/queue/queue.service"
 
 type LoginStatus =
   | "pending"
@@ -31,7 +32,10 @@ type ActiveZaloSession = {
 
 @Injectable()
 export class ZaloPersonalService {
+  private readonly logger = new Logger(ZaloPersonalService.name)
   private readonly sessions = new Map<string, LoginSession>()
+
+  constructor(private readonly queueService: QueueService) {}
 
   async loginWithQR() {
     const sessionId = randomUUID()
@@ -90,11 +94,10 @@ export class ZaloPersonalService {
           activeSession.status = "authenticated"
           activeSession.api = api
 
-          api.listener.on("message", (message: any) => {
-            console.log(
-              "New Message Zalo Personal:",
-              this.mapZaloPersonal(message)
-            )
+          api.listener.on("message", async (message: any) => {
+            const mapped = this.mapZaloPersonal(message)
+            await this.queueService.addIncomingMessage(mapped)
+            this.logger.log(`Đã thêm tin nhắn Zalo Personal vào hàng đợi: ${mapped.messageId}`)
           })
 
           api.listener.on("error", (error: unknown) => {

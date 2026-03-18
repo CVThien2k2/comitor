@@ -6,6 +6,7 @@ import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
+import type { Attachment } from "src/utils/types"
 
 const MESSAGE_INCLUDE = {
   attachments: true,
@@ -78,7 +79,7 @@ export class MessageService {
         userId,
         isRead: true,
         content: dto.content,
-        status: "success",
+        status: "processing",
         attachments: dto.attachments?.length ? { createMany: { data: dto.attachments } } : undefined,
       },
     })
@@ -110,6 +111,52 @@ export class MessageService {
         content: dto.content,
         isRead: dto.isRead,
       },
+    })
+  }
+
+  async createInbound(data: {
+    conversationId: string
+    accountCustomerId: string
+    externalId: string
+    content?: string
+    attachments?: Attachment[]
+  }) {
+    const message = await this.prisma.client.message.create({
+      data: {
+        conversationId: data.conversationId,
+        senderType: "customer",
+        accountCustomerId: data.accountCustomerId,
+        externalId: data.externalId,
+        content: data.content,
+        status: "success",
+        attachments: data.attachments?.length
+          ? {
+              createMany: {
+                data: data.attachments.map((a) => ({
+                  fileName: a.name,
+                  fileType: a.type,
+                  fileUrl: a.url,
+                  thumbnailUrl: a.thumbnail,
+                  fileMimeType: a.mimeType,
+                })),
+              },
+            }
+          : undefined,
+      },
+    })
+
+    await this.prisma.client.conversation.update({
+      where: { id: data.conversationId },
+      data: { lastActivityAt: new Date() },
+    })
+
+    return message
+  }
+
+  async updateStatus(id: string, status: "processing" | "success" | "failed") {
+    return this.prisma.client.message.update({
+      where: { id },
+      data: { status },
     })
   }
 

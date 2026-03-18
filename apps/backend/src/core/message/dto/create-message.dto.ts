@@ -26,6 +26,11 @@ class CreateAttachmentDto {
   @IsString()
   @IsOptional()
   fileMimeType?: string
+
+  @ApiProperty({ example: "uploads/photo.jpg", required: false })
+  @IsString()
+  @IsOptional()
+  key?: string
 }
 
 export class CreateMessageDto {

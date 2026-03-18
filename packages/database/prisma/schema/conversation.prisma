@@ -2,7 +2,7 @@ model Conversation {
   id              String           @id @default(uuid())
   linkedAccountId String           @map("linked_account_id")
   name            String?
-  idGroup         String?          @map("id_group")
+  externalId      String?          @map("external_id")
   type            ConversationType @default(personal)
   tag             ConversationTag  @default(other)
   journeyState    JourneyState?    @map("journey_state")

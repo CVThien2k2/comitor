@@ -63,6 +63,16 @@ export class AccountCustomerService {
     })
   }
 
+  async getOrCreate(data: { accountId: string; linkedAccountId: string; goldenProfileId: string; avatarUrl?: string }) {
+    const existing = await this.prisma.client.accountCustomer.findFirst({
+      where: { accountId: data.accountId, linkedAccountId: data.linkedAccountId },
+    })
+
+    if (existing) return existing
+
+    return this.prisma.client.accountCustomer.create({ data })
+  }
+
   async delete(id: string) {
     const account = await this.prisma.client.accountCustomer.findUnique({ where: { id } })
     if (!account) throw new NotFoundException("Tài khoản khách không tồn tại")

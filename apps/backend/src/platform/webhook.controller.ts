@@ -4,13 +4,17 @@ import { Response } from "express"
 import { MetaMessageWebhook, ZaloOAMessageWebhook } from "src/utils/types/webhook"
 import { Public } from "../common/decorators/public.decorator"
 import { WebhookService } from "./webhook.service"
+import { QueueService } from "src/queue/queue.service"
 
 @Public()
 @Controller("webhook")
 export class WebhookController {
+  private readonly logger = new Logger(WebhookController.name)
+
   constructor(
     private readonly webhookService: WebhookService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly queueService: QueueService
   ) {}
 
   @Public()
@@ -18,16 +22,9 @@ export class WebhookController {
   async handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
     res.status(200).send("OK")
 
-    if (
-      payload?.sender?.id !== "2994357122857097520" &&
-      payload?.recipient?.id !== "2994357122857097520" &&
-      payload.sender.id !== "6503616889426404863" &&
-      payload.recipient.id !== "6503616889426404863"
-    ) {
-      return
-    }
-
-    console.log("Received Zalo OA webhook 123:", this.webhookService.mapZaloWebhook(payload))
+    const message = this.webhookService.mapZaloWebhook(payload)
+    await this.queueService.addIncomingMessage(message)
+    this.logger.log(`Đã thêm tin nhắn Zalo OA vào hàng đợi: ${message.messageId}`)
   }
 
   @Public()
@@ -40,18 +37,23 @@ export class WebhookController {
   ) {
     if (mode === "subscribe" && token === this.configService.get("META_VERIFY_TOKEN")) {
       res.status(200).send(challenge)
-      Logger.log("✅ Webhook verified successfully!")
+      this.logger.log("Webhook Meta verified successfully")
       return
-    } else {
-      console.log("❌ Verification failed!")
-      res.status(403).send("Forbidden")
     }
+
+    this.logger.warn("Webhook Meta verification failed")
+    res.status(403).send("Forbidden")
   }
 
   @Public()
   @Post("meta")
-  handleWebhook(@Body() body: MetaMessageWebhook, @Res() res: Response) {
+  async handleWebhook(@Body() body: MetaMessageWebhook, @Res() res: Response) {
     res.status(200).send("EVENT_RECEIVED")
-    console.log("Received Meta webhook:", this.webhookService.mapMetaWebhook(body))
+
+    const message = this.webhookService.mapMetaWebhook(body)
+    if (!message) return
+
+    await this.queueService.addIncomingMessage(message)
+    this.logger.log(`Đã thêm tin nhắn Meta vào hàng đợi: ${message.messageId}`)
   }
 }

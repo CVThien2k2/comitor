@@ -83,6 +83,33 @@ export class ConversationService {
     })
   }
 
+  async getOrCreate(data: { externalId: string; linkedAccountId: string; accountCustomerId: string }) {
+    const existing = await this.prisma.client.conversation.findFirst({
+      where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
+    })
+
+    if (existing) return existing
+
+    const conversation = await this.prisma.client.conversation.create({
+      data: {
+        externalId: data.externalId,
+        linkedAccountId: data.linkedAccountId,
+        accountCustomerId: data.accountCustomerId,
+        type: "personal",
+        tag: "other",
+      },
+    })
+
+    await this.prisma.client.conversationCustomer.create({
+      data: {
+        conversationId: conversation.id,
+        accountCustomerId: data.accountCustomerId,
+      },
+    })
+
+    return conversation
+  }
+
   async delete(id: string) {
     const conversation = await this.prisma.client.conversation.findUnique({ where: { id } })
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")

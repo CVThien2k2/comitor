@@ -308,7 +308,7 @@ async function main() {
       name: "Nhóm tư vấn tour Đà Lạt",
       type: "group" as const,
       tag: "business" as const,
-      idGroup: "group_001",
+      externalId: "group_001",
       lastActivityAt: new Date("2026-03-17T07:00:00Z"),
     },
   ]

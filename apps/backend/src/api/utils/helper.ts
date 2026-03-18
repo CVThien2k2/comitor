@@ -1,6 +1,6 @@
 import { CustomerType, Gender, GoldenProfile } from "@workspace/database"
-import type { ZaloOaProfileResponse } from "./types"
-import type { MetaProfileResponse } from "./types"
+import { MetaProfileResponse } from "src/utils/types"
+import { ZaloOaProfileResponse } from "src/utils/types"
 
 export function mapGender(value: unknown): Gender | null {
   if (value === null || value === undefined) {

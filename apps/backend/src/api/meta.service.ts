@@ -13,7 +13,7 @@ import {
   MetaAttachmentType,
   MetaProfileResponse,
   UploadedMetaAttachment,
-} from "./utils/types/meta"
+} from "../utils/types"
 
 @Injectable()
 export class MetaService {

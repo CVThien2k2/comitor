@@ -12,6 +12,7 @@ export interface Attachment {
 }
 
 export interface Message {
+  eventName?: string
   platform: Platform
   messageId: string
   conversationId: string

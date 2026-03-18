@@ -1,56 +1,57 @@
 export interface ZaloOAMessageWebhook {
-  event_name: string;
-  app_id: string;
+  event_name: string
+  app_id: string
   sender: {
-    id: string;
-    admin_id?: string;
-  };
+    id: string
+    admin_id?: string
+  }
   recipient: {
-    id: string;
-  };
+    id: string
+  }
   message: {
-    msg_id: string;
-    text?: string;
+    msg_id: string
+    text?: string
     attachments?: {
-      type: 'image' | 'file' | 'sticker';
+      type: "image" | "file" | "sticker"
       payload: {
-        url?: string;
-        thumbnail?: string;
-        name?: string;
-        size?: string;
-        checksum?: string;
-        type?: string;
-        id?: string;
-      };
-    }[];
-  };
-  timestamp: string;
-  user_id_by_app: string;
+        url?: string
+        thumbnail?: string
+        name?: string
+        size?: string
+        checksum?: string
+        type?: string
+        id?: string
+      }
+    }[]
+  }
+  timestamp: string
+  user_id_by_app: string
 }
 
 export interface MetaMessageWebhook {
-  object: 'page';
+  object: "page"
   entry: {
-    id: string;
-    time: number;
+    id: string
+    time: number
     messaging: {
       sender: {
-        id: string;
-      };
+        id: string
+      }
       recipient: {
-        id: string;
-      };
-      timestamp: number;
+        id: string
+      }
+      timestamp: number
       message: {
-        mid: string;
-        text?: string;
+        is_echo?: boolean
+        mid: string
+        text?: string
         attachments?: {
-          type: 'image' | 'file' | 'video' | 'audio';
+          type: "image" | "file" | "video" | "audio"
           payload: {
-            url: string;
-          };
-        }[];
-      };
-    }[];
-  }[];
+            url: string
+          }
+        }[]
+      }
+    }[]
+  }[]
 }

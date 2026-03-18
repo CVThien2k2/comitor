@@ -6,9 +6,9 @@ import fs from "fs"
 import { UploadService } from "src/upload/upload.service"
 import { FetchWrapper } from "../common/http/fetch.wrapper"
 import { mapProfileToGoldenProfile } from "./utils/helper"
-import { ZaloOaProfileResponse, ZaloUploadFileResponse, ZaloUploadImageResponse } from "./utils/types"
 import { SendMessagePayload } from "src/utils/types"
 import { streamToBlob } from "src/utils/helper/file"
+import { ZaloOaProfileResponse, ZaloUploadFileResponse, ZaloUploadImageResponse } from "src/utils/types"
 
 dotenv.config()
 

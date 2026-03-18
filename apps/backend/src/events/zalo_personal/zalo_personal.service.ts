@@ -381,7 +381,7 @@ export class ZaloPersonalService {
     }
 
     return {
-      platform: "zalo_personal",
+      provider: "zalo_personal",
       messageId,
       conversationId,
       senderId,

@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Logger, Post, Query, Res } from "@nestjs/common"
-import { Response } from "express"
-import { WebhookService } from "./webhook.service"
 import { ConfigService } from "@nestjs/config"
+import { Response } from "express"
 import { MetaMessageWebhook, ZaloOAMessageWebhook } from "src/utils/types/webhook"
 import { Public } from "../common/decorators/public.decorator"
+import { WebhookService } from "./webhook.service"
 
 @Public()
 @Controller("webhook")
@@ -13,6 +13,7 @@ export class WebhookController {
     private readonly configService: ConfigService
   ) {}
 
+  @Public()
   @Post("zalo-oa")
   async handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
     res.status(200).send("OK")
@@ -29,6 +30,7 @@ export class WebhookController {
     console.log("Received Zalo OA webhook 123:", this.webhookService.mapZaloWebhook(payload))
   }
 
+  @Public()
   @Get("meta")
   handleMetaWebhook(
     @Query("hub.mode") mode: string,
@@ -46,6 +48,7 @@ export class WebhookController {
     }
   }
 
+  @Public()
   @Post("meta")
   handleWebhook(@Body() body: MetaMessageWebhook, @Res() res: Response) {
     res.status(200).send("EVENT_RECEIVED")

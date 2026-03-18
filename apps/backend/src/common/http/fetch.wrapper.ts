@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   GatewayTimeoutException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from "@nestjs/common"
 
@@ -21,11 +22,7 @@ export class FetchWrapper {
     private readonly defaultTimeoutMs = 10000
   ) {}
 
-  async get<TResponse>(
-    url: string,
-    options?: RequestOptions,
-    headers?: Record<string, string>
-  ): Promise<TResponse> {
+  async get<TResponse>(url: string, options?: RequestOptions, headers?: Record<string, string>): Promise<TResponse> {
     return this.request<TResponse>("GET", url, options, headers)
   }
 
@@ -53,11 +50,7 @@ export class FetchWrapper {
     return this.request<TResponse, TBody>("PATCH", url, options, headers)
   }
 
-  async delete<TResponse>(
-    url: string,
-    options?: RequestOptions,
-    headers?: Record<string, string>
-  ): Promise<TResponse> {
+  async delete<TResponse>(url: string, options?: RequestOptions, headers?: Record<string, string>): Promise<TResponse> {
     return this.request<TResponse>("DELETE", url, options, headers)
   }
 
@@ -68,15 +61,11 @@ export class FetchWrapper {
     headers?: Record<string, string>
   ): Promise<TResponse> {
     const controller = new AbortController()
-    const timeout = setTimeout(
-      () => controller.abort(),
-      options?.timeoutMs ?? this.defaultTimeoutMs
-    )
+    const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? this.defaultTimeoutMs)
 
     try {
       const finalUrl = this.buildUrl(url, options?.query)
-      const hasBody =
-        options?.body !== undefined && method !== "GET" && method !== "DELETE"
+      const hasBody = options?.body !== undefined && method !== "GET" && method !== "DELETE"
       const isFormDataBody = options?.body instanceof FormData
 
       const response = await fetch(finalUrl, {
@@ -87,14 +76,12 @@ export class FetchWrapper {
           ...(hasBody && !isFormDataBody ? { "Content-Type": "application/json" } : {}),
           ...(headers ?? {}),
         },
-        body: hasBody
-          ? isFormDataBody
-            ? (options?.body as FormData)
-            : JSON.stringify(options?.body)
-          : undefined,
+        body: hasBody ? (isFormDataBody ? (options?.body as FormData) : JSON.stringify(options?.body)) : undefined,
       })
 
       const data = await this.parseResponse(response)
+
+      Logger.log("FetchWrapper response", data)
 
       if (!response.ok) {
         throw this.mapHttpError(response.status, data)
@@ -120,10 +107,7 @@ export class FetchWrapper {
     }
   }
 
-  private buildUrl(
-    url: string,
-    query?: Record<string, QueryValue>
-  ): string {
+  private buildUrl(url: string, query?: Record<string, QueryValue>): string {
     const target = new URL(url, this.baseURL || undefined)
 
     if (query) {
@@ -156,9 +140,7 @@ export class FetchWrapper {
     }
 
     if (status === 429 || status === 503) {
-      return new ServiceUnavailableException(
-        message ?? "Service temporarily unavailable"
-      )
+      return new ServiceUnavailableException(message ?? "Service temporarily unavailable")
     }
 
     return new BadGatewayException(message ?? "Upstream request failed")

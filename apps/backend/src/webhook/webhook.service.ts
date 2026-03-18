@@ -28,8 +28,12 @@ export class WebhookService {
     };
   }
 
-  mapMetaWebhook(payload: any): Message {
-    const msg = payload.entry[0].messaging[0];
+  mapMetaWebhook(payload: any): Message | null {
+    const msg = payload?.entry?.[0]?.messaging?.[0];
+
+    if (!msg?.message?.mid) {
+      return null;
+    }
 
     return {
       platform: "meta",

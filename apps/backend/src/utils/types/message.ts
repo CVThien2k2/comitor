@@ -1,6 +1,11 @@
-export type Platform = "zalo_personal" | "zalo_oa" | "meta"
+import { ChannelType } from "@workspace/database"
 
 export type MessageType = "text" | "image" | "file" | "video" | "audio" | "sticker" | "unknown" | "template" | "media"
+
+export enum EventMessage {
+  INBOUND = "inbound",
+  OUTBOUND = "outbound",
+}
 
 export interface Attachment {
   type: MessageType
@@ -12,8 +17,8 @@ export interface Attachment {
 }
 
 export interface Message {
-  eventName?: string
-  platform: Platform
+  eventName?: EventMessage
+  provider: ChannelType
   messageId: string
   conversationId: string
   senderId: string
@@ -30,7 +35,7 @@ export interface Message {
  * Đối với ZaloOA, conversationId là id của người dùng.
  */
 export interface SendMessagePayload {
-  platform: Platform
+  provider: ChannelType
   senderId: string
   recipientId: string
   conversationId: string

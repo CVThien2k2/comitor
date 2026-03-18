@@ -1,17 +1,19 @@
 import { Injectable } from "@nestjs/common"
 
-import { Message } from "src/utils/types"
-import { META_EVENTS } from "src/utils/types"
-import { ZALO_OA_EVENTS } from "src/utils/types"
+import { EventMessage, Message } from "src/utils/types"
 
 @Injectable()
 export class WebhookService {
   mapZaloWebhook(payload: any): Message {
     const msg = payload.message
 
+    const isOutbound = payload.event_name.startsWith("oa_send")
+
     return {
-      platform: "zalo_oa",
-      eventName: ZALO_OA_EVENTS[payload.event_name as keyof typeof ZALO_OA_EVENTS] || "unknown",
+      provider: "zalo_oa",
+      eventName: isOutbound
+        ? (EventMessage.OUTBOUND as unknown as EventMessage)
+        : (EventMessage.INBOUND as unknown as EventMessage),
       messageId: msg.msg_id,
       conversationId: payload.sender.id,
       senderId: payload.sender.id,
@@ -41,8 +43,8 @@ export class WebhookService {
     const isEcho = hasIsEcho && msg.message.is_echo === true
 
     return {
-      platform: "meta",
-      eventName: isEcho ? META_EVENTS["admin_send_message"] : META_EVENTS["user_send_message"],
+      provider: "facebook",
+      eventName: isEcho ? EventMessage.OUTBOUND : EventMessage.INBOUND,
       messageId: msg.message.mid,
       conversationId: msg.sender.id,
       senderId: msg.sender.id,

@@ -36,8 +36,3 @@ export type MetaProfileResponse = {
   locale?: string
   timezone?: number
 }
-
-export const META_EVENTS = {
-  user_send_message: "INBOUND_MESSAGE",
-  admin_send_message: "OUTBOUND_MESSAGE",
-} as const

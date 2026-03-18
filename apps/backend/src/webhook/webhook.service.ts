@@ -1,56 +1,60 @@
-import { Injectable } from "@nestjs/common";
-import { Message } from "src/utils/types";
+import { Injectable } from "@nestjs/common"
+
+import { Message } from "src/utils/types"
+import { META_EVENTS } from "src/utils/types"
+import { ZALO_OA_EVENTS } from "src/utils/types"
 
 @Injectable()
 export class WebhookService {
   mapZaloWebhook(payload: any): Message {
-    const msg = payload.message;
+    const msg = payload.message
 
     return {
       platform: "zalo_oa",
+      eventName: ZALO_OA_EVENTS[payload.event_name as keyof typeof ZALO_OA_EVENTS] || "unknown",
       messageId: msg.msg_id,
       conversationId: payload.sender.id,
       senderId: payload.sender.id,
       recipientId: payload.recipient.id,
       timestamp: Number(payload.timestamp),
-      type: msg.text
-        ? "text"
-        : msg.attachments?.[0]?.type ?? "unknown",
+      type: msg.text ? "text" : (msg.attachments?.[0]?.type ?? "unknown"),
       text: msg.text,
       attachments: msg.attachments?.map((a: any) => ({
         type: a.type,
         url: a.payload.url,
         thumbnail: a.payload.thumbnail,
         name: a.payload.name,
-        size: a.payload.size ? Number(a.payload.size) : undefined
+        size: a.payload.size ? Number(a.payload.size) : undefined,
       })),
       // raw: payload
-    };
+    }
   }
 
   mapMetaWebhook(payload: any): Message | null {
-    const msg = payload?.entry?.[0]?.messaging?.[0];
+    const msg = payload?.entry?.[0]?.messaging?.[0]
 
     if (!msg?.message?.mid) {
-      return null;
+      return null
     }
+
+    const hasIsEcho = Object.prototype.hasOwnProperty.call(msg.message, "is_echo")
+    const isEcho = hasIsEcho && msg.message.is_echo === true
 
     return {
       platform: "meta",
+      eventName: isEcho ? META_EVENTS["admin_send_message"] : META_EVENTS["user_send_message"],
       messageId: msg.message.mid,
       conversationId: msg.sender.id,
       senderId: msg.sender.id,
       recipientId: msg.recipient.id,
       timestamp: msg.timestamp,
-      type: msg.message.text
-        ? "text"
-        : msg.message.attachments?.[0]?.type ?? "unknown",
+      type: msg.message.text ? "text" : (msg.message.attachments?.[0]?.type ?? "unknown"),
       text: msg.message.text,
       attachments: msg.message.attachments?.map((a: any) => ({
         type: a.type,
-        url: a.payload.url
+        url: a.payload.url,
       })),
       // raw: payload
-    };
+    }
   }
 }

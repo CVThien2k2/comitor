@@ -1,12 +1,56 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException, BadRequestException } from "@nestjs/common"
+import { ConfigService } from "@nestjs/config"
 import { PrismaService } from "../../database/prisma.service"
+import { RedisService } from "../../redis"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
+import { FetchWrapper } from "../../common/http/fetch.wrapper"
+
+interface ZaloOaTokenResponse {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+}
+
+interface ZaloOaInfoResponse {
+  data?: { oa_id: string; name: string; avatar: string; description?: string }
+  error?: number
+  message?: string
+}
+
+interface MetaTokenResponse {
+  access_token: string
+  token_type: string
+  expires_in?: number
+}
+
+interface MetaPageData {
+  id: string
+  name: string
+  access_token: string
+  category?: string
+}
+
+interface MetaPagesResponse {
+  data: MetaPageData[]
+}
+
+interface MetaAccountResponse {
+  id: string
+  name: string
+  picture?: { data?: { url?: string } }
+}
 
 @Injectable()
 export class LinkAccountService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(LinkAccountService.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
@@ -59,6 +103,167 @@ export class LinkAccountService {
     const account = await this.prisma.client.linkAccount.findUnique({ where: { id } })
     if (!account) throw new NotFoundException("Liên kết kênh không tồn tại")
 
+    await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
     await this.prisma.client.linkAccount.delete({ where: { id } })
+  }
+
+  // ─── Zalo OA OAuth ─────────────────────────────────────
+
+  async linkZaloOa(code: string, userId: string) {
+    const appId = this.configService.get<string>("ZALO_OA_ID")
+    const secretKey = this.configService.get<string>("ZALO_OA_SECRET_KEY")
+    const authApiUrl = this.configService.get<string>("ZALO_OA_AUTH_API_URL", "https://oauth.zaloapp.com")
+    const apiUrl = this.configService.get<string>("ZALO_OA_API_URL", "https://openapi.zalo.me")
+
+    if (!appId || !secretKey) {
+      throw new BadRequestException("Chưa cấu hình Zalo OA (ZALO_OA_ID / ZALO_OA_SECRET_KEY)")
+    }
+
+    const authFetch = new FetchWrapper(authApiUrl)
+    const tokenResponse = await authFetch.post<ZaloOaTokenResponse>(
+      `/v4/oa/access_token`,
+      {
+        body: {
+          app_id: appId,
+          grant_type: "authorization_code",
+          code,
+          secret_key: secretKey,
+        },
+      },
+      { "Content-Type": "application/x-www-form-urlencoded" },
+    )
+
+    if (!tokenResponse.access_token) {
+      this.logger.error("Zalo OA token exchange failed", tokenResponse)
+      throw new BadRequestException("Không thể lấy access token từ Zalo OA. Vui lòng thử lại.")
+    }
+
+    const apiFetch = new FetchWrapper(apiUrl)
+    const oaInfo = await apiFetch.get<ZaloOaInfoResponse>(
+      `/v3.0/oa/getoa`,
+      {},
+      { access_token: tokenResponse.access_token },
+    )
+
+    if (!oaInfo.data?.oa_id) {
+      this.logger.error("Zalo OA info fetch failed", oaInfo)
+      throw new BadRequestException("Không thể lấy thông tin OA. Vui lòng thử lại.")
+    }
+
+    const oaId = oaInfo.data.oa_id
+    const ttl = tokenResponse.expires_in || 86400
+
+    await this.redisService.set(
+      `link_account:zalo_oa:${oaId}`,
+      {
+        access_token: tokenResponse.access_token,
+        refresh_token: tokenResponse.refresh_token,
+        expires_in: ttl,
+      },
+      ttl,
+    )
+
+    return this.prisma.client.linkAccount.upsert({
+      where: { unique_account_link: { accountId: oaId, provider: "zalo_oa" } },
+      update: {
+        displayName: oaInfo.data.name,
+        avatarUrl: oaInfo.data.avatar,
+        linkedByUserId: userId,
+      },
+      create: {
+        provider: "zalo_oa",
+        accountId: oaId,
+        displayName: oaInfo.data.name,
+        avatarUrl: oaInfo.data.avatar,
+        linkedByUserId: userId,
+      },
+      include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
+    })
+  }
+
+  // ─── Meta / Facebook OAuth ──────────────────────────────
+
+  async linkMeta(code: string, userId: string) {
+    const clientId = this.configService.get<string>("META_APP_ID")
+    const clientSecret = this.configService.get<string>("META_APP_SECRET_KEY")
+    const redirectUri = this.configService.get<string>("META_REDIRECT_URI")
+
+    if (!clientId || !clientSecret) {
+      throw new BadRequestException("Chưa cấu hình Meta (META_APP_ID / META_APP_SECRET_KEY)")
+    }
+
+    const graphFetch = new FetchWrapper("https://graph.facebook.com")
+
+    const shortLivedToken = await graphFetch.get<MetaTokenResponse>(
+      `/v20.0/oauth/access_token`,
+      { query: { client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri ?? "", code } },
+    )
+
+    if (!shortLivedToken.access_token) {
+      this.logger.error("Meta token exchange failed", shortLivedToken)
+      throw new BadRequestException("Không thể lấy access token từ Meta. Vui lòng thử lại.")
+    }
+
+    const longLivedToken = await graphFetch.get<MetaTokenResponse>(
+      `/v20.0/oauth/access_token`,
+      {
+        query: {
+          grant_type: "fb_exchange_token",
+          client_id: clientId,
+          client_secret: clientSecret,
+          fb_exchange_token: shortLivedToken.access_token,
+        },
+      },
+    )
+
+    const accessToken = longLivedToken.access_token || shortLivedToken.access_token
+
+    const pagesResponse = await graphFetch.get<MetaPagesResponse>(
+      `/v20.0/me/accounts`,
+      { query: { access_token: accessToken } },
+    )
+
+    if (!pagesResponse.data?.length) {
+      throw new BadRequestException("Không tìm thấy Facebook Page nào. Đảm bảo bạn đã cấp quyền quản lý trang.")
+    }
+
+    const results: unknown[] = []
+
+    for (const page of pagesResponse.data) {
+      const pageTtl = 60 * 24 * 60 * 60
+      await this.redisService.set(
+        `link_account:facebook:${page.id}`,
+        { access_token: page.access_token, page_name: page.name, user_access_token: accessToken },
+        pageTtl,
+      )
+
+      let avatarUrl: string | null = null
+      try {
+        const pageInfo = await graphFetch.get<MetaAccountResponse>(
+          `/${page.id}`,
+          { query: { fields: "picture", access_token: page.access_token } },
+        )
+        avatarUrl = pageInfo.picture?.data?.url ?? null
+      } catch {
+        /* avatar is optional */
+      }
+
+      const linkAccount = await this.prisma.client.linkAccount.upsert({
+        where: { unique_account_link: { accountId: page.id, provider: "facebook" } },
+        update: { displayName: page.name, avatarUrl, linkedByUserId: userId },
+        create: {
+          provider: "facebook",
+          accountId: page.id,
+          displayName: page.name,
+          avatarUrl,
+          linkedByUserId: userId,
+        },
+        include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
+      })
+
+      results.push(linkAccount)
+    }
+
+    return results
   }
 }

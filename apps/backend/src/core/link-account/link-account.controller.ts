@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request } from "@nestjs/common"
 import {
   ApiBearerAuth,
   ApiForbiddenResponse,
@@ -26,6 +26,7 @@ import {
 import { LinkAccountEntity, LinkAccountListEntity, LinkAccountDetailEntity } from "./entities/link-account.entity"
 import { LinkAccountService } from "./link-account.service"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
+import { LinkOAuthDto } from "./dto/link-oauth.dto"
 
 @ApiTags("Link Accounts")
 @ApiBearerAuth()
@@ -74,5 +75,25 @@ export class LinkAccountController {
   async delete(@Param("id") id: string) {
     await this.linkAccountService.delete(id)
     return { message: "Xóa liên kết kênh thành công" }
+  }
+
+  // ─── OAuth Linking ────────────────────────────────────
+
+  @ApiOperation({ summary: "Liên kết Zalo OA qua OAuth" })
+  @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
+  @ApiBadRequestResponse({ type: BadRequestEntity })
+  @Post("link/zalo-oa")
+  async linkZaloOa(@Body() dto: LinkOAuthDto, @Request() req: any) {
+    const data = await this.linkAccountService.linkZaloOa(dto.code, req.user.id)
+    return { message: "Liên kết Zalo OA thành công", data }
+  }
+
+  @ApiOperation({ summary: "Liên kết Meta/Facebook qua OAuth" })
+  @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
+  @ApiBadRequestResponse({ type: BadRequestEntity })
+  @Post("link/meta-app")
+  async linkMeta(@Body() dto: LinkOAuthDto, @Request() req: any) {
+    const data = await this.linkAccountService.linkMeta(dto.code, req.user.id)
+    return { message: "Liên kết Meta/Facebook thành công", data }
   }
 }

@@ -3,13 +3,13 @@ import { Logger } from "@nestjs/common"
 import { Job } from "bullmq"
 import { EventMessage, type Message } from "src/utils/types"
 import { QUEUE_NAMES } from "./queue.constants"
-import { IncomingMessageHandler } from "./message.handler"
+import { MessageHandler } from "./message.handler"
 
 @Processor(QUEUE_NAMES.INCOMING_MESSAGE)
-export class IncomingMessageProcessor extends WorkerHost {
-  private readonly logger = new Logger(IncomingMessageProcessor.name)
+export class MessageProcessor extends WorkerHost {
+  private readonly logger = new Logger(MessageProcessor.name)
 
-  constructor(private readonly incomingMessageHandler: IncomingMessageHandler) {
+  constructor(private readonly messageHandler: MessageHandler) {
     super()
   }
 
@@ -20,11 +20,10 @@ export class IncomingMessageProcessor extends WorkerHost {
     try {
       switch (data.eventName) {
         case EventMessage.INBOUND:
-          await this.incomingMessageHandler.handleInbound(data)
+          await this.messageHandler.handleInbound(data)
           break
         case EventMessage.OUTBOUND:
-          this.logger.debug(`Bỏ qua tin nhắn outbound: ${data.messageId}`)
-          // await this.outgoingMessageHandler.handleOutbound(data)
+          await this.messageHandler.handleOutbound(data)
           break
         default:
           this.logger.debug(`Bỏ qua tin nhắn: ${data.messageId}`)

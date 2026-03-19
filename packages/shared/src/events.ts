@@ -1,4 +1,4 @@
-import { MessageStatus } from "@workspace/database/dist/generated/client"
+import { LinkAccount, Message, MessageAttachment, MessageStatus } from "@workspace/database/dist/generated/client"
 
 /** Socket events (emitted to clients via Socket.IO) */
 export const EVENTS = {
@@ -15,17 +15,11 @@ export type UserStatusEvent = {
 
 export type MessageCreatedEvent = {
   messageId: string
-  conversationId: string
-  provider: string
-  senderType: string
-  userId: string | null
-  content: string | null | undefined
+  linkedAccount: LinkAccount
 }
 
 export type MessageDeliveryEvent = {
   messageId: string
-  conversationId: string
-  provider: string
   status: MessageStatus
 }
 

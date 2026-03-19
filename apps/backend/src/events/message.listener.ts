@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
 import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
 import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
@@ -17,39 +17,34 @@ export class MessageListener {
 
   @OnEvent(EVENTS.MESSAGE_CREATED)
   async handleMessageCreated(event: MessageCreatedEvent) {
-    this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, {
-      ...event,
-      timestamp: new Date().toISOString(),
-    })
+    const { messageId, linkedAccount } = event
 
-    const sender = this.senderRegistry.get(event.provider)
+    if (!linkedAccount || !messageId) {
+      this.logger.warn("Tài khoản liên kết hoặc tin nhắn không tồn tại")
+      return
+    }
+    const fullMessage = await this.messageService.findById(messageId)
+
+    this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    const sender = this.senderRegistry.get(linkedAccount.provider)
     if (!sender) {
-      this.logger.warn(`Không tìm thấy sender cho provider: ${event.provider}`)
+      this.logger.warn(`Không tìm thấy sender cho provider: ${linkedAccount.provider}`)
       return
     }
 
     try {
-      await sender.send(event)
+      await sender.send({ message: fullMessage, linkedAccount })
       await this.messageService.updateStatus(event.messageId, "success")
-      this.logger.log(`Gửi tin nhắn thành công [${event.provider}]: ${event.messageId}`)
 
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, {
         messageId: event.messageId,
-        conversationId: event.conversationId,
-        provider: event.provider,
         status: "success",
-        timestamp: new Date().toISOString(),
       })
     } catch (error) {
       await this.messageService.updateStatus(event.messageId, "failed")
-      this.logger.error(`Gửi tin nhắn thất bại [${event.provider}]: ${error}`)
-
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
         messageId: event.messageId,
-        conversationId: event.conversationId,
-        provider: event.provider,
         status: "failed",
-        timestamp: new Date().toISOString(),
       })
     }
   }

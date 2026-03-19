@@ -46,7 +46,7 @@ export class MessageService {
       this.prisma.client.message.findMany({
         where,
         include: MESSAGE_INCLUDE,
-        orderBy: { createdAt: "asc" },
+        orderBy: { timestamp: "asc" },
         skip,
         take,
       }),
@@ -70,9 +70,10 @@ export class MessageService {
   async create(dto: CreateMessageDto, userId: string) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id: dto.conversationId },
-      include: { linkedAccount: { select: { provider: true } } },
+      include: { linkedAccount: true },
     })
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+    if (!conversation.linkedAccount) throw new NotFoundException("Tài khoản liên kết không tồn tại")
 
     const message = await this.prisma.client.message.create({
       data: {
@@ -80,6 +81,7 @@ export class MessageService {
         senderType: "agent",
         userId,
         isRead: true,
+        timestamp: new Date(),
         content: dto.content,
         status: "processing",
         attachments: dto.attachments?.length ? { createMany: { data: dto.attachments } } : undefined,
@@ -93,11 +95,7 @@ export class MessageService {
 
     this.eventEmitter.emit(EVENTS.MESSAGE_CREATED, {
       messageId: message.id,
-      conversationId: message.conversationId,
-      provider: conversation.linkedAccount.provider,
-      senderType: message.senderType,
-      userId,
-      content: message.content,
+      linkedAccount: conversation.linkedAccount,
     } satisfies MessageCreatedEvent)
 
     return message
@@ -122,6 +120,7 @@ export class MessageService {
       linkedAccountId: string
       accountCustomerId: string
       externalId: string
+      timestamp: number
       content?: string
       attachments?: Attachment[]
       isGroupMessage: boolean
@@ -146,6 +145,7 @@ export class MessageService {
           senderType: "customer",
           accountCustomerId: data.accountCustomerId,
           externalId: data.externalId,
+          timestamp: new Date(data.timestamp),
           content: data.content,
           status: "success",
           attachments: data.attachments?.length
@@ -171,6 +171,67 @@ export class MessageService {
       return message
     } catch (error) {
       throw new Error(`Lỗi tạo tin nhắn: ${(error as Error).message}`)
+    }
+  }
+
+  async createOutbound(
+    data: {
+      externalConversationId: string
+      linkedAccountId: string
+      accountCustomerId: string
+      externalId: string
+      timestamp: number
+      content?: string
+      attachments?: Attachment[]
+      isGroupMessage: boolean
+    },
+    tx?: TransactionClient
+  ) {
+    const db = tx ?? this.prisma.client
+
+    const conversation = await this.conversationService.getOrCreate(
+      {
+        externalId: data.externalConversationId,
+        linkedAccountId: data.linkedAccountId,
+        accountCustomerId: data.accountCustomerId,
+        isGroupMessage: data.isGroupMessage,
+      },
+      tx
+    )
+
+    try {
+      const message = await db.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderType: "agent",
+          externalId: data.externalId,
+          timestamp: new Date(data.timestamp),
+          content: data.content,
+          status: "success",
+          attachments: data.attachments?.length
+            ? {
+                createMany: {
+                  data: data.attachments.map((a) => ({
+                    fileName: a.name,
+                    fileType: a.type,
+                    fileUrl: a.url,
+                    thumbnailUrl: a.thumbnail,
+                    fileMimeType: a.mimeType,
+                  })),
+                },
+              }
+            : undefined,
+        },
+      })
+
+      await db.conversation.update({
+        where: { id: conversation.id },
+        data: { lastActivityAt: new Date() },
+      })
+
+      return message
+    } catch (error) {
+      throw new Error(`Lỗi tạo tin nhắn outbound: ${(error as Error).message}`)
     }
   }
 

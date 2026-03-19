@@ -497,7 +497,12 @@ async function main() {
   ]
 
   for (const msg of messages) {
-    await prisma.message.create({ data: msg })
+    await prisma.message.create({
+      data: {
+        ...msg,
+        timestamp: msg.createdAt,
+      },
+    })
   }
   console.log(`Seeded ${messages.length} messages`)
 

@@ -11,7 +11,8 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(pnpm:*)",
-      "Bash(for dir:*)"
+      "Bash(for dir:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

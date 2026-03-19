@@ -19,6 +19,7 @@ export interface Attachment {
 export interface Message {
   eventName?: EventMessage
   provider: ChannelType
+  isGroupMessage?: boolean
   messageId: string
   conversationId: string
   senderId: string

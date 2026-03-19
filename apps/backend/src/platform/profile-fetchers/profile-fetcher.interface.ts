@@ -1,5 +1,10 @@
-import type { GoldenProfile } from "@workspace/database"
+import type { GoldenProfile, LinkAccount } from "@workspace/database"
+
+export type ProfileResult = {
+  profile: Partial<GoldenProfile>
+  avatarUrl: string
+}
 
 export interface ProfileFetcher {
-  getProfile(userId: string): Promise<Partial<GoldenProfile>>
+  getProfile(userId: string, linkedAccount: LinkAccount): Promise<ProfileResult>
 }

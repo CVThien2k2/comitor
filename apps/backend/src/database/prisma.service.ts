@@ -2,6 +2,8 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from "@nestjs/commo
 import { prisma } from "@workspace/database"
 import type { PrismaClient } from "@workspace/database"
 
+export type TransactionClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">
+
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   readonly client: PrismaClient = prisma

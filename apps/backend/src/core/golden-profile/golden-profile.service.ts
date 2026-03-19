@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common"
-import { PrismaService } from "../../database/prisma.service"
+import type { GoldenProfile } from "@workspace/database"
+import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateGoldenProfileDto } from "./dto/update-golden-profile.dto"
@@ -63,42 +64,33 @@ export class GoldenProfileService {
     })
   }
 
-  async getOrCreate(userId: string, provider: string) {
-    // Lấy profile từ provider
-    const fetcher = this.profileFetcherRegistry.get(provider)
-    const profileData = fetcher ? await fetcher.getProfile(userId) : {}
+  async getOrCreateFromProfile(profileData: Partial<GoldenProfile>, tx?: TransactionClient) {
+    try {
+      const db = tx ?? this.prisma.client
 
-    // Match theo email hoặc phone
-    if (profileData.primaryEmail || profileData.primaryPhone) {
-      const conditions: { primaryEmail?: string; primaryPhone?: string }[] = []
-      if (profileData.primaryEmail) conditions.push({ primaryEmail: profileData.primaryEmail })
-      if (profileData.primaryPhone) conditions.push({ primaryPhone: profileData.primaryPhone })
+      // Nếu có email hoặc phone, tìm hồ sơ khách hàng theo email hoặc phone để merge profile
+      if (profileData.primaryEmail || profileData.primaryPhone) {
+        const conditions: { primaryEmail?: string; primaryPhone?: string }[] = []
+        if (profileData.primaryEmail) conditions.push({ primaryEmail: profileData.primaryEmail })
+        if (profileData.primaryPhone) conditions.push({ primaryPhone: profileData.primaryPhone })
 
-      const existing = await this.prisma.client.goldenProfile.findFirst({
-        where: { OR: conditions },
-      })
-
-      if (existing) {
-        this.logger.log(`Match GoldenProfile: ${existing.id}`)
-        return existing
+        const existing = await db.goldenProfile.findFirst({
+          where: { OR: conditions },
+        })
+        // Nếu tìm thấy hồ sơ khách hàng, trả về hồ sơ khách hàng đó
+        if (existing) {
+          return existing
+        }
       }
+
+      // Nếu không tìm thấy hồ sơ khách hàng, tạo mới
+
+      return await db.goldenProfile.create({
+        data: profileData,
+      })
+    } catch (error) {
+      throw new Error(`Lỗi tạo hồ sơ khách hàng: ${(error as Error).message}`)
     }
-
-    // Tạo mới
-    const profile = await this.prisma.client.goldenProfile.create({
-      data: {
-        fullName: profileData.fullName,
-        gender: profileData.gender,
-        dateOfBirth: profileData.dateOfBirth,
-        primaryPhone: profileData.primaryPhone,
-        primaryEmail: profileData.primaryEmail,
-        address: profileData.address,
-        city: profileData.city,
-      },
-    })
-
-    this.logger.log(`Tạo GoldenProfile mới: ${profile.id}`)
-    return profile
   }
 
   async delete(id: string) {

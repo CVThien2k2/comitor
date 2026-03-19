@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import { GoldenProfile } from "@workspace/database"
 import dotenv from "dotenv"
 import fs from "fs"
 import { UploadService } from "src/upload/upload.service"
@@ -28,7 +27,7 @@ export class ZaloOaService {
     private readonly uploadService: UploadService
   ) {}
 
-  async getProfile(userId: string): Promise<Partial<GoldenProfile>> {
+  async getProfile(userId: string) {
     const ERR_CODE_TOKEN_EXPIRED = -220
     const fetchWrapper = new FetchWrapper(`${this.configService.get("ZALO_OA_API_URL")}`)
     const headers = {
@@ -45,9 +44,7 @@ export class ZaloOaService {
       await this.refreshToken()
     }
 
-    const goldenProfile = mapProfileToGoldenProfile(response, userId)
-
-    return goldenProfile
+    return mapProfileToGoldenProfile(response, userId)
   }
 
   async refreshToken() {

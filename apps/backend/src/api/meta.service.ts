@@ -1,6 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import { GoldenProfile } from "@workspace/database"
 import { FetchWrapper } from "src/common/http/fetch.wrapper"
 import { UploadService } from "src/upload/upload.service"
 import { SendMessagePayload } from "src/utils/types"
@@ -54,7 +53,7 @@ export class MetaService {
    * @param userId : meta user id của người mà hệ thống đang muốn lấy profile
    * @param pageId : page id của trang đang có cuộc trò chuyện với khách hàng. (Phục vụ cho trường hợp page có nhiều agent và muốn lấy profile của khách hàng theo page)
    */
-  async getProfile(userId: string, pageId?: string): Promise<Partial<GoldenProfile>> {
+  async getProfile(userId: string, pageId?: string) {
     const accessToken = this.configService.get<string>("META_ACCESS_TOKEN")
     if (!accessToken) throw new UnauthorizedException("Tài khoản Meta chưa được liên kết với hệ thống")
     const profileFields = ["name", "first_name", "last_name", "profile_pic", "gender", "locale", "timezone"]
@@ -62,11 +61,10 @@ export class MetaService {
     const fetchWrapper: FetchWrapper = new FetchWrapper("https://graph.facebook.com")
 
     const response = await fetchWrapper.get<MetaProfileResponse>(urlGetProfile)
-    const goldenProfile = mapMetaProfileToGoldenProfile(response, userId)
 
     Logger.log(`Meta profile response: ${JSON.stringify(response)}`)
 
-    return goldenProfile
+    return mapMetaProfileToGoldenProfile(response, userId)
   }
 
   private resolveMetaAttachmentType(file: { contentType?: string; contentLength?: number }): MetaAttachmentType {

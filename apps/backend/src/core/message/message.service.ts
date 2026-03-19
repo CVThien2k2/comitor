@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
-import { PrismaService } from "../../database/prisma.service"
+import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
+import { ConversationService } from "../conversation/conversation.service"
 import type { Attachment } from "src/utils/types"
 
 const MESSAGE_INCLUDE = {
@@ -24,7 +25,8 @@ const MESSAGE_INCLUDE = {
 export class MessageService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly conversationService: ConversationService
   ) {}
 
   async findByConversationId(conversationId: string, query: PaginationQueryDto) {
@@ -114,43 +116,62 @@ export class MessageService {
     })
   }
 
-  async createInbound(data: {
-    conversationId: string
-    accountCustomerId: string
-    externalId: string
-    content?: string
-    attachments?: Attachment[]
-  }) {
-    const message = await this.prisma.client.message.create({
-      data: {
-        conversationId: data.conversationId,
-        senderType: "customer",
+  async createInbound(
+    data: {
+      externalConversationId: string
+      linkedAccountId: string
+      accountCustomerId: string
+      externalId: string
+      content?: string
+      attachments?: Attachment[]
+      isGroupMessage: boolean
+    },
+    tx?: TransactionClient
+  ) {
+    const db = tx ?? this.prisma.client
+
+    const conversation = await this.conversationService.getOrCreate(
+      {
+        externalId: data.externalConversationId,
+        linkedAccountId: data.linkedAccountId,
         accountCustomerId: data.accountCustomerId,
-        externalId: data.externalId,
-        content: data.content,
-        status: "success",
-        attachments: data.attachments?.length
-          ? {
-              createMany: {
-                data: data.attachments.map((a) => ({
-                  fileName: a.name,
-                  fileType: a.type,
-                  fileUrl: a.url,
-                  thumbnailUrl: a.thumbnail,
-                  fileMimeType: a.mimeType,
-                })),
-              },
-            }
-          : undefined,
+        isGroupMessage: data.isGroupMessage,
       },
-    })
+      tx
+    )
+    try {
+      const message = await db.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderType: "customer",
+          accountCustomerId: data.accountCustomerId,
+          externalId: data.externalId,
+          content: data.content,
+          status: "success",
+          attachments: data.attachments?.length
+            ? {
+                createMany: {
+                  data: data.attachments.map((a) => ({
+                    fileName: a.name,
+                    fileType: a.type,
+                    fileUrl: a.url,
+                    thumbnailUrl: a.thumbnail,
+                    fileMimeType: a.mimeType,
+                  })),
+                },
+              }
+            : undefined,
+        },
+      })
 
-    await this.prisma.client.conversation.update({
-      where: { id: data.conversationId },
-      data: { lastActivityAt: new Date() },
-    })
-
-    return message
+      await db.conversation.update({
+        where: { id: conversation.id },
+        data: { lastActivityAt: new Date() },
+      })
+      return message
+    } catch (error) {
+      throw new Error(`Lỗi tạo tin nhắn: ${(error as Error).message}`)
+    }
   }
 
   async updateStatus(id: string, status: "processing" | "success" | "failed") {

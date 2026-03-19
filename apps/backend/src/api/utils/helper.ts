@@ -1,4 +1,5 @@
 import { CustomerType, Gender, GoldenProfile } from "@workspace/database"
+import type { ProfileResult } from "src/platform/profile-fetchers/profile-fetcher.interface"
 import { MetaProfileResponse } from "src/utils/types"
 import { ZaloOaProfileResponse } from "src/utils/types"
 
@@ -96,7 +97,7 @@ function getDefaultGoldenProfileValues(): Pick<GoldenProfile, "loyaltyPoints" | 
   }
 }
 
-export function mapProfileToGoldenProfile(response: ZaloOaProfileResponse, userId: string): Partial<GoldenProfile> {
+export function mapProfileToGoldenProfile(response: ZaloOaProfileResponse, userId: string): ProfileResult {
   const profile = response.data ?? {}
 
   const id = readString(profile.id) ?? readString(profile.user_id) ?? userId
@@ -115,20 +116,25 @@ export function mapProfileToGoldenProfile(response: ZaloOaProfileResponse, userI
 
   const city = readString(profile.city) ?? readString(profile.location)
 
+  const avatarUrl = readString(profile.avatar) ?? readString(profile.avatars?.["240"]) ?? ""
+
   return {
-    ...(id && { id }),
-    ...(fullName && { fullName }),
-    ...(gender && { gender }),
-    ...(dateOfBirth && { dateOfBirth }),
-    ...(primaryPhone && { primaryPhone }),
-    ...(primaryEmail && { primaryEmail }),
-    ...(address && { address }),
-    ...(city && { city }),
-    ...getDefaultGoldenProfileValues(),
+    profile: {
+      ...(id && { id }),
+      ...(fullName && { fullName }),
+      ...(gender && { gender }),
+      ...(dateOfBirth && { dateOfBirth }),
+      ...(primaryPhone && { primaryPhone }),
+      ...(primaryEmail && { primaryEmail }),
+      ...(address && { address }),
+      ...(city && { city }),
+      ...getDefaultGoldenProfileValues(),
+    },
+    avatarUrl,
   }
 }
 
-export function mapMetaProfileToGoldenProfile(response: MetaProfileResponse, userId: string): Partial<GoldenProfile> {
+export function mapMetaProfileToGoldenProfile(response: MetaProfileResponse, userId: string): ProfileResult {
   const id = readString(response.id) ?? userId
   const fallbackFullName =
     [readString(response.first_name), readString(response.last_name)]
@@ -140,10 +146,15 @@ export function mapMetaProfileToGoldenProfile(response: MetaProfileResponse, use
 
   const gender = mapGender(response.gender)
 
+  const avatarUrl = readString(response.profile_pic) ?? ""
+
   return {
-    ...(id && { id }),
-    ...(fullName && { fullName }),
-    ...(gender && { gender }),
-    ...getDefaultGoldenProfileValues(),
+    profile: {
+      ...(id && { id }),
+      ...(fullName && { fullName }),
+      ...(gender && { gender }),
+      ...getDefaultGoldenProfileValues(),
+    },
+    avatarUrl,
   }
 }

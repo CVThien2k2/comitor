@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common"
-import { PrismaService } from "../../database/prisma.service"
+import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
@@ -83,31 +83,39 @@ export class ConversationService {
     })
   }
 
-  async getOrCreate(data: { externalId: string; linkedAccountId: string; accountCustomerId: string }) {
-    const existing = await this.prisma.client.conversation.findFirst({
-      where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
-    })
+  async getOrCreate(
+    data: { externalId: string; linkedAccountId: string; accountCustomerId: string; isGroupMessage?: boolean },
+    tx?: TransactionClient
+  ) {
+    try {
+      const db = tx ?? this.prisma.client
 
-    if (existing) return existing
+      const existing = await db.conversation.findFirst({
+        where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
+      })
 
-    const conversation = await this.prisma.client.conversation.create({
-      data: {
-        externalId: data.externalId,
-        linkedAccountId: data.linkedAccountId,
-        accountCustomerId: data.accountCustomerId,
-        type: "personal",
-        tag: "other",
-      },
-    })
+      if (existing) return existing
 
-    await this.prisma.client.conversationCustomer.create({
-      data: {
-        conversationId: conversation.id,
-        accountCustomerId: data.accountCustomerId,
-      },
-    })
+      const conversation = await db.conversation.create({
+        data: {
+          externalId: data.externalId,
+          linkedAccountId: data.linkedAccountId,
+          accountCustomerId: data.accountCustomerId,
+          type: data.isGroupMessage ? "group" : "personal",
+        },
+      })
 
-    return conversation
+      await db.conversationCustomer.create({
+        data: {
+          conversationId: conversation.id,
+          accountCustomerId: data.accountCustomerId,
+        },
+      })
+
+      return conversation
+    } catch (error) {
+      throw new Error(`Lỗi tạo cuộc hội thoại: ${(error as Error).message}`)
+    }
   }
 
   async delete(id: string) {

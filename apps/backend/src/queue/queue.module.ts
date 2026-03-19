@@ -2,9 +2,11 @@ import { Global, Module } from "@nestjs/common"
 import { BullModule } from "@nestjs/bullmq"
 import { ConfigService } from "@nestjs/config"
 import { QUEUE_NAMES } from "./queue.constants"
-import { IncomingMessageProcessor } from "./incoming-message.processor"
-import { IncomingMessageHandler } from "./incoming-message.handler"
+import { IncomingMessageProcessor } from "./message.processor"
+import { IncomingMessageHandler } from "./message.handler"
 import { QueueService } from "./queue.service"
+import { AccountCustomerModule } from "../core/account-customer/account-customer.module"
+import { MessageModule } from "../core/message/message.module"
 
 @Global()
 @Module({
@@ -19,7 +21,13 @@ import { QueueService } from "./queue.service"
     }),
     BullModule.registerQueue({
       name: QUEUE_NAMES.INCOMING_MESSAGE,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 3000 },
+      },
     }),
+    AccountCustomerModule,
+    MessageModule,
   ],
   providers: [IncomingMessageProcessor, IncomingMessageHandler, QueueService],
   exports: [QueueService],

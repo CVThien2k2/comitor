@@ -53,3 +53,8 @@ enum ConversationTag {
   other
   business
 }
+
+enum CredentialType {
+  oauth2
+  browser_session
+}

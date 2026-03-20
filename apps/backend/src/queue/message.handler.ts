@@ -5,6 +5,7 @@ import { MessageService } from "src/core/message/message.service"
 import type { Message } from "src/utils/types"
 import { EVENTS } from "@workspace/shared"
 import { SocketGateway } from "src/websocket/socket.gateway"
+import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
 
 @Injectable()
 export class MessageHandler {
@@ -14,7 +15,8 @@ export class MessageHandler {
     private readonly prisma: PrismaService,
     private readonly accountCustomerService: AccountCustomerService,
     private readonly messageService: MessageService,
-    private readonly socketGateway: SocketGateway
+    private readonly socketGateway: SocketGateway,
+    private readonly zaloPersonalService: ZaloPersonalService
   ) {}
 
   async handleInbound(message: Message) {
@@ -46,6 +48,16 @@ export class MessageHandler {
 
     const dbMessage = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
+      const conversationName = await this.resolveConversationName({
+        provider,
+        linkedAccountId: linkedAccount.id,
+        linkedAccountDisplayName: linkedAccount.displayName,
+        externalConversationId,
+        senderAccountCustomerId: accountCustomer.id,
+        senderFallbackName: senderId,
+        isGroupMessage: isGroupMessage ?? false,
+        tx,
+      })
 
       return this.messageService.createInbound(
         {
@@ -57,6 +69,7 @@ export class MessageHandler {
           content: message.text,
           attachments: message.attachments,
           isGroupMessage: isGroupMessage ?? false,
+          conversationName
         },
         tx
       )
@@ -115,5 +128,48 @@ export class MessageHandler {
     this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
 
     return dbMessage
+  }
+
+  private async resolveConversationName(params: {
+    provider: string
+    linkedAccountId: string
+    linkedAccountDisplayName: string | null
+    externalConversationId: string
+    senderAccountCustomerId: string
+    senderFallbackName: string
+    isGroupMessage: boolean
+    tx: any
+  }) {
+    if (params.provider !== "zalo_personal") {
+      return undefined
+    }
+
+    if (!params.isGroupMessage) {
+      const accountCustomer = await params.tx.accountCustomer.findUnique({
+        where: { id: params.senderAccountCustomerId },
+        include: {
+          goldenProfile: {
+            select: {
+              fullName: true,
+            },
+          },
+        },
+      })
+
+      return accountCustomer?.goldenProfile?.fullName ?? params.senderFallbackName
+    }
+
+    try {
+      return await this.zaloPersonalService.getGroupConversationName(
+        params.externalConversationId,
+        params.linkedAccountId
+      )
+    } catch (error) {
+      this.logger.warn(
+        `Không lấy được tên conversation nhóm Zalo Personal ${params.externalConversationId}, fallback về display name đã liên kết: ${(error as Error).message}`
+      )
+
+      return params.linkedAccountDisplayName ?? params.externalConversationId
+    }
   }
 }

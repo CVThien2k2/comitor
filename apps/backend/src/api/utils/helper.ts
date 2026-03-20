@@ -1,7 +1,6 @@
 import { CustomerType, Gender, GoldenProfile } from "@workspace/database"
 import type { ProfileResult } from "src/platform/profile-fetchers/profile-fetcher.interface"
-import { MetaProfileResponse } from "src/utils/types"
-import { ZaloOaProfileResponse } from "src/utils/types"
+import { MetaProfileResponse, ZaloOaProfileResponse, ZaloPersonalUserProfile } from "src/utils/types"
 
 export function mapGender(value: unknown): Gender | null {
   if (value === null || value === undefined) {
@@ -153,6 +152,25 @@ export function mapMetaProfileToGoldenProfile(response: MetaProfileResponse, use
       ...(id && { id }),
       ...(fullName && { fullName }),
       ...(gender && { gender }),
+      ...getDefaultGoldenProfileValues(),
+    },
+    avatarUrl,
+  }
+}
+
+export function mapZaloPersonalProfileToGoldenProfile(profile: ZaloPersonalUserProfile, userId: string): ProfileResult {
+  const fullName = readString(profile.zaloName) ?? readString(profile.username)
+  const gender = profile.gender === 0 ? Gender.male : profile.gender === 1 ? Gender.female : null
+  const dateOfBirth = parseDate(profile.sdob)
+  const primaryPhone = readString(profile.phoneNumber)
+  const avatarUrl = readString(profile.avatar) ?? ""
+
+  return {
+    profile: {
+      ...(fullName && { fullName }),
+      ...(gender && { gender }),
+      ...(dateOfBirth && { dateOfBirth }),
+      ...(primaryPhone && { primaryPhone }),
       ...getDefaultGoldenProfileValues(),
     },
     avatarUrl,

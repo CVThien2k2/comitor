@@ -84,7 +84,7 @@ export class ConversationService {
   }
 
   async getOrCreate(
-    data: { externalId: string; linkedAccountId: string; accountCustomerId: string; isGroupMessage?: boolean },
+    data: { externalId: string; linkedAccountId: string; accountCustomerId: string; isGroupMessage?: boolean, name?: string },
     tx?: TransactionClient
   ) {
     try {
@@ -101,6 +101,7 @@ export class ConversationService {
           externalId: data.externalId,
           linkedAccountId: data.linkedAccountId,
           accountCustomerId: data.accountCustomerId,
+          name: data.name,
           type: data.isGroupMessage ? "group" : "personal",
         },
       })

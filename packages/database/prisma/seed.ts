@@ -210,18 +210,21 @@ async function main() {
       linkedByUserId: systemUser.id,
       displayName: "Comitor Zalo OA",
       accountId: "zalo_oa_001",
+      providerCredentialsId: "",
     },
     {
       provider: "facebook" as const,
       linkedByUserId: systemUser.id,
       displayName: "Comitor Facebook",
       accountId: "fb_001",
+      providerCredentialsId: "",
     },
     {
       provider: "zalo_personal" as const,
       linkedByUserId: aliceUser.id,
       displayName: "Alice Zalo",
       accountId: "zalo_personal_001",
+      providerCredentialsId: "",
     },
   ]
 

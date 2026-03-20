@@ -26,6 +26,7 @@ export type {
   ConversationCustomer,
   Message,
   MessageAttachment,
+  ProviderCredentials,
 } from "./generated/client"
 
 // Permissions

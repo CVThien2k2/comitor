@@ -206,7 +206,7 @@ export class ZaloOaService {
     }
 
     // Gửi tin nhắn chỉ có text
-    if (payload.text && payload.attachments.length === 0)
+    if (payload.text && (!payload.attachments || payload.attachments.length === 0))
       return fetchWrapper.post(
         `/v3.0/oa/message/cs`,
         {

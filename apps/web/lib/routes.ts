@@ -25,4 +25,12 @@ export const ROUTES = {
       robots: "noindex, nofollow",
     } satisfies Metadata,
   },
+  conversations: {
+    path: "/conversations",
+    metadata: {
+      title: "Hội thoại - Comitor",
+      description: "Hội thoại",
+      robots: "noindex, nofollow",
+    } satisfies Metadata,
+  },
 } as const

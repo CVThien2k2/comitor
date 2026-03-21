@@ -7,30 +7,15 @@ import { cn } from '@workspace/ui/lib/utils'
 import { Icons } from '@/components/global/icons'
 import { Badge } from '@workspace/ui/components/badge'
 import { useTheme } from 'next-themes'
+import {
+  APP_SETTINGS_NAV_ITEM,
+  getMobileOverflowNavItems,
+  getMobilePrimaryNavItems,
+  type AppNavItem,
+} from '@/lib/app-navigation'
 
-interface NavItem {
-  label: string
-  icon: React.ElementType
-  href: string
-  badge?: number
-}
-
-const primaryNavItems: NavItem[] = [
-  { label: 'Hộp thư', icon: Icons.inbox, href: '/', badge: 12 },
-  { label: 'Khách hàng', icon: Icons.users, href: '/customers' },
-  { label: 'Công việc', icon: Icons.checkSquare, href: '/tasks' },
-  { label: 'Phân tích', icon: Icons.barChart3, href: '/analytics' },
-]
-
-const moreNavItems: NavItem[] = [
-  { label: 'Kênh kết nối', icon: Icons.radio, href: '/channels' },
-  { label: 'Tổ chức', icon: Icons.building2, href: '/organizations' },
-  { label: 'Tri thức', icon: Icons.bookOpen, href: '/knowledge' },
-  { label: 'Nội dung', icon: Icons.fileText, href: '/content' },
-  { label: 'Tự động hóa', icon: Icons.workflow, href: '/automation' },
-  { label: 'AI Agents', icon: Icons.bot, href: '/agents' },
-  { label: 'Cài đặt', icon: Icons.settings, href: '/settings' },
-]
+const mobilePrimaryNavItems = getMobilePrimaryNavItems()
+const mobileMoreNavItems = [...getMobileOverflowNavItems(), APP_SETTINGS_NAV_ITEM]
 
 export function MobileBottomNav() {
   const pathname = usePathname()
@@ -42,7 +27,7 @@ export function MobileBottomNav() {
     setMounted(true)
   }, [])
 
-  const isMoreActive = moreNavItems.some(item => 
+  const isMoreActive = mobileMoreNavItems.some(item => 
     pathname === item.href || pathname.startsWith(item.href + '/')
   )
 
@@ -51,7 +36,7 @@ export function MobileBottomNav() {
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-pb">
         <div className="flex items-center justify-around h-16 px-2">
-          {primaryNavItems.map((item) => (
+          {mobilePrimaryNavItems.map((item) => (
             <BottomNavItem
               key={item.href}
               item={item}
@@ -104,7 +89,7 @@ export function MobileBottomNav() {
 
             {/* Navigation Items */}
             <div className="px-3 py-4 space-y-1 max-h-[60vh] overflow-y-auto">
-              {moreNavItems.map((item) => (
+              {mobileMoreNavItems.map((item) => (
                 <SheetNavItem
                   key={item.href}
                   item={item}
@@ -145,7 +130,7 @@ export function MobileBottomNav() {
   )
 }
 
-function BottomNavItem({ item, isActive }: { item: NavItem; isActive: boolean }) {
+function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean }) {
   const Icon = item.icon
 
   return (
@@ -176,7 +161,7 @@ function SheetNavItem({
   isActive, 
   onClick 
 }: { 
-  item: NavItem
+  item: AppNavItem
   isActive: boolean
   onClick: () => void 
 }) {

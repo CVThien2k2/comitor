@@ -1,7 +1,5 @@
-import { InboxPage } from '@/components/inbox/inbox-page'
+import { redirect } from "next/navigation"
 
 export default function HomePage() {
-  return (
-    <InboxPage />
-  )
+  redirect("/conversations")
 }

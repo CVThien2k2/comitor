@@ -1,4 +1,4 @@
-export default function AccountsPage() {
+export default function PermissionsPage() {
   return <div className="h-full w-full" />
 }
 

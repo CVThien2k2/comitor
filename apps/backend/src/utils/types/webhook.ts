@@ -48,7 +48,18 @@ export interface MetaMessageWebhook {
         attachments?: {
           type: "image" | "file" | "video" | "audio"
           payload: {
-            url: string
+            url?: string
+            attachment_url?: string
+            file_url?: string
+            src?: string
+            thumbnail?: string
+            thumbnail_url?: string
+            name?: string
+            title?: string
+            filename?: string
+            size?: string | number
+            mime_type?: string
+            content_type?: string
           }
         }[]
       }

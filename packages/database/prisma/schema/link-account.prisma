@@ -1,16 +1,18 @@
 model LinkAccount {
-  id             String      @id @default(uuid())
-  provider       ChannelType @map("provider")
-  linkedByUserId String      @map("linked_by_user_id")
-  displayName    String?     @map("display_name")
-  accountId      String?     @map("account_id")
-  avatarUrl      String?     @map("avatar_url")
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
+  id                    String      @id @default(uuid())
+  provider              ChannelType @map("provider")
+  linkedByUserId        String      @map("linked_by_user_id")
+  providerCredentialsId String?     @map("provider_credentials_id")
+  displayName           String?     @map("display_name")
+  accountId             String?     @map("account_id")
+  avatarUrl             String?     @map("avatar_url")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
 
-  linkedByUser     User              @relation(fields: [linkedByUserId], references: [id], onDelete: Cascade)
-  conversations    Conversation[]
-  accountCustomers AccountCustomer[]
+  linkedByUser        User                 @relation(fields: [linkedByUserId], references: [id], onDelete: Cascade)
+  conversations       Conversation[]
+  accountCustomers    AccountCustomer[]
+  providerCredentials ProviderCredentials?
 
   @@unique([accountId, provider], name: "unique_account_link")
   @@map("link_accounts")

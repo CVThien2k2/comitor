@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
-import { PrismaService, type TransactionClient } from "../../database/prisma.service"
+import type { Attachment } from "src/utils/types"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
+import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import { paginate, paginatedResponse } from "../../utils/paginate"
+import { ConversationService } from "../conversation/conversation.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
-import { ConversationService } from "../conversation/conversation.service"
-import type { Attachment } from "src/utils/types"
 
 const MESSAGE_INCLUDE = {
   attachments: true,
@@ -23,6 +23,8 @@ const MESSAGE_INCLUDE = {
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
@@ -121,6 +123,7 @@ export class MessageService {
       accountCustomerId: string
       externalId: string
       timestamp: number
+      conversationName?: string
       content?: string
       attachments?: Attachment[]
       isGroupMessage: boolean
@@ -135,6 +138,7 @@ export class MessageService {
         linkedAccountId: data.linkedAccountId,
         accountCustomerId: data.accountCustomerId,
         isGroupMessage: data.isGroupMessage,
+        name: data.conversationName,
       },
       tx
     )

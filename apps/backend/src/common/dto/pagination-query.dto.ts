@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { Type } from "class-transformer"
-import { IsInt, IsOptional, IsString, Min } from "class-validator"
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from "class-validator"
 
 export class PaginationQueryDto {
   @ApiProperty({ example: 1, required: false, description: "Số trang (bắt đầu từ 1)" })
@@ -21,4 +21,10 @@ export class PaginationQueryDto {
   @IsString()
   @IsOptional()
   search?: string
+
+  @ApiProperty({ example: false, required: false, description: "Chỉ lấy cuộc hội thoại chưa đọc" })
+  @Type(() => Boolean)
+  @IsBoolean()
+  @IsOptional()
+  unread?: boolean
 }

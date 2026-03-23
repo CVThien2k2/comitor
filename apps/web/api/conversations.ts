@@ -113,7 +113,7 @@ export interface CreateMessagePayload {
 // ─── API ────────────────────────────────────────────────
 
 export const conversations = {
-  getAll: (query?: PaginationQuery) =>
+  getAll: (query?: PaginationQuery & { unread?: boolean }) =>
     api.get<ApiResponse<PaginatedResponse<ConversationItem>>>("/conversations", { params: query }),
 
   getUnreadCount: () => api.get<ApiResponse<number>>("/conversations/unread-count"),

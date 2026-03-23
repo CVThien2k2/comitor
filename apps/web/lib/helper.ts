@@ -50,13 +50,18 @@ export function formatMessageTime(dateStr: string) {
 export function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr)
   const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const oneDay = 86400000
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
 
-  if (diff < oneDay && date.getDate() === now.getDate()) {
-    return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+  if (diffMin < 1) return "Vừa xong"
+  if (diffMin < 60) return `${diffMin} phút trước`
+  if (diffHours < 24 && date.getDate() === now.getDate()) {
+    return `${diffHours} giờ trước`
   }
-  if (diff < oneDay * 2) return "Hôm qua"
+  if (diffDays < 2) return "Hôm qua"
+  if (diffDays <= 7) return `${diffDays} ngày trước`
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })
 }
 

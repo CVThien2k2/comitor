@@ -4,23 +4,24 @@ import { useQuery } from "@tanstack/react-query"
 import { Icons } from "@/components/global/icons"
 import { useAuthStore } from "@/stores/auth-store"
 import { useStoreHydration } from "@/hooks/use-store-hydration"
-import { users } from "@/api/users"
+import { app } from "@/api"
+import { useAppStore } from "@/stores/app-store"
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useStoreHydration()
   const accessToken = useAuthStore((s) => s.accessToken)
 
   const { isLoading } = useQuery({
-    queryKey: ["users", "me"],
+    queryKey: ["app", "init"],
     queryFn: async () => {
       try {
-        const res = await users.getMe()
-        if (res.data) {
-          useAuthStore.getState().setUser(res.data)
-        }
+        const res = await app.init()
+        if (res.data?.user) useAuthStore.getState().setUser(res.data.user)
+        if (res.data?.badges) useAppStore.getState().setBadges(res.data.badges)
         return res
       } catch {
         useAuthStore.getState().logout()
+        useAppStore.getState().reset()
         throw new Error("Unauthorized")
       }
     },

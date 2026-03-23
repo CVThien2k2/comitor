@@ -13,6 +13,7 @@ import {
   getMobilePrimaryNavItems,
   type AppNavItem,
 } from "@/lib/app-navigation"
+import { useAppStore } from "@/stores/app-store"
 
 const mobilePrimaryNavItems = getMobilePrimaryNavItems()
 const mobileMoreNavItems = [...getMobileOverflowNavItems(), APP_SETTINGS_NAV_ITEM]
@@ -124,6 +125,7 @@ export function MobileBottomNav() {
 
 function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean }) {
   const Icon = item.icon
+  const badgeCount = useAppStore((s) => (item.badgeKey ? s.badges[item.badgeKey] : 0))
 
   return (
     <Link
@@ -135,9 +137,9 @@ function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean
     >
       <div className="relative">
         <Icon className="h-5 w-5" />
-        {item.badge && item.badge > 0 && (
+        {badgeCount > 0 && (
           <span className="absolute -top-1 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-            {item.badge > 99 ? "99+" : item.badge}
+            {badgeCount > 99 ? "99+" : badgeCount}
           </span>
         )}
       </div>
@@ -148,6 +150,7 @@ function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean
 
 function SheetNavItem({ item, isActive, onClick }: { item: AppNavItem; isActive: boolean; onClick: () => void }) {
   const Icon = item.icon
+  const badgeCount = useAppStore((s) => (item.badgeKey ? s.badges[item.badgeKey] : 0))
 
   return (
     <Link
@@ -160,8 +163,10 @@ function SheetNavItem({ item, isActive, onClick }: { item: AppNavItem; isActive:
     >
       <Icon className="h-6 w-6" />
       <span className="text-sm font-medium">{item.label}</span>
-      {item.badge && item.badge > 0 && (
-        <Badge className="ml-auto h-5 bg-primary px-2 text-[10px] text-primary-foreground">{item.badge}</Badge>
+      {badgeCount > 0 && (
+        <Badge className="ml-auto h-5 bg-primary px-2 text-[10px] text-primary-foreground">
+          {badgeCount > 99 ? "99+" : badgeCount}
+        </Badge>
       )}
     </Link>
   )

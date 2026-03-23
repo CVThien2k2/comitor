@@ -3,121 +3,14 @@
 import type { ConversationItem } from "@/api/conversations"
 import { conversations } from "@/api/conversations"
 import { Icons } from "@/components/global/icons"
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
-import { cn } from "@workspace/ui/lib/utils"
+import { useAppStore } from "@/stores/app-store"
 import * as React from "react"
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
-import {
-  channelConfig,
-  formatTimestamp,
-  getAvatarColor,
-  getConversationDisplayName,
-  getInitials,
-  getProviderLabel,
-} from "@/lib/helper"
-
-// ─── Channel Icon Resolver ──────────────────────────────
-
-const channelIconMap: Record<string, React.FC<{ className?: string }>> = {
-  zalo_oa: Icons.zalo,
-  zalo_personal: Icons.zalo,
-  facebook: Icons.facebook,
-  gmail: Icons.gmail,
-  phone: Icons.phoneChannel,
-}
-
-function ChannelBadge({ provider }: { provider: string }) {
-  const Icon = channelIconMap[provider] ?? Icons.website
-  const config = channelConfig[provider] ?? { color: "text-muted-foreground", bg: "bg-muted" }
-
-  return (
-    <span
-      className={cn(
-        "absolute -right-0.5 -bottom-0.5 flex size-5 items-center justify-center rounded-full border-2 border-background",
-        config.bg,
-        config.color
-      )}
-    >
-      <Icon />
-    </span>
-  )
-}
-
-// ─── Conversation List Item ─────────────────────────────
-
-function ConversationListItem({
-  conversation,
-  isSelected,
-  onClick,
-}: {
-  conversation: ConversationItem
-  isSelected: boolean
-  onClick: () => void
-}) {
-  const displayName = getConversationDisplayName(conversation)
-  const initials = getInitials(displayName)
-  const lastMsg = conversation.lastMessage
-  const isUnread = conversation.unreadCount > 0
-  const avatarColor = getAvatarColor(conversation.id)
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-start gap-3 border-b border-border p-3 text-left transition-all duration-200",
-        "hover:bg-accent/50",
-        isSelected && "border-l-2 border-l-primary bg-accent/70",
-        isUnread && !isSelected && "bg-primary/3"
-      )}
-    >
-      <div className="relative shrink-0">
-        <Avatar className="size-10">
-          <AvatarFallback className="text-xs font-semibold text-white" style={{ backgroundColor: avatarColor }}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <ChannelBadge provider={conversation.linkedAccount.provider} />
-      </div>
-
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className={cn("truncate text-sm font-medium", isUnread ? "text-foreground" : "text-foreground/80")}>
-            {displayName}
-          </span>
-          {lastMsg && (
-            <span className="text-[11px] whitespace-nowrap text-muted-foreground">
-              {formatTimestamp(lastMsg.createdAt)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <Badge variant="outline" className="h-4 shrink-0 px-1 text-[9px] font-normal">
-            {getProviderLabel(conversation.linkedAccount.provider)}
-          </Badge>
-          {conversation.tag === "business" && (
-            <Badge variant="outline" className="h-4 shrink-0 border-blue-200 px-1 text-[9px] font-normal text-blue-600">
-              B2B
-            </Badge>
-          )}
-        </div>
-
-        {lastMsg && (
-          <p className={cn("truncate text-sm", isUnread ? "font-medium text-foreground/90" : "text-muted-foreground")}>
-            {lastMsg.senderType === "agent" && "Bạn: "}
-            {lastMsg.content || "[Tệp đính kèm]"}
-          </p>
-        )}
-      </div>
-
-      {isUnread && <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-primary" />}
-    </button>
-  )
-}
+import { useInfiniteQuery } from "@tanstack/react-query"
+import { ConversationListItem } from "./conversation-list-item"
 
 // ─── Conversation List Panel ────────────────────────────
 
@@ -134,18 +27,7 @@ export function ConversationListPanel({
 
   const CONVERSATIONS_PER_PAGE = 30
 
-  const {
-    data: unreadConversationsCount = 0,
-    isLoading: isLoadingUnreadConversationsCount,
-    isFetching: isFetchingUnreadConversationsCount,
-  } = useQuery({
-    queryKey: ["conversations", "unreadCount"],
-    queryFn: async () => {
-      const res = await conversations.getUnreadCount()
-      return res.data ?? 0
-    },
-    staleTime: 15_000,
-  })
+  const unreadConversationsCount = useAppStore((s) => s.badges.conversationsUnreadCount ?? 0)
 
   const {
     data: conversationList,
@@ -154,12 +36,13 @@ export function ConversationListPanel({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, deferredSearchQuery],
+    queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, deferredSearchQuery, activeTab],
     queryFn: ({ pageParam = 1 }) =>
       conversations.getAll({
         page: pageParam,
         limit: CONVERSATIONS_PER_PAGE,
         search: deferredSearchQuery?.trim() ? deferredSearchQuery.trim() : undefined,
+        unread: activeTab === "unread",
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -168,18 +51,11 @@ export function ConversationListPanel({
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
     select: (data) => data.pages.flatMap((p) => p.data?.items ?? []),
+    // Chuyển tab đổi queryKey nên React Query sẽ fetch lại đúng tập dữ liệu từ BE.
+    staleTime: 0,
   })
 
-  const list = conversationList ?? []
-
-  const filtered = React.useMemo(() => {
-    let next = list
-
-    if (activeTab === "unread") {
-      next = next.filter((c) => c.unreadCount > 0)
-    }
-    return next
-  }, [list, activeTab])
+  const filtered = conversationList ?? []
 
   const handleScroll = React.useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {

@@ -22,10 +22,10 @@ import { MessageBubble } from "./message-bubble"
 
 function DateSeparator({ date }: { date: string }) {
   return (
-    <div className="flex items-center gap-3 my-4">
-      <div className="flex-1 h-px bg-border" />
-      <span className="text-xs text-muted-foreground font-medium px-2">{date}</span>
-      <div className="flex-1 h-px bg-border" />
+    <div className="my-4 flex items-center gap-3">
+      <div className="h-px flex-1 bg-border" />
+      <span className="px-2 text-xs font-medium text-muted-foreground">{date}</span>
+      <div className="h-px flex-1 bg-border" />
     </div>
   )
 }
@@ -48,23 +48,22 @@ export function ChatPanel({
   const MESSAGES_PER_PAGE = 30
   const qc = useQueryClient()
 
-  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useInfiniteQuery({
-      queryKey: ["messages", "list", conversation.id, MESSAGES_PER_PAGE],
-      queryFn: ({ pageParam = 1 }) =>
-        messagesApi.getByConversation(conversation.id, { page: pageParam, limit: MESSAGES_PER_PAGE }),
-      initialPageParam: 1,
-      getNextPageParam: (lastPage) => {
-        const meta = lastPage.data?.meta
-        if (!meta) return undefined
-        return meta.page < meta.totalPages ? meta.page + 1 : undefined
-      },
-      select: (data) => ({
-        pages: data.pages,
-        pageParams: data.pageParams,
-        messages: data.pages.flatMap((page) => page.data?.items ?? []),
-      }),
-    })
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["messages", "list", conversation.id, MESSAGES_PER_PAGE],
+    queryFn: ({ pageParam = 1 }) =>
+      messagesApi.getByConversation(conversation.id, { page: pageParam, limit: MESSAGES_PER_PAGE }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      const meta = lastPage.data?.meta
+      if (!meta) return undefined
+      return meta.page < meta.totalPages ? meta.page + 1 : undefined
+    },
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+      messages: data.pages.flatMap((page) => page.data?.items ?? []),
+    }),
+  })
 
   const sendMessage = useMutation({
     mutationFn: (payload: CreateMessagePayload) => messagesApi.create(payload),
@@ -74,7 +73,7 @@ export function ChatPanel({
     },
   })
 
-  const messageList = data?.messages ?? []
+  const messageList = React.useMemo(() => data?.messages ?? [], [data?.messages])
 
   const messageGroups = React.useMemo(() => {
     const groups: { date: string; messages: MessageItem[] }[] = []
@@ -128,27 +127,24 @@ export function ChatPanel({
   const avatarColor = getAvatarColor(conversation.id)
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           {onBack && (
             <Button variant="ghost" size="icon-sm" onClick={onBack}>
-              <Icons.chevronLeft className="w-5 h-5" />
+              <Icons.chevronLeft className="h-5 w-5" />
             </Button>
           )}
           <Avatar className="size-10">
-            <AvatarFallback
-              className="text-sm font-semibold text-white"
-              style={{ backgroundColor: avatarColor }}
-            >
+            <AvatarFallback className="text-sm font-semibold text-white" style={{ backgroundColor: avatarColor }}>
               {initials}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground">{displayName}</h3>
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal">
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
                 {getProviderLabel(conversation.linkedAccount.provider)}
               </Badge>
             </div>
@@ -188,11 +184,7 @@ export function ChatPanel({
       </div>
 
       {/* Messages Area */}
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 bg-background"
-      >
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-background px-4 py-4">
         {isFetchingNextPage && (
           <div className="flex justify-center py-3">
             <Icons.spinner className="size-5 animate-spin text-muted-foreground" />
@@ -206,28 +198,28 @@ export function ChatPanel({
               return (
                 <div
                   key={i}
-                  className={cn(
-                    "flex gap-2.5 max-w-[70%]",
-                    isLeft ? "self-start" : "self-end flex-row-reverse"
-                  )}
+                  className={cn("flex max-w-[70%] gap-2.5", isLeft ? "self-start" : "flex-row-reverse self-end")}
                 >
-                  {isLeft && (
-                    <div className="size-8 rounded-full shrink-0 animate-pulse bg-muted" />
-                  )}
+                  {isLeft && <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />}
                   <div className={cn("space-y-1.5", !isLeft && "flex flex-col items-end")}>
-                    <div className="h-3 w-16 rounded animate-pulse bg-muted" />
-                    <div className={cn("h-10 rounded-2xl animate-pulse bg-muted", isLeft ? "w-48 rounded-tl-md" : "w-40 rounded-tr-md")} />
-                    <div className="h-3 w-10 rounded animate-pulse bg-muted" />
+                    <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                    <div
+                      className={cn(
+                        "h-10 animate-pulse rounded-2xl bg-muted",
+                        isLeft ? "w-48 rounded-tl-md" : "w-40 rounded-tr-md"
+                      )}
+                    />
+                    <div className="h-3 w-10 animate-pulse rounded bg-muted" />
                   </div>
                 </div>
               )
             })}
           </div>
         ) : messageList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <Icons.messageSquare className="size-10 mb-3 opacity-40" />
+          <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+            <Icons.messageSquare className="mb-3 size-10 opacity-40" />
             <p className="text-sm">Chưa có tin nhắn nào</p>
-            <p className="text-xs mt-1">Hãy bắt đầu cuộc trò chuyện!</p>
+            <p className="mt-1 text-xs">Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
           <div className="flex flex-col gap-1">
@@ -239,10 +231,7 @@ export function ChatPanel({
                     key={message.id}
                     message={message}
                     conversationAvatarColor={avatarColor}
-                    showAvatar={
-                      msgIndex === 0 ||
-                      group.messages[msgIndex - 1]?.senderType !== message.senderType
-                    }
+                    showAvatar={msgIndex === 0 || group.messages[msgIndex - 1]?.senderType !== message.senderType}
                   />
                 ))}
               </React.Fragment>
@@ -253,31 +242,23 @@ export function ChatPanel({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-muted/50">
-        <div className="flex flex-col gap-2 p-3 rounded-xl bg-background border border-border focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all duration-200">
+      <div className="border-t border-border bg-muted/50 p-4">
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Nhập tin nhắn..."
+            placeholder="Nhập tin nhắn"
             rows={2}
-            className="w-full bg-transparent resize-none text-sm placeholder:text-muted-foreground text-foreground focus:outline-none"
+            className="w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground"
-              >
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                 <Icons.paperclip className="size-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground hover:text-foreground"
-              >
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                 <Icons.smile className="size-4" />
               </Button>
             </div>
@@ -286,7 +267,7 @@ export function ChatPanel({
               size="sm"
               onClick={handleSend}
               disabled={!inputValue.trim() || sendMessage.isPending}
-              className="h-8 px-4 gap-1.5"
+              className="h-8 gap-1.5 px-4"
             >
               {sendMessage.isPending ? (
                 <Icons.spinner className="size-3.5 animate-spin" />

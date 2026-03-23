@@ -8,10 +8,11 @@ export class AppService {
 
   constructor(private readonly conversationService: ConversationService) {}
 
-  async init(_user: User) {
+  async init(user: User) {
     const [unreadCount] = await Promise.all([this.conversationService.countUnreadConversations()])
 
     return {
+      user,
       badges: {
         conversationsUnreadCount: unreadCount,
       },

@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@works
 import { ThemeToggle } from "@/components/global/theme-toggle"
 import { APP_SETTINGS_NAV_ITEM, getSidebarMainNavItems, type AppNavItem } from "@/lib/app-navigation"
 import { UserProfile } from "./user-profile"
+import { useAppStore } from "@/stores/app-store"
 
 const SIDEBAR_MAIN_NAV_ITEMS = getSidebarMainNavItems()
 
@@ -185,6 +186,7 @@ interface NavLinkProps {
 
 function NavLink({ item, isActive, collapsed, onClick }: NavLinkProps) {
   const Icon = item.icon
+  const badgeCount = useAppStore((s) => (item.badgeKey ? s.badges[item.badgeKey] : 0))
 
   const linkContent = (
     <Link
@@ -205,17 +207,15 @@ function NavLink({ item, isActive, collapsed, onClick }: NavLinkProps) {
             isActive && "text-indigo-600 dark:text-indigo-300"
           )}
         />
-        {collapsed && item.badge && item.badge > 0 && (
-          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />
-        )}
+        {collapsed && badgeCount > 0 && <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" />}
       </div>
 
       {!collapsed && (
         <>
           <span className="flex-1 truncate">{item.label}</span>
-          {item.badge && item.badge > 0 && (
+          {badgeCount > 0 && (
             <Badge className="h-5 min-w-5 bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
-              {item.badge > 99 ? "99+" : item.badge}
+              {badgeCount > 99 ? "99+" : badgeCount}
             </Badge>
           )}
         </>
@@ -231,8 +231,10 @@ function NavLink({ item, isActive, collapsed, onClick }: NavLinkProps) {
         </TooltipTrigger>
         <TooltipContent side="right" className="flex items-center gap-2">
           {item.label}
-          {item.badge && item.badge > 0 && (
-            <Badge className="h-4 bg-primary px-1.5 text-[10px] text-primary-foreground">{item.badge}</Badge>
+          {badgeCount > 0 && (
+            <Badge className="h-4 bg-primary px-1.5 text-[10px] text-primary-foreground">
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </Badge>
           )}
         </TooltipContent>
       </Tooltip>

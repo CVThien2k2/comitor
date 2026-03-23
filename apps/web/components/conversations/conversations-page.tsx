@@ -35,12 +35,9 @@ export function ConversationsPage() {
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
-      <div className="hidden w-full md:flex xl:hidden">
+      <div className="hidden w-full md:flex">
         <div className="relative shrink-0 border-r border-border" style={{ width: listWidth }}>
-          <ConversationListPanel
-            selectedId={selectedId}
-            onSelect={handleSelectConversation}
-          />
+          <ConversationListPanel selectedId={selectedId} onSelect={handleSelectConversation} />
           <div
             onMouseDown={onResizeStart}
             className={cn(
@@ -60,10 +57,7 @@ export function ConversationsPage() {
         {selectedConversation ? (
           <ChatPanel conversation={selectedConversation} onBack={handleBackToList} />
         ) : (
-          <ConversationListPanel
-            selectedId={selectedId}
-            onSelect={handleSelectConversation}
-          />
+          <ConversationListPanel selectedId={selectedId} onSelect={handleSelectConversation} />
         )}
       </div>
     </div>

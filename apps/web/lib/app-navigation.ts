@@ -1,11 +1,12 @@
 import type { ElementType } from "react"
 import { Icons } from "@/components/global/icons"
+import { AppData } from "@/api"
 
 export interface AppNavItem {
   label: string
   icon: ElementType
   href: string
-  badge?: number
+  badgeKey?: keyof AppData["badges"]
   /** Hiển thị trên thanh tab mobile (tối đa 4 mục đầu có cờ này) */
   mobileTab?: boolean
   /**
@@ -19,7 +20,13 @@ export interface AppNavItem {
  * Danh sách điều hướng chính — dùng chung cho sidebar (mọi breakpoint) và mobile.
  */
 export const APP_MAIN_NAV_ITEMS: AppNavItem[] = [
-  { label: "Hội thoại", icon: Icons.inbox, href: "/conversations", badge: 12, mobileTab: true },
+  {
+    label: "Hội thoại",
+    icon: Icons.inbox,
+    href: "/conversations",
+    badgeKey: "conversationsUnreadCount",
+    mobileTab: true,
+  },
   { label: "Kênh kết nối", icon: Icons.radio, href: "/links", mobileTab: true },
   {
     label: "Khách hàng",

@@ -21,7 +21,12 @@ export class ConversationService {
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
 
-    const where = query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}
+    const where = {
+      ...(query.search
+        ? { name: { contains: query.search, mode: "insensitive" as const } }
+        : {}),
+      ...(query.unread ? { messages: { some: { isRead: false } } } : {}),
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.client.conversation.findMany({

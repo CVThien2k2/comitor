@@ -45,6 +45,15 @@ export class ConversationController {
     return { message: "Lấy danh sách cuộc hội thoại thành công", data }
   }
 
+  @ApiOperation({ summary: "Lấy số cuộc hội thoại chưa đọc" })
+  @ApiOkResponse({ type: ApiResponseOf(Number) })
+  @Permissions(P.CONVERSATION_READ)
+  @Get("unread-count")
+  async unreadCount() {
+    const data = await this.conversationService.countUnreadConversations()
+    return { message: "Lấy số cuộc hội thoại chưa đọc thành công", data }
+  }
+
   @ApiOperation({ summary: "Lấy thông tin cuộc hội thoại theo ID" })
   @ApiOkResponse({ type: ApiResponseOf(ConversationDetailEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })

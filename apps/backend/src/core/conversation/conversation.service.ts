@@ -8,6 +8,16 @@ import { UpdateConversationDto } from "./dto/update-conversation.dto"
 export class ConversationService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async countUnreadConversations() {
+    return this.prisma.client.conversation.count({
+      where: {
+        messages: {
+          some: { isRead: false },
+        },
+      },
+    })
+  }
+
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
 

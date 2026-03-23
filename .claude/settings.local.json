@@ -12,7 +12,11 @@
       "Bash(grep:*)",
       "Bash(pnpm:*)",
       "Bash(for dir:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(bun run:*)",
+      "Bash(git checkout:*)",
+      "Bash(git status:*)"
     ]
   }
 }

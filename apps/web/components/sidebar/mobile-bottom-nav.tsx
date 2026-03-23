@@ -1,18 +1,18 @@
-'use client'
+"use client"
 
-import * as React from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@workspace/ui/lib/utils'
-import { Icons } from '@/components/global/icons'
-import { Badge } from '@workspace/ui/components/badge'
-import { useTheme } from 'next-themes'
+import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@workspace/ui/lib/utils"
+import { Icons } from "@/components/global/icons"
+import { Badge } from "@workspace/ui/components/badge"
+import { useTheme } from "next-themes"
 import {
   APP_SETTINGS_NAV_ITEM,
   getMobileOverflowNavItems,
   getMobilePrimaryNavItems,
   type AppNavItem,
-} from '@/lib/app-navigation'
+} from "@/lib/app-navigation"
 
 const mobilePrimaryNavItems = getMobilePrimaryNavItems()
 const mobileMoreNavItems = [...getMobileOverflowNavItems(), APP_SETTINGS_NAV_ITEM]
@@ -27,33 +27,29 @@ export function MobileBottomNav() {
     setMounted(true)
   }, [])
 
-  const isMoreActive = mobileMoreNavItems.some(item => 
-    pathname === item.href || pathname.startsWith(item.href + '/')
-  )
+  const isMoreActive = mobileMoreNavItems.some((item) => pathname === item.href || pathname.startsWith(item.href + "/"))
 
   return (
     <>
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-t border-border safe-area-pb">
-        <div className="flex items-center justify-around h-16 px-2">
+      <nav className="safe-area-pb fixed right-0 bottom-0 left-0 z-50 border-t border-border bg-background/95 backdrop-blur-md">
+        <div className="flex h-16 items-center justify-around px-2">
           {mobilePrimaryNavItems.map((item) => (
             <BottomNavItem
               key={item.href}
               item={item}
-              isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+              isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
             />
           ))}
           <button
             onClick={() => setSheetOpen(true)}
             className={cn(
-              'flex flex-col items-center justify-center gap-1 min-w-[64px] py-2 rounded-lg transition-colors',
-              isMoreActive
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
+              "flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-lg py-2 transition-colors",
+              isMoreActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <div className="relative">
-              <Icons.moreHorizontal className="w-5 h-5" />
+              <Icons.moreHorizontal className="h-5 w-5" />
             </div>
             <span className="text-[10px] font-medium">Thêm</span>
           </button>
@@ -64,36 +60,30 @@ export function MobileBottomNav() {
       {sheetOpen && (
         <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-50 transition-opacity"
-            onClick={() => setSheetOpen(false)}
-          />
-          
+          <div className="fixed inset-0 z-50 bg-black/50 transition-opacity" onClick={() => setSheetOpen(false)} />
+
           {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="fixed right-0 bottom-0 left-0 z-50 animate-in rounded-t-2xl bg-background shadow-2xl duration-300 slide-in-from-bottom">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+              <div className="h-1 w-10 rounded-full bg-muted-foreground/30" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3 border-b border-border">
+            <div className="flex items-center justify-between border-b border-border px-5 pb-3">
               <h3 className="font-semibold text-foreground">Menu</h3>
-              <button
-                onClick={() => setSheetOpen(false)}
-                className="p-2 rounded-lg hover:bg-muted transition-colors"
-              >
-                <Icons.x className="w-5 h-5 text-muted-foreground" />
+              <button onClick={() => setSheetOpen(false)} className="rounded-lg p-2 transition-colors hover:bg-muted">
+                <Icons.x className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
 
             {/* Navigation Items */}
-            <div className="px-3 py-4 space-y-1 max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] space-y-1 overflow-y-auto px-3 py-4">
               {mobileMoreNavItems.map((item) => (
                 <SheetNavItem
                   key={item.href}
                   item={item}
-                  isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                  isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
                   onClick={() => setSheetOpen(false)}
                 />
               ))}
@@ -101,22 +91,24 @@ export function MobileBottomNav() {
               {/* Theme Toggle */}
               {mounted && (
                 <button
-                  onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                  className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                  className="flex w-full items-center gap-4 rounded-xl px-4 py-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
-                  <div className="relative w-6 h-6">
-                    <Icons.sun className={cn(
-                      'absolute inset-0 w-6 h-6 transition-all duration-300',
-                      resolvedTheme === 'dark' ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'
-                    )} />
-                    <Icons.moon className={cn(
-                      'absolute inset-0 w-6 h-6 transition-all duration-300',
-                      resolvedTheme === 'dark' ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'
-                    )} />
+                  <div className="relative h-6 w-6">
+                    <Icons.sun
+                      className={cn(
+                        "absolute inset-0 h-6 w-6 transition-all duration-300",
+                        resolvedTheme === "dark" ? "scale-0 rotate-90 opacity-0" : "scale-100 rotate-0 opacity-100"
+                      )}
+                    />
+                    <Icons.moon
+                      className={cn(
+                        "absolute inset-0 h-6 w-6 transition-all duration-300",
+                        resolvedTheme === "dark" ? "scale-100 rotate-0 opacity-100" : "scale-0 -rotate-90 opacity-0"
+                      )}
+                    />
                   </div>
-                  <span className="text-sm font-medium">
-                    {resolvedTheme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
-                  </span>
+                  <span className="text-sm font-medium">{resolvedTheme === "dark" ? "Chế độ sáng" : "Chế độ tối"}</span>
                 </button>
               )}
             </div>
@@ -137,17 +129,15 @@ function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean
     <Link
       href={item.href}
       className={cn(
-        'flex flex-col items-center justify-center gap-1 min-w-[64px] py-2 rounded-lg transition-colors',
-        isActive
-          ? 'text-primary'
-          : 'text-muted-foreground hover:text-foreground'
+        "flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-lg py-2 transition-colors",
+        isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
       <div className="relative">
-        <Icon className="w-5 h-5" />
+        <Icon className="h-5 w-5" />
         {item.badge && item.badge > 0 && (
-          <span className="absolute -top-1 -right-2 min-w-4 h-4 px-1 flex items-center justify-center text-[9px] font-bold bg-primary text-primary-foreground rounded-full">
-            {item.badge > 99 ? '99+' : item.badge}
+          <span className="absolute -top-1 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+            {item.badge > 99 ? "99+" : item.badge}
           </span>
         )}
       </div>
@@ -156,15 +146,7 @@ function BottomNavItem({ item, isActive }: { item: AppNavItem; isActive: boolean
   )
 }
 
-function SheetNavItem({ 
-  item, 
-  isActive, 
-  onClick 
-}: { 
-  item: AppNavItem
-  isActive: boolean
-  onClick: () => void 
-}) {
+function SheetNavItem({ item, isActive, onClick }: { item: AppNavItem; isActive: boolean; onClick: () => void }) {
   const Icon = item.icon
 
   return (
@@ -172,18 +154,14 @@ function SheetNavItem({
       href={item.href}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-4 px-4 py-3 rounded-xl transition-colors',
-        isActive
-          ? 'bg-primary/10 text-primary'
-          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        "flex items-center gap-4 rounded-xl px-4 py-3 transition-colors",
+        isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
-      <Icon className="w-6 h-6" />
+      <Icon className="h-6 w-6" />
       <span className="text-sm font-medium">{item.label}</span>
       {item.badge && item.badge > 0 && (
-        <Badge className="ml-auto h-5 px-2 text-[10px] bg-primary text-primary-foreground">
-          {item.badge}
-        </Badge>
+        <Badge className="ml-auto h-5 bg-primary px-2 text-[10px] text-primary-foreground">{item.badge}</Badge>
       )}
     </Link>
   )

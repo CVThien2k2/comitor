@@ -1,0 +1,100 @@
+import type { ConversationItem, MessageItem } from "@/api/conversations"
+
+// ─── Avatar Colors ──────────────────────────────────────
+
+const AVATAR_COLORS = [
+  "#6366f1", // Indigo
+  "#ec4899", // Pink
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#8b5cf6", // Violet
+  "#06b6d4", // Cyan
+  "#ef4444", // Red
+]
+
+export function getAvatarColor(id: string) {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!
+}
+
+// ─── Channel Config ─────────────────────────────────────
+
+export const channelConfig: Record<string, { color: string; bg: string }> = {
+  zalo_oa: { color: "text-blue-500", bg: "bg-blue-50" },
+  zalo_personal: { color: "text-blue-500", bg: "bg-blue-50" },
+  facebook: { color: "text-blue-600", bg: "bg-blue-50" },
+  gmail: { color: "text-red-500", bg: "bg-red-50" },
+  phone: { color: "text-emerald-600", bg: "bg-emerald-50" },
+}
+
+// ─── Formatters ─────────────────────────────────────────
+
+export function getInitials(name: string | null | undefined) {
+  if (!name) return "?"
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+export function formatMessageTime(dateStr: string) {
+  const date = new Date(dateStr)
+  return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+}
+
+export function formatTimestamp(dateStr: string) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const oneDay = 86400000
+
+  if (diff < oneDay && date.getDate() === now.getDate()) {
+    return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+  }
+  if (diff < oneDay * 2) return "Hôm qua"
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })
+}
+
+export function formatMessageDate(dateStr: string) {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const oneDay = 86400000
+
+  if (diff < oneDay && date.getDate() === now.getDate()) return "Hôm nay"
+  if (diff < oneDay * 2) return "Hôm qua"
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+export function getConversationDisplayName(conv: ConversationItem) {
+  if (conv.name) return conv.name
+  const customer = conv.lastMessage?.accountCustomer
+  if (customer?.goldenProfile?.fullName) return customer.goldenProfile.fullName
+  return "Khách hàng"
+}
+
+export function getProviderLabel(provider: string) {
+  const map: Record<string, string> = {
+    zalo_oa: "Zalo OA",
+    zalo_personal: "Zalo",
+    facebook: "Facebook",
+    gmail: "Gmail",
+    phone: "Phone",
+  }
+  return map[provider] || provider
+}
+
+export function getSenderName(msg: MessageItem) {
+  if (msg.senderType === "customer") {
+    return msg.accountCustomer?.goldenProfile?.fullName || "Khách hàng"
+  }
+  if (msg.senderType === "agent") {
+    return msg.user?.name || "Agent"
+  }
+  return "Hệ thống"
+}

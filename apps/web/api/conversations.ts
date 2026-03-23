@@ -116,8 +116,9 @@ export const conversations = {
   getAll: (query?: PaginationQuery) =>
     api.get<ApiResponse<PaginatedResponse<ConversationItem>>>("/conversations", { params: query }),
 
-  getById: (id: string) =>
-    api.get<ApiResponse<ConversationDetail>>(`/conversations/${id}`),
+  getUnreadCount: () => api.get<ApiResponse<number>>("/conversations/unread-count"),
+
+  getById: (id: string) => api.get<ApiResponse<ConversationDetail>>(`/conversations/${id}`),
 }
 
 export const messages = {
@@ -126,12 +127,9 @@ export const messages = {
       params: query,
     }),
 
-  getById: (id: string) =>
-    api.get<ApiResponse<MessageItem>>(`/messages/${id}`),
+  getById: (id: string) => api.get<ApiResponse<MessageItem>>(`/messages/${id}`),
 
-  create: (payload: CreateMessagePayload) =>
-    api.post<ApiResponse<MessageItem>>("/messages", payload),
+  create: (payload: CreateMessagePayload) => api.post<ApiResponse<MessageItem>>("/messages", payload),
 
-  markAsRead: (id: string) =>
-    api.patch<ApiResponse<MessageItem>>(`/messages/${id}`, { isRead: true }),
+  markAsRead: (id: string) => api.patch<ApiResponse<MessageItem>>(`/messages/${id}`, { isRead: true }),
 }

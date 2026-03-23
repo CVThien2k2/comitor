@@ -25,6 +25,8 @@ import { PermissionsGuard } from "./common/guards/permissions.guard"
 import { ApiModule } from "./api/api.module"
 import { QueueModule } from "./queue/queue.module"
 import { PlatformModule } from "./platform/platform.module"
+import { AppController } from "./app.controller"
+import { AppService } from "./app.service"
 
 @Module({
   imports: [
@@ -58,8 +60,9 @@ import { PlatformModule } from "./platform/platform.module"
     PlatformModule,
     QueueModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

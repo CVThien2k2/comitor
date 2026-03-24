@@ -27,6 +27,7 @@ export class WebhookController {
   @ApiBody({ type: ZaloOAWebhookDto })
   async handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
     res.status(200).send("OK")
+    this.logger.debug(`Received Zalo OA webhook: ${JSON.stringify(payload)}`)
     const message = this.webhookService.mapZaloWebhook(payload)
     await this.queueService.addIncomingMessage(message)
   }

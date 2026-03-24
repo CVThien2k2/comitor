@@ -82,7 +82,7 @@ export class LinkAccountController {
   @ApiOperation({ summary: "Liên kết Zalo OA qua OAuth" })
   @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
-  @Post("link/zalo-oa")
+  @Post("zalo-oa")
   async linkZaloOa(@Body() dto: LinkOAuthDto, @Request() req: any) {
     const data = await this.linkAccountService.linkZaloOa(dto.code, req.user.id)
     return { message: "Liên kết Zalo OA thành công", data }

@@ -11,11 +11,12 @@ export const linkAccounts = {
   getAll: (query?: LinkAccountQuery) =>
     api.get<ApiResponse<PaginatedResponse<LinkAccountItem>>>("/link-accounts", { params: query }),
 
-  getById: (id: string) =>
-    api.get<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`),
+  getById: (id: string) => api.get<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`),
 
-  delete: (id: string) =>
-    api.delete<ApiResponse<null>>(`/link-accounts/${id}`),
+  delete: (id: string) => api.delete<ApiResponse<null>>(`/link-accounts/${id}`),
+
+  update: (id: string, payload: { display_name?: string; status?: string }) =>
+    api.patch<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`, payload),
 
   linkZaloOa: (payload: { code: string }) =>
     api.post<ApiResponse<LinkAccountDetail>>("/link-accounts/link/zalo-oa", payload),

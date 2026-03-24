@@ -58,3 +58,8 @@ enum CredentialType {
   oauth2
   browser_session
 }
+
+enum LinkAccountStatus {
+  active
+  inactive
+}

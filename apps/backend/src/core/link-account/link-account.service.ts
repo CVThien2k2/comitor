@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import { PrismaService } from "../../database/prisma.service"
+import { PrismaService, TransactionClient } from "../../database/prisma.service"
 import { RedisService } from "../../redis"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
@@ -44,6 +44,21 @@ interface MetaAccountResponse {
   picture?: { data?: { url?: string } }
 }
 
+type JsonPrimitive = string | number | boolean | null
+type JsonObject = { [key: string]: JsonPrimitive | JsonObject | JsonArray }
+type JsonArray = Array<JsonPrimitive | JsonObject | JsonArray>
+type JsonInputValue = string | number | boolean | JsonObject | JsonArray
+
+interface UpsertProviderCredentialsParams {
+  linkAccountId: string
+  credentialType: "oauth2" | "browser_session"
+  accessToken?: string | null
+  refreshToken?: string | null
+  accessTokenExpiresAt?: Date | null
+  refreshTokenExpiresAt?: Date | null
+  credentialPayload?: JsonInputValue
+}
+
 @Injectable()
 export class LinkAccountService {
   private readonly logger = new Logger(LinkAccountService.name)
@@ -54,6 +69,19 @@ export class LinkAccountService {
     private readonly redisService: RedisService,
     private readonly zaloPersonalSessionService: ZaloPersonalSessionService
   ) {}
+
+  private async upsertProviderCredentials(tx: TransactionClient, params: UpsertProviderCredentialsParams) {
+    const { linkAccountId, ...credentialData } = params
+
+    return tx.providerCredentials.upsert({
+      where: { linkAccountId },
+      update: credentialData,
+      create: {
+        linkAccountId,
+        ...credentialData,
+      },
+    })
+  }
 
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
@@ -196,23 +224,13 @@ export class LinkAccountService {
         },
       })
 
-      await tx.providerCredentials.upsert({
-        where: { linkAccountId: linkAccount.id },
-        update: {
-          credentialType: "oauth2",
-          accessToken: tokenResponse.access_token,
-          refreshToken: tokenResponse.refresh_token,
-          accessTokenExpiresAt,
-          refreshTokenExpiresAt,
-        },
-        create: {
-          linkAccountId: linkAccount.id,
-          credentialType: "oauth2",
-          accessToken: tokenResponse.access_token,
-          refreshToken: tokenResponse.refresh_token,
-          accessTokenExpiresAt,
-          refreshTokenExpiresAt,
-        },
+      await this.upsertProviderCredentials(tx, {
+        linkAccountId: linkAccount.id,
+        credentialType: "oauth2",
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token,
+        accessTokenExpiresAt,
+        refreshTokenExpiresAt,
       })
 
       return tx.linkAccount.findUniqueOrThrow({
@@ -274,6 +292,8 @@ export class LinkAccountService {
     })
 
     const accessToken = longLivedToken.access_token || shortLivedToken.access_token
+    const tokenTtl = Number(longLivedToken.expires_in ?? shortLivedToken.expires_in) || 60 * 24 * 60 * 60
+    const accessTokenExpiresAt = new Date(Date.now() + tokenTtl * 1000)
 
     const pagesResponse = await graphFetch.get<MetaPagesResponse>(`/v20.0/me/accounts`, {
       query: { access_token: accessToken },
@@ -303,17 +323,53 @@ export class LinkAccountService {
         /* avatar is optional */
       }
 
-      const linkAccount = await this.prisma.client.linkAccount.upsert({
-        where: { unique_account_link: { accountId: page.id, provider: "facebook" } },
-        update: { displayName: page.name, avatarUrl, linkedByUserId: userId },
-        create: {
-          provider: "facebook",
-          accountId: page.id,
-          displayName: page.name,
-          avatarUrl,
-          linkedByUserId: userId,
-        },
-        include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
+      const linkAccount = await this.prisma.client.$transaction(async (tx) => {
+        const linkAccount = await tx.linkAccount.upsert({
+          where: {
+            unique_account_link: {
+              accountId: page.id,
+              provider: ChannelType.facebook,
+            },
+          },
+          update: {
+            displayName: page.name,
+            avatarUrl,
+            linkedByUserId: userId,
+          },
+          create: {
+            provider: ChannelType.facebook,
+            accountId: page.id,
+            displayName: page.name,
+            avatarUrl,
+            linkedByUserId: userId,
+          },
+        })
+
+        await this.upsertProviderCredentials(tx, {
+          linkAccountId: linkAccount.id,
+          credentialType: "oauth2",
+          accessToken: page.access_token,
+          accessTokenExpiresAt,
+          credentialPayload: {
+            userAccessToken: accessToken,
+            tokenType: longLivedToken.token_type || shortLivedToken.token_type,
+            pageId: page.id,
+            pageName: page.name,
+          },
+        })
+
+        return tx.linkAccount.findUniqueOrThrow({
+          where: { id: linkAccount.id },
+          include: {
+            linkedByUser: {
+              select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        })
       })
 
       results.push(linkAccount)

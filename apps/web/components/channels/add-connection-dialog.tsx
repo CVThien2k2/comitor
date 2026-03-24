@@ -8,12 +8,10 @@ import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 import { Icons } from "@/components/global/icons"
 import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import MetaTabContents from "@/components/channels/facebook/meta_tab_contents"
+import { isMetaOAuthAvailable } from "@/components/channels/facebook/meta_oauth"
 import ZaloTabContents from "@/components/channels/zalo/zalo_tab_contents"
-import { useEffect, useState } from "react"
-
-const META_OAUTH_CLIENT_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? ""
-const META_OAUTH_SCOPE =
-  "pages_show_list,pages_messaging,pages_manage_metadata,business_management,pages_read_engagement"
+import { useState } from "react"
 
 type ChannelId = "zalo" | "facebook" | "gmail" | "stringee"
 
@@ -31,36 +29,9 @@ interface ChannelOption {
   badge?: string
 }
 
-function getMetaRedirectUri(): string {
-  const env = process.env.NEXT_PUBLIC_ENV
-  if (env === "production") {
-    return process.env.NEXT_PUBLIC_META_REDIRECT_URI_PRODUCTION ?? ""
-  }
-  return process.env.NEXT_PUBLIC_META_REDIRECT_URI_DEV ?? ""
-}
-
-function buildMetaOAuthUrl(): string {
-  const redirectUri = getMetaRedirectUri()
-
-  if (!redirectUri || !META_OAUTH_CLIENT_ID) {
-    return ""
-  }
-
-  const params = new URLSearchParams({
-    client_id: META_OAUTH_CLIENT_ID,
-    redirect_uri: redirectUri,
-    scope: META_OAUTH_SCOPE,
-    response_type: "code",
-  })
-
-  return `https://www.facebook.com/v24.0/dialog/oauth?${params.toString()}`
-}
-
 export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogProps) {
   const [channelSearch, setChannelSearch] = useState("")
   const [selectedChannel, setSelectedChannel] = useState<ChannelId>("zalo")
-
-  const metaOAuthUrl = buildMetaOAuthUrl()
 
   const channels: ChannelOption[] = [
     {
@@ -83,7 +54,7 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
           height={40}
         />
       ),
-      available: Boolean(metaOAuthUrl),
+      available: isMetaOAuthAvailable(),
     },
     {
       id: "gmail",
@@ -118,76 +89,30 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
     return `${channel.name} ${channel.description}`.toLowerCase().includes(keyword)
   })
 
-  useEffect(() => {
-    if (!open) {
+  const activeChannelId =
+    filteredChannels.some((channel) => channel.id === selectedChannel) || filteredChannels.length === 0
+      ? selectedChannel
+      : filteredChannels[0]?.id ?? selectedChannel
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
       setChannelSearch("")
       setSelectedChannel("zalo")
     }
-  }, [open])
 
-  useEffect(() => {
-    if (filteredChannels.length === 0) return
-
-    const channelStillVisible = filteredChannels.some((channel) => channel.id === selectedChannel)
-    if (!channelStillVisible) {
-      const firstChannel = filteredChannels[0]
-      if (firstChannel) {
-        setSelectedChannel(firstChannel.id)
-      }
-    }
-  }, [filteredChannels, selectedChannel])
-
-  const handleOpenExternalLink = (url: string) => {
-    if (!url) return
-    window.location.href = url
+    onOpenChange(nextOpen)
   }
 
   const renderRightPanel = () => {
-    if (selectedChannel === "zalo") {
+    if (activeChannelId === "zalo") {
       return <ZaloTabContents open={open} />
     }
 
-    if (selectedChannel === "facebook") {
-      return (
-        <div className="grid h-full gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-          <div className="rounded-2xl border bg-background/90 p-5 shadow-sm">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Image
-                  src={"/Facebook.png"}
-                  alt="Facebook"
-                  className="size-10 shrink-0 object-contain"
-                  width={40}
-                  height={40}
-                />
-                <div>
-                  <p className="font-semibold text-foreground">Kết nối Facebook Page</p>
-                  <p className="text-sm text-muted-foreground">
-                    Dùng tài khoản Facebook quản trị Page để cấp quyền đọc và gửi tin nhắn Messenger.
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground">
-                Sau khi xác thực trên Facebook, hệ thống sẽ tự động hoàn tất việc liên kết Page với hộp thư của bạn.
-              </div>
-
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={() => handleOpenExternalLink(metaOAuthUrl)}
-                disabled={!metaOAuthUrl}
-              >
-                <Icons.externalLink className="size-4" />
-                Đi tới Facebook để kết nối
-              </Button>
-            </div>
-          </div>
-        </div>
-      )
+    if (activeChannelId === "facebook") {
+      return <MetaTabContents />
     }
 
-    if (selectedChannel === "gmail") {
+    if (activeChannelId === "gmail") {
       return (
         <div className="flex h-full items-center justify-center rounded-2xl border bg-background/90 p-8 text-center shadow-sm">
           <div className="max-w-md space-y-4">
@@ -238,7 +163,7 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:max-w-5xl">
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Thêm kênh kết nối</DialogTitle>
@@ -264,7 +189,7 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
                 <div className="flex flex-col gap-2 rounded-2xl border bg-muted/10 p-2 shadow-sm">
                   {filteredChannels.length > 0 ? (
                     filteredChannels.map((channel) => {
-                      const isSelected = channel.id === selectedChannel
+                      const isSelected = channel.id === activeChannelId
 
                       return (
                         <button
@@ -314,7 +239,14 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
                 </div>
               </div>
 
-              <div className="rounded-2xl border bg-muted/10 p-4 shadow-sm">{renderRightPanel()}</div>
+              <div
+                className={cn(
+                  "rounded-2xl border bg-muted/10 p-4 shadow-sm",
+                  activeChannelId === "facebook" && "bg-background/90 p-6"
+                )}
+              >
+                {renderRightPanel()}
+              </div>
             </div>
           </div>
         </ScrollArea>

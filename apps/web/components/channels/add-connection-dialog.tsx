@@ -1,112 +1,255 @@
 "use client"
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@workspace/ui/components/dialog"
+import Image from "next/image"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
+import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { cn } from "@workspace/ui/lib/utils"
 import { Icons } from "@/components/global/icons"
+import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import MetaTabContents from "@/components/channels/facebook/meta_tab_contents"
+import { isMetaOAuthAvailable } from "@/components/channels/facebook/meta_oauth"
+import ZaloTabContents from "@/components/channels/zalo/zalo_tab_contents"
+import { useState } from "react"
 
-const ZALO_OA_PERMISSION_URL = process.env.NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL ?? ""
-const META_OAUTH_CLIENT_ID = process.env.NEXT_PUBLIC_META_APP_ID ?? ""
-const META_OAUTH_SCOPE =
-  "pages_show_list,pages_messaging,pages_manage_metadata,business_management,pages_read_engagement"
-
-function getMetaRedirectUri(): string {
-  const env = process.env.NEXT_PUBLIC_ENV
-  if (env === "production") {
-    return process.env.NEXT_PUBLIC_META_REDIRECT_URI_PRODUCTION ?? ""
-  }
-  return process.env.NEXT_PUBLIC_META_REDIRECT_URI_DEV ?? ""
-}
-
-function buildMetaOAuthUrl(): string {
-  const redirectUri = getMetaRedirectUri()
-  const params = new URLSearchParams({
-    client_id: META_OAUTH_CLIENT_ID,
-    redirect_uri: redirectUri,
-    scope: META_OAUTH_SCOPE,
-    response_type: "code",
-  })
-  return `https://www.facebook.com/v24.0/dialog/oauth?${params.toString()}`
-}
+type ChannelId = "zalo" | "facebook" | "gmail" | "stringee"
 
 interface AddConnectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+interface ChannelOption {
+  id: ChannelId
+  name: string
+  description: string
+  icon: React.ReactNode
+  available: boolean
+  badge?: string
+}
+
 export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogProps) {
-  const channels = [
+  const [channelSearch, setChannelSearch] = useState("")
+  const [selectedChannel, setSelectedChannel] = useState<ChannelId>("zalo")
+
+  const channels: ChannelOption[] = [
     {
-      id: "zalo_oa",
-      name: "Zalo Official Account",
-      description: "Kết nối Zalo OA để nhận và gửi tin nhắn",
-      icon: (
-        <svg viewBox="0 0 48 48" className="w-8 h-8">
-          <rect width="48" height="48" rx="12" fill="#0068FF" />
-          <path d="M32.5 15.5H15.5C14.12 15.5 13 16.62 13 18V30C13 31.38 14.12 32.5 15.5 32.5H20.5L24 36L27.5 32.5H32.5C33.88 32.5 35 31.38 35 30V18C35 16.62 33.88 15.5 32.5 15.5ZM19.5 27H17V24.5H19.5V27ZM19.5 23H17V20.5H19.5V23ZM26.25 27H21.75V24.5H26.25V27ZM26.25 23H21.75V20.5H26.25V23ZM31 27H28.5V24.5H31V27ZM31 23H28.5V20.5H31V23Z" fill="white" />
-        </svg>
-      ),
-      hoverColor: "hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/20",
-      onClick: () => {
-        if (ZALO_OA_PERMISSION_URL) window.location.href = ZALO_OA_PERMISSION_URL
-      },
-      disabled: !ZALO_OA_PERMISSION_URL,
+      id: "zalo",
+      name: "Zalo",
+      description: "Kết nối Zalo cá nhân hoặc Zalo OA",
+      icon: <Image src={"/Zalo.png"} alt="Zalo" className="size-10 shrink-0 object-contain" width={40} height={40} />,
+      available: true,
     },
     {
       id: "facebook",
-      name: "Facebook Messenger",
+      name: "Facebook",
       description: "Kết nối Facebook Page để quản lý tin nhắn Messenger",
       icon: (
-        <svg viewBox="0 0 48 48" className="w-8 h-8">
-          <defs>
-            <linearGradient id="fbGradientDialog" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#00C6FF" />
-              <stop offset="100%" stopColor="#0078FF" />
-            </linearGradient>
-          </defs>
-          <rect width="48" height="48" rx="12" fill="url(#fbGradientDialog)" />
-          <path d="M34.48 24.36L33.06 32.96C33.01 33.28 32.76 33.53 32.44 33.58C32.38 33.59 32.31 33.59 32.25 33.57L27.29 32.19C27.05 32.12 26.83 31.98 26.68 31.78L23.97 28.14L21.28 31.84C21.14 32.04 20.92 32.18 20.68 32.25L15.72 33.71C15.39 33.81 15.04 33.68 14.85 33.4C14.76 33.26 14.72 33.1 14.73 32.93L15.3 24.39C15.33 24.03 15.57 23.73 15.91 23.62L20.45 22.16L24 17L27.55 22.13L32.1 23.54C32.44 23.64 32.69 23.94 32.72 24.3L34.48 24.36Z" fill="white" />
-        </svg>
+        <Image
+          src={"/Facebook.png"}
+          alt="Facebook"
+          className="size-10 shrink-0 object-contain"
+          width={40}
+          height={40}
+        />
       ),
-      hoverColor: "hover:border-purple-500/50 hover:bg-purple-50/50 dark:hover:bg-purple-900/20",
-      onClick: () => {
-        const url = buildMetaOAuthUrl()
-        if (url && META_OAUTH_CLIENT_ID) window.location.href = url
-      },
-      disabled: !META_OAUTH_CLIENT_ID,
+      available: isMetaOAuthAvailable(),
+    },
+    {
+      id: "gmail",
+      name: "Gmail",
+      description: "Kết nối email hỗ trợ khách hàng",
+      icon: <Image src={"/Gmail.png"} alt="Gmail" className="size-8 shrink-0 object-contain" width={40} height={40} />,
+      available: false,
+      badge: "Sắp ra mắt",
+    },
+    {
+      id: "stringee",
+      name: "Stringee",
+      description: "Tích hợp tổng đài để tiếp nhận và quản lý cuộc gọi",
+      icon: (
+        <Image
+          src={"/Stringee.png"}
+          alt="Stringee"
+          className="size-10 shrink-0 object-contain"
+          width={40}
+          height={40}
+        />
+      ),
+      available: false,
+      badge: "Sắp ra mắt",
     },
   ]
 
+  const filteredChannels = channels.filter((channel) => {
+    const keyword = channelSearch.trim().toLowerCase()
+    if (!keyword) return true
+
+    return `${channel.name} ${channel.description}`.toLowerCase().includes(keyword)
+  })
+
+  const activeChannelId =
+    filteredChannels.some((channel) => channel.id === selectedChannel) || filteredChannels.length === 0
+      ? selectedChannel
+      : filteredChannels[0]?.id ?? selectedChannel
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setChannelSearch("")
+      setSelectedChannel("zalo")
+    }
+
+    onOpenChange(nextOpen)
+  }
+
+  const renderRightPanel = () => {
+    if (activeChannelId === "zalo") {
+      return <ZaloTabContents open={open} />
+    }
+
+    if (activeChannelId === "facebook") {
+      return <MetaTabContents />
+    }
+
+    if (activeChannelId === "gmail") {
+      return (
+        <div className="flex h-full items-center justify-center rounded-2xl border bg-background/90 p-8 text-center shadow-sm">
+          <div className="max-w-md space-y-4">
+            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-950/40 dark:text-rose-300">
+              <Icons.mail className="size-7" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-foreground">Kết nối Gmail đang được chuẩn bị</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Giao diện đã sẵn sàng cho luồng kết nối. Khi backend hoàn thiện, khu vực này sẽ hiển thị nút chuyển tới
+                trang ủy quyền Gmail.
+              </p>
+            </div>
+            <Button type="button" variant="outline" disabled className="gap-2">
+              <Icons.clock className="size-4" />
+              Sắp ra mắt
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex h-full items-center justify-center rounded-2xl border bg-background/90 p-8 text-center shadow-sm">
+        <div className="max-w-md space-y-4">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <Image
+              src={"/Stringee.png"}
+              alt="Stringee"
+              className="size-10 shrink-0 object-contain"
+              width={40}
+              height={40}
+            />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">Kết nối Stringee đang được chuẩn bị</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Khu vực này sẽ dùng để chuyển tới luồng ủy quyền tổng đài Stringee khi tích hợp hoàn tất.
+            </p>
+          </div>
+          <Button type="button" variant="outline" disabled className="gap-2">
+            <Icons.clock className="size-4" />
+            Sắp ra mắt
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
+      <DialogContent className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:max-w-5xl">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Thêm kênh kết nối</DialogTitle>
           <DialogDescription>Chọn kênh bạn muốn kết nối với hệ thống</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 py-4">
-          {channels.map((channel) => (
-            <Button
-              key={channel.id}
-              variant="outline"
-              className={`flex items-center gap-4 h-auto p-4 justify-start ${channel.hoverColor}`}
-              onClick={channel.onClick}
-              disabled={channel.disabled}
-            >
-              {channel.icon}
-              <div className="text-left">
-                <p className="font-semibold text-foreground">{channel.name}</p>
-                <p className="text-sm text-muted-foreground font-normal">{channel.description}</p>
+
+        <ScrollArea className="max-h-[calc(90dvh-120px)]">
+          <div className="border-t px-6 py-6">
+            <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+              <div className="flex flex-col gap-2">
+                <div className="rounded-2xl border bg-background/90 p-3 shadow-sm">
+                  <div className="relative">
+                    <Icons.search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={channelSearch}
+                      onChange={(event) => setChannelSearch(event.target.value)}
+                      placeholder="Tìm kênh cần kết nối"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 rounded-2xl border bg-muted/10 p-2 shadow-sm">
+                  {filteredChannels.length > 0 ? (
+                    filteredChannels.map((channel) => {
+                      const isSelected = channel.id === activeChannelId
+
+                      return (
+                        <button
+                          key={channel.id}
+                          type="button"
+                          onClick={() => setSelectedChannel(channel.id)}
+                          className={cn(
+                            "flex items-start gap-3 rounded-xl border p-3 text-left transition-all",
+                            isSelected
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-transparent bg-background/70 hover:border-border hover:bg-background"
+                          )}
+                        >
+                          <div className="flex size-12 items-center justify-center rounded-xl bg-muted/40">
+                            {channel.icon}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate font-medium text-foreground">{channel.name}</p>
+                              {channel.badge ? (
+                                <Badge variant="secondary" className="px-2 py-0 text-[10px]">
+                                  {channel.badge}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-sm text-muted-foreground">{channel.description}</p>
+                          </div>
+
+                          <div className="pt-1">
+                            {isSelected ? (
+                              <Icons.checkCircle2 className="size-5 text-primary" />
+                            ) : (
+                              <Icons.chevronRight className="size-5 text-muted-foreground" />
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-dashed bg-background/70 p-6 text-center">
+                      <Icons.search className="mx-auto size-5 text-muted-foreground" />
+                      <p className="mt-3 text-sm font-medium text-foreground">Không tìm thấy kênh phù hợp</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Thử từ khóa khác để lọc danh sách kênh.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <Icons.externalLink className="w-4 h-4 ml-auto text-muted-foreground shrink-0" />
-            </Button>
-          ))}
-        </div>
+
+              <div
+                className={cn(
+                  "rounded-2xl border bg-muted/10 p-4 shadow-sm",
+                  activeChannelId === "facebook" && "bg-background/90 p-6"
+                )}
+              >
+                {renderRightPanel()}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

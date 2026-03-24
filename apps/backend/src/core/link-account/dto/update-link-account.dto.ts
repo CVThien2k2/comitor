@@ -11,4 +11,9 @@ export class UpdateLinkAccountDto {
   @IsString()
   @IsOptional()
   avatarUrl?: string
+
+  @ApiProperty({ example: "active", enum: ["active", "inactive"], required: false })
+  @IsString()
+  @IsOptional()
+  status?: "active" | "inactive"
 }

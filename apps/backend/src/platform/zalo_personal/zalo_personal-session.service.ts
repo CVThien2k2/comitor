@@ -94,6 +94,17 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
     })
   }
 
+  disconnectSession(linkedAccountId: string) {
+    const session = this.activeSessions.get(linkedAccountId)
+
+    if (!session) {
+      return
+    }
+
+    this.stopExistingSession(linkedAccountId, session)
+    this.activeSessions.delete(linkedAccountId)
+  }
+
   async ensureActiveSession(linkedAccountId: string): Promise<ActiveZaloPersonalSession> {
     const activeSession = this.activeSessions.get(linkedAccountId)
 

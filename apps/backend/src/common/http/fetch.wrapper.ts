@@ -67,21 +67,24 @@ export class FetchWrapper {
       const finalUrl = this.buildUrl(url, options?.query)
       const hasBody = options?.body !== undefined && method !== "GET" && method !== "DELETE"
       const isFormDataBody = options?.body instanceof FormData
+      const isUrlEncodedBody = options?.body instanceof URLSearchParams
 
       const response = await fetch(finalUrl, {
         method,
         signal: controller.signal,
         headers: {
           Accept: "application/json",
-          ...(hasBody && !isFormDataBody ? { "Content-Type": "application/json" } : {}),
+          ...(hasBody && !isFormDataBody && !isUrlEncodedBody ? { "Content-Type": "application/json" } : {}),
           ...(headers ?? {}),
         },
-        body: hasBody ? (isFormDataBody ? (options?.body as FormData) : JSON.stringify(options?.body)) : undefined,
+        body: hasBody
+          ? isFormDataBody || isUrlEncodedBody
+            ? (options?.body as FormData | URLSearchParams)
+            : JSON.stringify(options?.body)
+          : undefined,
       })
 
       const data = await this.parseResponse(response)
-
-      Logger.log("FetchWrapper response", data)
 
       if (!response.ok) {
         throw this.mapHttpError(response.status, data)
@@ -123,8 +126,9 @@ export class FetchWrapper {
 
   private async parseResponse(response: Response): Promise<unknown> {
     const contentType = response.headers.get("content-type") ?? ""
+    const allowedReturnJson = ["application/json", "application/www-form-urlencoded", "text/json"]
 
-    if (contentType.includes("application/json")) {
+    if (allowedReturnJson.includes(contentType.split(";")[0].trim())) {
       return response.json()
     }
 

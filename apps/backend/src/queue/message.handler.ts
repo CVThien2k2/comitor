@@ -45,6 +45,8 @@ export class MessageHandler {
 
     if (!linkedAccount)
       throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${recipientId}`)
+    if (linkedAccount.status === "inactive")
+      this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
 
     const dbMessage = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
@@ -69,7 +71,7 @@ export class MessageHandler {
           content: message.text,
           attachments: message.attachments,
           isGroupMessage: isGroupMessage ?? false,
-          conversationName
+          conversationName,
         },
         tx
       )
@@ -101,6 +103,10 @@ export class MessageHandler {
 
     if (!linkedAccount)
       throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${senderId}`)
+    if (linkedAccount.status === "inactive") {
+      this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
+      return null
+    }
 
     const dbMessage = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate(

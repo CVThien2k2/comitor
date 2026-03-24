@@ -79,7 +79,6 @@ import {
   Zap,
   type LucideProps,
 } from "lucide-react"
-import Image from "next/image"
 
 export type Icon = React.ComponentType<LucideProps>
 
@@ -208,14 +207,9 @@ export const Icons = {
   x: X,
   xCircle: XCircle,
   zap: Zap,
-  zalo: () => <Image src="/Zalo.png" alt="Zalo" width={48} height={48} className="size-10 shrink-0 object-contain" />,
-  facebook: () => (
-    <Image src="/Facebook.png" alt="Facebook" width={48} height={48} className="size-10 shrink-0 object-contain" />
-  ),
-  gmail: () => (
-    <Image src="/Gmail.png" alt="Gmail" width={48} height={48} className="size-10 shrink-0 object-contain" />
-  ),
-  stringee: () => (
-    <Image src="/Stringee.png" alt="Stringee" width={48} height={48} className="size-10 shrink-0 object-contain" />
-  ),
+  zalo: Zalo,
+  facebook: Facebook,
+  gmail: Gmail,
+  phoneChannel: PhoneChannel,
+  website: Website,
 }

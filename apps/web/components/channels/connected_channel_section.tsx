@@ -8,11 +8,17 @@ import ConnectedChannelCard from "./connected_channel_card"
 import { Button } from "@workspace/ui/components/button"
 import { Plus } from "lucide-react"
 
+type ChannelActionHandler = (channelId: string) => Promise<unknown> | void
+
 interface IProps {
   listChannels: LinkAccount[]
   onClickAddChannel?: () => void
-  onClickDisconnectChannel?: (channelId: string) => void
-  onClickReconnectChannel?: (channelId: string) => void
+  onClickDisconnectChannel?: ChannelActionHandler
+  onClickReconnectChannel?: ChannelActionHandler
+  onClickDeleteChannel?: ChannelActionHandler
+  disconnectingChannelId?: string | null
+  reconnectingChannelId?: string | null
+  deletingChannelId?: string | null
 }
 
 const ConnectedChannelSection: React.FC<IProps> = ({
@@ -20,6 +26,10 @@ const ConnectedChannelSection: React.FC<IProps> = ({
   onClickAddChannel,
   onClickDisconnectChannel,
   onClickReconnectChannel,
+  onClickDeleteChannel,
+  disconnectingChannelId,
+  reconnectingChannelId,
+  deletingChannelId,
 }) => {
   return (
     <div className="mb-10 rounded-2xl border bg-background/90 p-5 shadow-sm">
@@ -54,6 +64,10 @@ const ConnectedChannelSection: React.FC<IProps> = ({
               channelConfig={channelConfig}
               onClickDisconnect={onClickDisconnectChannel}
               onClickReconnect={onClickReconnectChannel}
+              onClickDelete={onClickDeleteChannel}
+              disconnectingChannelId={disconnectingChannelId}
+              reconnectingChannelId={reconnectingChannelId}
+              deletingChannelId={deletingChannelId}
             />
           ))}
       </div>

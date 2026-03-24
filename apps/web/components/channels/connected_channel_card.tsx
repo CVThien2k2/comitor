@@ -1,29 +1,25 @@
 "use client"
 
 import { LinkAccount } from "@workspace/database"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@workspace/ui/components/alert-dialog"
 import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useState } from "react"
 import { Icons } from "../global/icons"
 import StatItem from "./stat_item"
 import StatusBadge from "./status_badge"
+import ChannelCardActions from "./channel-card-actions"
+
+type ChannelActionHandler = (channelId: string) => Promise<unknown> | void
 
 interface IProp {
   channelConfig: any
   channel: LinkAccount
-  onClickDisconnect?: (channelId: string) => void
-  onClickReconnect?: (channelId: string) => void
+  onClickDisconnect?: ChannelActionHandler
+  onClickReconnect?: ChannelActionHandler
+  onClickDelete?: ChannelActionHandler
+  disconnectingChannelId?: string | null
+  reconnectingChannelId?: string | null
+  deletingChannelId?: string | null
 }
 
 const ConnectedChannelCard: React.FC<IProp> = ({
@@ -31,10 +27,13 @@ const ConnectedChannelCard: React.FC<IProp> = ({
   channel,
   onClickDisconnect,
   onClickReconnect,
+  onClickDelete,
+  disconnectingChannelId,
+  reconnectingChannelId,
+  deletingChannelId,
 }: IProp) => {
   const config = channelConfig[channel.provider]
   const [showActions, setShowActions] = useState<boolean>(false)
-  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState<boolean>(false)
 
   const mapProviderName = (provider: string) => {
     switch (provider) {
@@ -51,22 +50,6 @@ const ConnectedChannelCard: React.FC<IProp> = ({
       default:
         return provider
     }
-  }
-
-  const handleOpenDisconnectDialog = () => {
-    setDisconnectDialogOpen(true)
-  }
-
-  const handleCloseDisconnectDialog = () => {
-    setDisconnectDialogOpen(false)
-  }
-
-  const handleDisconnect = () => {
-    if (onClickDisconnect) onClickDisconnect(channel.id)
-  }
-
-  const handleReconnect = () => {
-    if (onClickReconnect) onClickReconnect(channel.id)
   }
 
   return (
@@ -150,41 +133,18 @@ const ConnectedChannelCard: React.FC<IProp> = ({
         <div
           className={cn(
             "overflow-hidden transition-all duration-300",
-            showActions ? "max-h-20" : "max-h-0 md:max-h-none"
+            showActions ? "max-h-44" : "max-h-0 md:max-h-none"
           )}
         >
-          <div className="flex flex-col gap-2 border-t border-border/50 pt-4 md:flex-row md:items-center md:gap-2 dark:border-zinc-700">
-            {channel.status === "active" ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 md:flex-1 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              >
-                <Icons.refreshCw className="h-4 w-4" />
-                Đăng nhập lại
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 md:flex-1 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                onClick={handleReconnect}
-              >
-                <Icons.settings className="h-4 w-4" />
-                Kết nối lại
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full gap-2 text-muted-foreground hover:text-destructive md:w-auto dark:text-zinc-400 dark:hover:text-red-400"
-              onClick={handleOpenDisconnectDialog}
-              disabled={channel.status !== "active"}
-            >
-              <Icons.unplug className="h-4 w-4" />
-              Ngắt kết nối
-            </Button>
-          </div>
+          <ChannelCardActions
+            channel={channel}
+            onClickDisconnect={onClickDisconnect}
+            onClickReconnect={onClickReconnect}
+            onClickDelete={onClickDelete}
+            disconnectingChannelId={disconnectingChannelId}
+            reconnectingChannelId={reconnectingChannelId}
+            deletingChannelId={deletingChannelId}
+          />
         </div>
 
         {/* Mobile expand button */}
@@ -195,25 +155,6 @@ const ConnectedChannelCard: React.FC<IProp> = ({
           {showActions ? "Ẩn" : "Hiện thêm"}
         </button>
       </div>
-
-      <AlertDialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ngắt kết nối kênh này?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bạn đang chuẩn bị ngắt kết nối tài khoản{" "}
-              <strong>{channel.displayName || mapProviderName(channel.provider)}</strong>. Tạm thời bấm xác nhận hoặc
-              hủy đều sẽ chỉ đóng hộp thoại này.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCloseDisconnectDialog}>Hủy</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleDisconnect}>
-              Xác nhận
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

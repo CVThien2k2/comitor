@@ -55,7 +55,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Lấy thông tin cuộc hội thoại theo ID" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationDetailEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(ConversationListEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_READ)
   @Get(":id")

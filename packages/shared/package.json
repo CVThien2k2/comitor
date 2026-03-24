@@ -6,6 +6,10 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./socket-events": {
+      "types": "./dist/socket-events.d.ts",
+      "default": "./dist/socket-events.js"
+    },
     "./types": "./dist/types/index.js",
     "./enums": "./dist/enums/index.js",
     "./utils": "./dist/utils/index.js"

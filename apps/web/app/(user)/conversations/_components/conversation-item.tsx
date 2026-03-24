@@ -1,23 +1,16 @@
 import { useMemo } from "react"
 import type { Conversation } from "@/api/conversations"
-import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { cn } from "@workspace/ui/lib/utils"
-import {
-  formatTimestamp,
-  getAvatarColor,
-  getConversationDisplayName,
-  getInitials,
-} from "@/lib/helper"
+import { formatTimestamp, getConversationDisplayName } from "@/lib/helper"
 import { useChatStore } from "@/stores/chat-store"
 import { useConversations } from "@/hooks/use-conversations"
-import { ChannelBadge } from "./channel-badge"
+import { ConversationAvatar } from "@/components/global/conversation-avatar"
+import { useRouter } from "next/navigation"
+import { ROUTES } from "@/lib/routes"
 
-export function ConversationItem({
-  conversation,
-}: {
-  conversation: Conversation
-}) {
+export function ConversationItem({ conversation }: { conversation: Conversation }) {
+  const router = useRouter()
   const isSelected = useChatStore((s) => s.selectedConversation?.id === conversation.id)
   const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
   const { markAsRead } = useConversations()
@@ -27,13 +20,13 @@ export function ConversationItem({
     if (conversation.unreadCount) {
       markAsRead(conversation.id)
     }
+    router.push(ROUTES.conversationDetail.path.replace(":id", conversation.id))
   }
   const displayName = getConversationDisplayName(conversation)
-  const initials = getInitials(displayName)
   const lastMsg = conversation.messages?.[0]
   const unreadCount = conversation.unreadCount ?? 0
   const isUnread = unreadCount > 0
-  
+
   const isRecentlyActive = useMemo(() => {
     if (!lastMsg) return false
     const now = new Date()
@@ -51,12 +44,7 @@ export function ConversationItem({
       )}
     >
       <div className="relative shrink-0">
-        <Avatar className="size-10">
-          <AvatarFallback className="text-xs font-semibold text-white" style={{ backgroundColor: getAvatarColor(conversation.id) }}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        {conversation.linkedAccount && <ChannelBadge provider={conversation.linkedAccount.provider} />}
+        <ConversationAvatar id={conversation.id} name={displayName} provider={conversation.linkedAccount?.provider} />
         {isRecentlyActive && (
           <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
         )}

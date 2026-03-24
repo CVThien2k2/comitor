@@ -1,10 +1,11 @@
 "use client"
 
+import { useMemo } from "react"
 import { Icons } from "@/components/global/icons"
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
+import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 import type { MessageItem } from "@/api/conversations"
-import { getInitials, getSenderName, getAvatarColor, formatMessageTime } from "@/lib/helper"
+import { getSenderName, formatMessageTime } from "@/lib/helper"
 import { ImageGallery } from "./image-gallery"
 
 // ─── PDF Preview ────────────────────────────────────────
@@ -30,27 +31,37 @@ function MessagePdf({ src, name }: { src: string; name: string }) {
 
 // ─── Message Bubble ─────────────────────────────────────
 
-export function MessageBubble({
-  message,
-  showAvatar = true,
-  conversationAvatarColor,
-}: {
-  message: MessageItem
-  showAvatar?: boolean
-  conversationAvatarColor: string
-}) {
+export function MessageBubble({ message, showAvatar = true }: { message: MessageItem; showAvatar?: boolean }) {
   const isCustomer = message.senderType === "customer"
   const senderName = getSenderName(message)
-  const initials = getInitials(senderName)
   const avatarUrl = isCustomer ? message.accountCustomer?.avatarUrl : message.user?.avatarUrl
-  const avatarColor = isCustomer ? conversationAvatarColor : getAvatarColor(message.userId || message.id)
 
-  const attachments = message.attachments ?? []
-  const imageAtts = attachments.filter((att) => att.fileMimeType?.startsWith("image/") && att.fileUrl)
-  const pdfAtts = attachments.filter((att) => att.fileMimeType === "application/pdf" && att.fileUrl)
-  const fileAtts = attachments.filter(
-    (att) => att.fileUrl && !att.fileMimeType?.startsWith("image/") && att.fileMimeType !== "application/pdf"
-  )
+  const { imageAtts, pdfAtts, fileAtts } = useMemo(() => {
+    const grouped = {
+      imageAtts: [] as NonNullable<MessageItem["attachments"]>,
+      pdfAtts: [] as NonNullable<MessageItem["attachments"]>,
+      fileAtts: [] as NonNullable<MessageItem["attachments"]>,
+    }
+
+    for (const att of message.attachments ?? []) {
+      if (!att.fileUrl) continue
+
+      if (att.fileMimeType?.startsWith("image/")) {
+        grouped.imageAtts.push(att)
+        continue
+      }
+
+      if (att.fileMimeType === "application/pdf") {
+        grouped.pdfAtts.push(att)
+        continue
+      }
+
+      grouped.fileAtts.push(att)
+    }
+
+    return grouped
+  }, [message.attachments])
+
   const hasMedia = imageAtts.length > 0 || pdfAtts.length > 0
   const hasText = !!message.content
   const bubbleRound = isCustomer ? "rounded-tl-md" : "rounded-tr-md"
@@ -59,12 +70,14 @@ export function MessageBubble({
   return (
     <div className={cn("flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}>
       {showAvatar && isCustomer && (
-        <Avatar className="mt-1 size-8 shrink-0">
-          {avatarUrl && <AvatarImage src={avatarUrl} />}
-          <AvatarFallback className="text-xs font-semibold text-white" style={{ backgroundColor: avatarColor }}>
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <div className="mt-1 shrink-0">
+          <ConversationAvatar
+            id={message.accountCustomerId || message.id}
+            name={senderName}
+            avatarUrl={avatarUrl}
+            className="size-8"
+          />
+        </div>
       )}
       {!showAvatar && isCustomer && <div className="size-8 shrink-0" />}
 
@@ -73,7 +86,12 @@ export function MessageBubble({
 
         {/* Images */}
         {imageAtts.length > 0 && (
-          <div className={cn("max-w-[75vw] sm:max-w-[420px] overflow-hidden rounded-2xl border border-border", bubbleRound)}>
+          <div
+            className={cn(
+              "max-w-[75vw] overflow-hidden rounded-2xl border border-border sm:max-w-[420px]",
+              bubbleRound
+            )}
+          >
             <ImageGallery
               images={imageAtts.map((att) => ({ id: att.id, src: att.fileUrl!, alt: att.fileName || "attachment" }))}
             />
@@ -82,7 +100,9 @@ export function MessageBubble({
 
         {/* PDFs */}
         {pdfAtts.length > 0 && (
-          <div className={cn("min-w-[220px] max-w-[320px] overflow-hidden rounded-2xl border border-border", bubbleRound)}>
+          <div
+            className={cn("max-w-[320px] min-w-[220px] overflow-hidden rounded-2xl border border-border", bubbleRound)}
+          >
             {pdfAtts.map((att) => (
               <MessagePdf key={att.id} src={att.fileUrl!} name={att.fileName || "document.pdf"} />
             ))}
@@ -91,7 +111,7 @@ export function MessageBubble({
 
         {/* Text bubble */}
         {hasText && (
-          <div className={cn("rounded-2xl px-4 py-2.5 text-sm leading-relaxed break-words", textBg, bubbleRound)}>
+          <div className={cn("rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word", textBg, bubbleRound)}>
             {message.content}
           </div>
         )}

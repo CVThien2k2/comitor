@@ -78,6 +78,7 @@ export class MessageService {
         status: "processing",
         attachments: dto.attachments?.length ? { createMany: { data: dto.attachments } } : undefined,
       },
+      include: MESSAGE_INCLUDE,
     })
 
     await this.prisma.client.conversation.update({

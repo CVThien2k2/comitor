@@ -80,7 +80,7 @@ export function ConversationListPanel() {
         <div className="relative">
           <Icons.search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Tìm kiếm hội thoại..."
+            placeholder="Tìm kiếm hội thoại"
             value={searchQuery}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             className="h-9 border-transparent bg-muted/50 pl-9 focus-visible:border-border"
@@ -123,12 +123,7 @@ export function ConversationListPanel() {
             <p className="text-sm">Không có hội thoại nào</p>
           </div>
         ) : (
-          filtered.map((conversation) => (
-            <ConversationItem
-              key={conversation.id}
-              conversation={conversation}
-            />
-          ))
+          filtered.map((conversation) => <ConversationItem key={conversation.id} conversation={conversation} />)
         )}
 
         {isFetchingNextPage && hasNextPage && (

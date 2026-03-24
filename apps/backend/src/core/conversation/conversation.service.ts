@@ -23,9 +23,7 @@ export class ConversationService {
     const { skip, take, page, limit } = paginate(query)
 
     const where = {
-      ...(query.search
-        ? { name: { contains: query.search, mode: "insensitive" as const } }
-        : {}),
+      ...(query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}),
       ...(query.unread ? { messages: { some: { isRead: false } } } : {}),
     }
 
@@ -60,16 +58,23 @@ export class ConversationService {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id },
       include: {
-        linkedAccount: true,
-        conversationCustomers: {
-          include: { accountCustomer: true },
+        linkedAccount: { select: { provider: true } },
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: MESSAGE_INCLUDE,
         },
+        _count: { select: { messages: { where: { isRead: false } } } },
       },
     })
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    return conversation
+    const { _count, ...conv } = conversation
+    return {
+      ...conv,
+      unreadCount: _count.messages,
+    }
   }
 
   async update(id: string, dto: UpdateConversationDto) {
@@ -87,7 +92,13 @@ export class ConversationService {
   }
 
   async getOrCreate(
-    data: { externalId: string; linkedAccountId: string; accountCustomerId: string; isGroupMessage?: boolean, name?: string },
+    data: {
+      externalId: string
+      linkedAccountId: string
+      accountCustomerId: string
+      isGroupMessage?: boolean
+      name?: string
+    },
     tx?: TransactionClient
   ) {
     try {

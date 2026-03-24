@@ -61,7 +61,7 @@ export class MessageController {
   }
 
   @ApiOperation({ summary: "Gửi tin nhắn" })
-  @ApiOkResponse({ type: ApiResponseOf(MessageBaseEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_CREATE)

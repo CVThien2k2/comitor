@@ -95,6 +95,13 @@ export function getProviderLabel(provider: string) {
   return map[provider] || provider
 }
 
+export function getConversationTagLabel(tag: string) {
+  const map: Record<string, string> = {
+    business: "Doanh nghiệp",
+  }
+  return map[tag] || tag
+}
+
 export function getSenderName(msg: MessageItem) {
   if (msg.senderType === "customer") {
     return msg.accountCustomer?.goldenProfile?.fullName || "Khách hàng"

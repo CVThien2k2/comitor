@@ -43,7 +43,7 @@ export const channelConfig = {
     textColor: "text-slate-500",
   },
   phone: {
-    icon: <Icons.stringee />,
+    icon: <Icons.phoneChannel />,
     color: "from-emerald-400 to-emerald-500",
     bgLight: "bg-emerald-50",
     borderActive: "border-emerald-200",
@@ -64,7 +64,11 @@ export function ChannelsPage() {
     queryFn: () => linkAccounts.getAll(),
   })
 
-  const { mutateAsync: disconnectChannel, isPending } = useMutation({
+  const {
+    mutateAsync: disconnectChannel,
+    isPending: isDisconnecting,
+    variables: disconnectingChannelId,
+  } = useMutation({
     mutationKey: ["disconnect-channel"],
     mutationFn: (channelId: string) =>
       linkAccounts.update(channelId, {
@@ -79,7 +83,11 @@ export function ChannelsPage() {
     },
   })
 
-  const { mutateAsync: reconnectChannel } = useMutation({
+  const {
+    mutateAsync: reconnectChannel,
+    isPending: isReconnecting,
+    variables: reconnectingChannelId,
+  } = useMutation({
     mutationKey: ["reconnect-channel"],
     mutationFn: (channelId: string) =>
       linkAccounts.update(channelId, {
@@ -91,6 +99,22 @@ export function ChannelsPage() {
     },
     onError: () => {
       toast.error("Có lỗi xảy ra khi kết nối lại kênh")
+    },
+  })
+
+  const {
+    mutateAsync: deleteChannel,
+    isPending: isDeleting,
+    variables: deletingChannelId,
+  } = useMutation({
+    mutationKey: ["delete-channel"],
+    mutationFn: (channelId: string) => linkAccounts.delete(channelId),
+    onSuccess: () => {
+      toast.success("Đã xoá liên kết kênh thành công")
+      refetch()
+    },
+    onError: () => {
+      toast.error("Có lỗi xảy ra khi xoá liên kết kênh")
     },
   })
 
@@ -118,7 +142,7 @@ export function ChannelsPage() {
           <SummaryStats connectedChannels={linkAccountsData?.data?.items || []} />
 
           {/* Connected channels section */}
-          {isLoading ? (
+          {isLoading || !linkAccountsData || isDeleting || isDisconnecting || isReconnecting ? (
             <ConnectedChannelListSkeleton />
           ) : (
             <ConnectedChannelSection
@@ -126,6 +150,10 @@ export function ChannelsPage() {
               onClickAddChannel={() => setDialogOpen(true)}
               onClickDisconnectChannel={disconnectChannel}
               onClickReconnectChannel={reconnectChannel}
+              onClickDeleteChannel={deleteChannel}
+              disconnectingChannelId={isDisconnecting ? disconnectingChannelId : null}
+              reconnectingChannelId={isReconnecting ? reconnectingChannelId : null}
+              deletingChannelId={isDeleting ? deletingChannelId : null}
             />
           )}
         </div>

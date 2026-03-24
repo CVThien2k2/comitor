@@ -7,6 +7,7 @@ import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
 import { FetchWrapper } from "../../common/http/fetch.wrapper"
 import { ChannelType } from "@workspace/database"
+import { ZaloPersonalSessionService } from "../../platform/zalo_personal/zalo_personal-session.service"
 
 interface ZaloOaTokenResponse {
   access_token: string
@@ -50,7 +51,8 @@ export class LinkAccountService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly zaloPersonalSessionService: ZaloPersonalSessionService
   ) {}
 
   async findAll(query: PaginationQueryDto) {
@@ -104,8 +106,21 @@ export class LinkAccountService {
     const account = await this.prisma.client.linkAccount.findUnique({ where: { id } })
     if (!account) throw new NotFoundException("Liên kết kênh không tồn tại")
 
-    await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
-    await this.prisma.client.linkAccount.delete({ where: { id } })
+    if (account.provider === ChannelType.zalo_personal) {
+      this.zaloPersonalSessionService.disconnectSession(account.id)
+    }
+
+    await this.prisma.client.$transaction(async (tx) => {
+      await tx.providerCredentials.deleteMany({
+        where: { linkAccountId: account.id },
+      })
+
+      await tx.linkAccount.delete({ where: { id } })
+    })
+
+    if (account.accountId) {
+      await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
+    }
   }
 
   // ─── Zalo OA OAuth ─────────────────────────────────────

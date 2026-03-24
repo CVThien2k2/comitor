@@ -91,7 +91,7 @@ export class LinkAccountController {
   @ApiOperation({ summary: "Liên kết Meta/Facebook qua OAuth" })
   @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
-  @Post("link/meta-app")
+  @Post("meta")
   async linkMeta(@Body() dto: LinkOAuthDto, @Request() req: any) {
     const data = await this.linkAccountService.linkMeta(dto.code, req.user.id)
     return { message: "Liên kết Meta/Facebook thành công", data }

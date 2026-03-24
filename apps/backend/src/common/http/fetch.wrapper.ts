@@ -86,8 +86,6 @@ export class FetchWrapper {
 
       const data = await this.parseResponse(response)
 
-      Logger.log("FetchWrapper response", data)
-
       if (!response.ok) {
         throw this.mapHttpError(response.status, data)
       }

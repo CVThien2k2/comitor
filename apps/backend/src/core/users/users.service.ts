@@ -101,6 +101,9 @@ export class UsersService {
       if (existingPhone) throw new ConflictException("Số điện thoại đã tồn tại")
     }
 
+    const role = await this.prisma.client.role.findUnique({ where: { id: dto.roleId }, select: { id: true } })
+    if (!role) throw new NotFoundException("Vai trò không tồn tại")
+
     const hashed = await bcrypt.hash(dto.password, 10)
 
     return this.prisma.client.user.create({

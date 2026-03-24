@@ -349,196 +349,90 @@ async function main() {
   }
   console.log(`Seeded ${conversationCustomers.length} conversation customers`)
 
-  // ─── Messages ──────────────────────────────────────────
+  // ─── Messages (100 per conversation) ───────────────────
   const bobUser = userMap.get("bob")!
 
-  const messages = [
-    // Conversation 1: An hỏi tour
-    {
-      conversationId: c0.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac0.id,
-      content: "Xin chào, tôi muốn hỏi về tour Đà Lạt 3 ngày 2 đêm",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T08:00:00Z"),
-    },
-    {
-      conversationId: c0.id,
-      senderType: "agent" as const,
-      userId: aliceUser.id,
-      content: "Chào anh An! Dạ bên em có tour Đà Lạt 3N2Đ giá 2.500.000đ/người ạ. Anh muốn đi ngày nào ạ?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T08:02:00Z"),
-    },
-    {
-      conversationId: c0.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac0.id,
-      content: "Tour bao gồm những gì vậy?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T08:05:00Z"),
-    },
-    {
-      conversationId: c0.id,
-      senderType: "agent" as const,
-      userId: aliceUser.id,
-      content:
-        "Tour bao gồm xe đưa đón, khách sạn 3 sao, ăn sáng, hướng dẫn viên và vé tham quan các điểm: Thung lũng Tình Yêu, Langbiang, chùa Linh Phước ạ",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T08:07:00Z"),
-    },
+  const MESSAGES_PER_CONVERSATION = 100
 
-    // Conversation 2: Bình hỏi vé máy bay
-    {
-      conversationId: c1.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac1.id,
-      content: "Cho mình hỏi giá vé máy bay HN - SGN ngày 25/3 với",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T09:30:00Z"),
-    },
-    {
-      conversationId: c1.id,
-      senderType: "agent" as const,
-      userId: bobUser.id,
-      content: "Chào chị Bình! Em check giá cho chị nhé, chờ em 1 chút ạ",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T09:32:00Z"),
-    },
-    {
-      conversationId: c1.id,
-      senderType: "agent" as const,
-      userId: bobUser.id,
-      content:
-        "Dạ ngày 25/3 có các chuyến:\n- VN 201: 06:00 - 08:10 | 1.200.000đ\n- VJ 123: 09:30 - 11:40 | 890.000đ\n- BB 456: 14:00 - 16:10 | 950.000đ\nChị muốn đặt chuyến nào ạ?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T09:35:00Z"),
-    },
-
-    // Conversation 3: Cường - đã có vé
-    {
-      conversationId: c2.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac2.id,
-      content: "Tôi muốn đặt tour teambuilding cho công ty 30 người",
-      status: "success" as const,
-      createdAt: new Date("2026-03-16T14:00:00Z"),
-    },
-    {
-      conversationId: c2.id,
-      senderType: "agent" as const,
-      userId: aliceUser.id,
-      content:
-        "Chào anh Cường! Tour teambuilding 30 người bên em báo giá 45.000.000đ bao gồm xe, khách sạn, team building activities và ăn uống. Anh xem qua proposal em gửi nhé!",
-      status: "success" as const,
-      createdAt: new Date("2026-03-16T14:15:00Z"),
-    },
-    {
-      conversationId: c2.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac2.id,
-      content: "OK, công ty đồng ý. Chuyển khoản đặt cọc 50% nhé",
-      status: "success" as const,
-      createdAt: new Date("2026-03-16T15:00:00Z"),
-    },
-
-    // Conversation 4: Dũng - holding
-    {
-      conversationId: c3.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac3.id,
-      content: "Tour Phú Quốc cuối tuần này còn chỗ không?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-15T10:00:00Z"),
-    },
-
-    // Conversation 5: Em - đang tìm
-    {
-      conversationId: c4.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac4.id,
-      content: "Hi, mình muốn tìm tour châu Âu tháng 6",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T10:00:00Z"),
-    },
-    {
-      conversationId: c4.id,
-      senderType: "agent" as const,
-      userId: aliceUser.id,
-      content:
-        "Chào chị Em! Tháng 6 bên em có 2 tour châu Âu:\n1. Pháp - Thụy Sĩ - Ý 10N9Đ: 52.000.000đ\n2. Đức - Hà Lan - Bỉ 8N7Đ: 45.000.000đ\nChị quan tâm tour nào ạ?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T10:05:00Z"),
-    },
-
-    // Conversation 6: Nhóm tư vấn
-    {
-      conversationId: c5.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac0.id,
-      content: "Mọi người ơi, ai đi tour Đà Lạt không?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T06:50:00Z"),
-    },
-    {
-      conversationId: c5.id,
-      senderType: "customer" as const,
-      accountCustomerId: ac1.id,
-      content: "Mình đi nè! Đi ngày nào vậy?",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T06:55:00Z"),
-    },
-    {
-      conversationId: c5.id,
-      senderType: "agent" as const,
-      userId: bobUser.id,
-      content:
-        "Chào mọi người! Tour Đà Lạt gần nhất khởi hành ngày 22/3 ạ. Nhóm mình bao nhiêu người để em báo giá nhé!",
-      status: "success" as const,
-      createdAt: new Date("2026-03-17T07:00:00Z"),
-    },
+  const customerMessages = [
+    "Xin chào, tôi muốn hỏi thêm thông tin",
+    "Giá bao nhiêu vậy ạ?",
+    "Có khuyến mãi gì không?",
+    "Tour này bao gồm những gì?",
+    "Mấy ngày mấy đêm vậy?",
+    "Đi bao nhiêu người được giảm giá?",
+    "Có bao gồm vé máy bay không?",
+    "Khách sạn mấy sao vậy?",
+    "Lịch trình cụ thể thế nào?",
+    "Có bảo hiểm du lịch không?",
+    "Thanh toán bằng cách nào?",
+    "Có thể trả góp không ạ?",
+    "Khi nào khởi hành?",
+    "Hủy tour có mất phí không?",
+    "Gửi cho tôi brochure được không?",
+    "Tôi muốn đặt cho 4 người",
+    "Có tour nào rẻ hơn không?",
+    "Dịch vụ ăn uống thế nào?",
+    "Có đón tận nơi không?",
+    "OK, để tôi suy nghĩ thêm nhé",
   ]
 
-  for (const msg of messages) {
-    await prisma.message.create({
-      data: {
-        ...msg,
-        timestamp: msg.createdAt,
-      },
-    })
-  }
-  console.log(`Seeded ${messages.length} messages`)
-
-  // ─── Message Attachments ───────────────────────────────
-  const allMessages = await prisma.message.findMany({ orderBy: { createdAt: "asc" } })
-  if (allMessages.length < 14) {
-    throw new Error(`Expected at least 14 messages, got ${allMessages.length}`)
-  }
-  const m9 = allMessages[9]!
-  const m13 = allMessages[13]!
-
-  const attachments = [
-    {
-      messageId: m9.id,
-      fileName: "proposal-teambuilding.pdf",
-      fileType: "file",
-      fileUrl: "https://storage.comitor.io/files/proposal-teambuilding.pdf",
-      fileMimeType: "application/pdf",
-    },
-    {
-      messageId: m13.id,
-      fileName: "tour-chau-au-brochure.jpg",
-      fileType: "image",
-      fileUrl: "https://storage.comitor.io/images/tour-chau-au-brochure.jpg",
-      thumbnailUrl: "https://storage.comitor.io/thumbs/tour-chau-au-brochure.jpg",
-      fileMimeType: "image/jpeg",
-    },
+  const agentMessages = [
+    "Dạ chào anh/chị! Em có thể giúp gì ạ?",
+    "Dạ bên em có nhiều gói tour phù hợp ạ",
+    "Giá tour hiện tại là 2.500.000đ/người ạ",
+    "Đang có chương trình giảm 10% cho nhóm từ 5 người ạ",
+    "Tour bao gồm xe đưa đón, khách sạn, ăn sáng và vé tham quan ạ",
+    "Tour 3 ngày 2 đêm ạ anh/chị",
+    "Nhóm từ 10 người giảm 15% ạ",
+    "Dạ vé máy bay tính riêng ạ",
+    "Khách sạn 3-4 sao tùy gói ạ",
+    "Em gửi lịch trình chi tiết cho anh/chị nhé",
+    "Có bảo hiểm du lịch trong gói ạ",
+    "Anh/chị có thể chuyển khoản hoặc thanh toán tại văn phòng ạ",
+    "Dạ bên em có hỗ trợ trả góp 0% qua thẻ tín dụng ạ",
+    "Tour gần nhất khởi hành ngày 22/3 ạ",
+    "Hủy trước 7 ngày được hoàn 100% ạ",
+    "Dạ em gửi qua email cho anh/chị nhé",
+    "Em đã ghi nhận đặt chỗ cho 4 người ạ",
+    "Dạ có tour tiết kiệm giá 1.800.000đ/người ạ",
+    "Ăn sáng buffet, trưa và tối ăn theo thực đơn địa phương ạ",
+    "Dạ có xe đón tận nhà trong nội thành ạ",
   ]
 
-  for (const att of attachments) {
-    await prisma.messageAttachment.create({ data: att })
+  const conversationConfigs = [
+    { conv: c0, customer: ac0, agents: [aliceUser], baseDate: new Date("2026-03-17T08:00:00Z") },
+    { conv: c1, customer: ac1, agents: [bobUser], baseDate: new Date("2026-03-17T09:00:00Z") },
+    { conv: c2, customer: ac2, agents: [aliceUser], baseDate: new Date("2026-03-16T14:00:00Z") },
+    { conv: c3, customer: ac3, agents: [bobUser, aliceUser], baseDate: new Date("2026-03-15T10:00:00Z") },
+    { conv: c4, customer: ac4, agents: [aliceUser], baseDate: new Date("2026-03-17T10:00:00Z") },
+    { conv: c5, customer: ac0, agents: [bobUser], baseDate: new Date("2026-03-17T06:00:00Z") },
+  ]
+
+  let totalMessages = 0
+  for (const config of conversationConfigs) {
+    for (let i = 0; i < MESSAGES_PER_CONVERSATION; i++) {
+      const isCustomer = i % 2 === 0
+      const msgDate = new Date(config.baseDate.getTime() + i * 60 * 1000) // 1 min apart
+
+      await prisma.message.create({
+        data: {
+          conversationId: config.conv.id,
+          senderType: isCustomer ? "customer" : "agent",
+          accountCustomerId: isCustomer ? config.customer.id : undefined,
+          userId: isCustomer ? undefined : config.agents[i % config.agents.length]!.id,
+          content: isCustomer
+            ? customerMessages[i % customerMessages.length]
+            : agentMessages[i % agentMessages.length],
+          status: "success",
+          timestamp: msgDate,
+          createdAt: msgDate,
+        },
+      })
+      totalMessages++
+    }
   }
-  console.log(`Seeded ${attachments.length} message attachments`)
+  console.log(`Seeded ${totalMessages} messages (${MESSAGES_PER_CONVERSATION} per conversation)`)
 
   console.log("\nSeed completed!")
 }

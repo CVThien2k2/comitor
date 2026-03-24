@@ -6,7 +6,7 @@ import { Button } from "@workspace/ui/components/button"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { cn } from "@workspace/ui/lib/utils"
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query"
 import { messages as messagesApi } from "@/api/conversations"
 import type { ConversationItem, MessageItem, CreateMessagePayload } from "@/api/conversations"
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/lib/helper"
 import { MessageBubble } from "./message-bubble"
 
-// ─── Date Separator ─────────────────────────────────────
+// ─── Đường phân cách ngày ───────────────────────────────
 
 function DateSeparator({ date }: { date: string }) {
   return (
@@ -30,7 +30,7 @@ function DateSeparator({ date }: { date: string }) {
   )
 }
 
-// ─── Chat Panel ─────────────────────────────────────────
+// ─── Bảng tin nhắn ──────────────────────────────────────
 
 export function ChatPanel({
   conversation,
@@ -45,36 +45,46 @@ export function ChatPanel({
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
 
+  // ─── Lấy danh sách tin nhắn (phân trang vô hạn) ──────
+  // Server trả về mới→cũ (desc), client reverse lại thành cũ→mới để hiển thị
+  // Page 1 = 30 tin mới nhất, page 2 = 30 tin tiếp theo (cũ hơn), ...
   const MESSAGES_PER_PAGE = 30
-  const qc = useQueryClient()
-
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["messages", "list", conversation.id, MESSAGES_PER_PAGE],
     queryFn: ({ pageParam = 1 }) =>
       messagesApi.getByConversation(conversation.id, { page: pageParam, limit: MESSAGES_PER_PAGE }),
     initialPageParam: 1,
+    // Xác định page tiếp theo: nếu chưa hết trang thì trả về số trang kế, hết thì undefined (dừng)
     getNextPageParam: (lastPage) => {
       const meta = lastPage.data?.meta
       if (!meta) return undefined
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
+    // Gộp tất cả pages thành 1 mảng và đảo ngược: cũ ở trên, mới ở dưới
     select: (data) => ({
       pages: data.pages,
       pageParams: data.pageParams,
-      messages: data.pages.flatMap((page) => page.data?.items ?? []),
+      messages: data.pages
+        .flatMap((page) => page.data?.items ?? [])
+        .reverse(),
     }),
   })
 
+  // ─── Gửi tin nhắn ────────────────────────────────────
   const sendMessage = useMutation({
     mutationFn: (payload: CreateMessagePayload) => messagesApi.create(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["messages", "list", conversation.id] })
-      qc.invalidateQueries({ queryKey: ["conversations"] })
-    },
+    onSuccess: () => {},
   })
 
+  // ─── Danh sách tin nhắn đã gộp ───────────────────────
   const messageList = React.useMemo(() => data?.messages ?? [], [data?.messages])
+  const pageCount = data?.pages.length ?? 0
+  const prevPageCountRef = React.useRef(0) // Số page trước đó, dùng để phát hiện load thêm tin cũ
+  const prevScrollHeightRef = React.useRef(0) // Chiều cao scroll trước khi load thêm, dùng để giữ vị trí
+  const isInitialLoadRef = React.useRef(true) // Đánh dấu lần đầu load tin nhắn
 
+  // ─── Nhóm tin nhắn theo ngày ─────────────────────────
+  // Duyệt qua messageList, mỗi khi gặp ngày mới thì tạo group mới
   const messageGroups = React.useMemo(() => {
     const groups: { date: string; messages: MessageItem[] }[] = []
     let currentDate = ""
@@ -92,18 +102,49 @@ export function ChatPanel({
     return groups
   }, [messageList])
 
-  React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messageList.length])
+  // ─── Quản lý vị trí scroll ───────────────────────────
+  // useLayoutEffect chạy SAU khi React cập nhật DOM nhưng TRƯỚC khi trình duyệt vẽ
+  // → Đảm bảo không bị giật khi thay đổi nội dung
+  React.useLayoutEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el || isLoading || messageList.length === 0) return
 
+    if (isInitialLoadRef.current) {
+      // Lần đầu: nhảy thẳng xuống cuối, không có animation
+      el.scrollTop = el.scrollHeight
+      isInitialLoadRef.current = false
+    } else if (pageCount > prevPageCountRef.current) {
+      // Load thêm tin cũ: giữ nguyên vị trí nhìn, tin cũ hiện thêm phía trên
+      const newScrollHeight = el.scrollHeight
+      el.scrollTop = newScrollHeight - prevScrollHeightRef.current
+    } else {
+      // Tin nhắn mới (gửi/nhận): cuộn mượt xuống cuối
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+
+    prevPageCountRef.current = pageCount
+  }, [messageList, pageCount, isLoading])
+
+  // ─── Reset khi chuyển cuộc trò chuyện ────────────────
+  React.useEffect(() => {
+    isInitialLoadRef.current = true
+    prevPageCountRef.current = 0
+    prevScrollHeightRef.current = 0
+  }, [conversation.id])
+
+  // ─── Xử lý cuộn lên để load thêm tin cũ ─────────────
+  // Khi cuộn gần đến đỉnh (scrollTop < 100px) → lưu chiều cao hiện tại → gọi fetchNextPage
   const handleScroll = React.useCallback(() => {
     const el = scrollContainerRef.current
     if (!el || !hasNextPage || isFetchingNextPage) return
     if (el.scrollTop < 100) {
+      // Lưu chiều cao TRƯỚC khi fetch để sau đó tính toán giữ vị trí scroll
+      prevScrollHeightRef.current = el.scrollHeight
       fetchNextPage()
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
+  // ─── Gửi tin nhắn ────────────────────────────────────
   const handleSend = () => {
     const content = inputValue.trim()
     if (!content) return
@@ -112,9 +153,10 @@ export function ChatPanel({
       conversationId: conversation.id,
       content,
     })
-    setInputValue("")
+    setInputValue("") // Xóa ô nhập ngay, không chờ server phản hồi
   }
 
+  // Enter gửi tin, Shift+Enter xuống dòng
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
@@ -128,7 +170,7 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full flex-col bg-background">
-      {/* Header */}
+      {/* ─── Header ──────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           {onBack && (
@@ -183,8 +225,9 @@ export function ChatPanel({
         </div>
       </div>
 
-      {/* Messages Area */}
+      {/* ─── Vùng hiển thị tin nhắn ─────────────────────── */}
       <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-background px-4 py-4">
+        {/* Hiển thị loading khi đang tải thêm tin cũ */}
         {isFetchingNextPage && (
           <div className="flex justify-center py-3">
             <Icons.spinner className="size-5 animate-spin text-muted-foreground" />
@@ -192,8 +235,9 @@ export function ChatPanel({
         )}
 
         {isLoading ? (
+          /* Skeleton loading lần đầu */
           <div className="flex flex-col gap-3 py-4">
-            {Array.from({ length: 5 }).map((_, i) => {
+            {Array.from({ length: 20 }).map((_, i) => {
               const isLeft = i % 2 === 0
               return (
                 <div
@@ -216,12 +260,14 @@ export function ChatPanel({
             })}
           </div>
         ) : messageList.length === 0 ? (
+          /* Trạng thái trống - chưa có tin nhắn */
           <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
             <Icons.messageSquare className="mb-3 size-10 opacity-40" />
             <p className="text-sm">Chưa có tin nhắn nào</p>
             <p className="mt-1 text-xs">Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
+          /* Danh sách tin nhắn theo nhóm ngày */
           <div className="flex flex-col gap-1">
             {messageGroups.map((group, groupIndex) => (
               <React.Fragment key={groupIndex}>
@@ -236,12 +282,13 @@ export function ChatPanel({
                 ))}
               </React.Fragment>
             ))}
+            {/* Điểm neo cuối cùng để scroll xuống */}
             <div ref={messagesEndRef} />
           </div>
         )}
       </div>
 
-      {/* Input Area */}
+      {/* ─── Ô nhập tin nhắn ────────────────────────────── */}
       <div className="border-t border-border bg-muted/50 p-4">
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
           <textarea

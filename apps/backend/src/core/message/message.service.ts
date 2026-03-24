@@ -48,7 +48,7 @@ export class MessageService {
       this.prisma.client.message.findMany({
         where,
         include: MESSAGE_INCLUDE,
-        orderBy: { timestamp: "asc" },
+        orderBy: { timestamp: "desc" },
         skip,
         take,
       }),

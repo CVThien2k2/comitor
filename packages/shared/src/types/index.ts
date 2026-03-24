@@ -1,5 +1,7 @@
 import type { User, LinkAccount, ChannelType } from "@workspace/database"
 
+export * from "./conversation"
+
 export interface ApiResponse<T = unknown> {
   statusCode: number
   message: string

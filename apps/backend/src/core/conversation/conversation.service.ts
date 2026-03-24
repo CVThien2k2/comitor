@@ -3,6 +3,7 @@ import { PrismaService, type TransactionClient } from "../../database/prisma.ser
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
+import { MESSAGE_INCLUDE } from "../message/message.include"
 
 @Injectable()
 export class ConversationService {
@@ -36,32 +37,19 @@ export class ConversationService {
           messages: {
             orderBy: { createdAt: "desc" },
             take: 1,
-            select: {
-              content: true,
-              senderType: true,
-              createdAt: true,
-              user: { select: { id: true, name: true, avatarUrl: true } },
-              accountCustomer: {
-                select: {
-                  id: true,
-                  avatarUrl: true,
-                  goldenProfile: { select: { fullName: true } },
-                },
-              },
-            },
+            include: MESSAGE_INCLUDE,
           },
           _count: { select: { messages: { where: { isRead: false } } } },
         },
-        orderBy: { lastActivityAt: "desc" },
+        orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
         skip,
         take,
       }),
       this.prisma.client.conversation.count({ where }),
     ])
 
-    const mapped = items.map(({ messages, _count, ...conv }) => ({
+    const mapped = items.map(({ _count, ...conv }) => ({
       ...conv,
-      lastMessage: messages[0] ?? null,
       unreadCount: _count.messages,
     }))
 

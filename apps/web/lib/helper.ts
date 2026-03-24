@@ -1,4 +1,4 @@
-import type { ConversationItem, MessageItem } from "@/api/conversations"
+import type { Conversation, MessageItem } from "@/api/conversations"
 
 // ─── Avatar Colors ──────────────────────────────────────
 
@@ -76,9 +76,10 @@ export function formatMessageDate(dateStr: string) {
   return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-export function getConversationDisplayName(conv: ConversationItem) {
+export function getConversationDisplayName(conv: Conversation) {
   if (conv.name) return conv.name
-  const customer = conv.lastMessage?.accountCustomer
+  const lastMsg = conv.messages?.[0]
+  const customer = lastMsg?.accountCustomer
   if (customer?.goldenProfile?.fullName) return customer.goldenProfile.fullName
   return "Khách hàng"
 }

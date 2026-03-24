@@ -1,6 +1,5 @@
 "use client"
 
-import type { ConversationItem } from "@/api/conversations"
 import { conversations } from "@/api/conversations"
 import { Icons } from "@/components/global/icons"
 import { Badge } from "@workspace/ui/components/badge"
@@ -10,22 +9,17 @@ import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { useAppStore } from "@/stores/app-store"
 import * as React from "react"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { ConversationListItem } from "./conversation-list-item"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { ConversationItem } from "./conversation-item"
 
 // ─── Conversation List Panel ────────────────────────────
 
-export function ConversationListPanel({
-  selectedId,
-  onSelect,
-}: {
-  selectedId: string | null
-  onSelect: (conversation: ConversationItem) => void
-}) {
+export function ConversationListPanel() {
   const [searchQuery, setSearchQuery] = React.useState("")
-  const deferredSearchQuery = React.useDeferredValue(searchQuery)
+  const debouncedSearch = useDebouncedValue(searchQuery.trim())
   const [activeTab, setActiveTab] = React.useState("all")
 
-  const CONVERSATIONS_PER_PAGE = 30
+  const CONVERSATIONS_PER_PAGE = 20
 
   const unreadConversationsCount = useAppStore((s) => s.badges.conversationsUnreadCount ?? 0)
 
@@ -36,12 +30,12 @@ export function ConversationListPanel({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, deferredSearchQuery, activeTab],
+    queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, debouncedSearch, activeTab],
     queryFn: ({ pageParam = 1 }) =>
       conversations.getAll({
         page: pageParam,
         limit: CONVERSATIONS_PER_PAGE,
-        search: deferredSearchQuery?.trim() ? deferredSearchQuery.trim() : undefined,
+        search: debouncedSearch || undefined,
         unread: activeTab === "unread",
       }),
     initialPageParam: 1,
@@ -50,9 +44,15 @@ export function ConversationListPanel({
       if (!meta) return undefined
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
-    select: (data) => data.pages.flatMap((p) => p.data?.items ?? []),
-    // Chuyển tab đổi queryKey nên React Query sẽ fetch lại đúng tập dữ liệu từ BE.
-    staleTime: 0,
+    select: (data) => {
+      const all = data.pages.flatMap((p) => p.data?.items ?? [])
+      const seen = new Set<string>()
+      return all.filter((c) => {
+        if (seen.has(c.id)) return false
+        seen.add(c.id)
+        return true
+      })
+    },
   })
 
   const filtered = conversationList ?? []
@@ -124,11 +124,9 @@ export function ConversationListPanel({
           </div>
         ) : (
           filtered.map((conversation) => (
-            <ConversationListItem
+            <ConversationItem
               key={conversation.id}
               conversation={conversation}
-              isSelected={selectedId === conversation.id}
-              onClick={() => onSelect(conversation)}
             />
           ))
         )}

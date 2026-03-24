@@ -1,14 +1,16 @@
 "use client"
 
-import * as React from "react"
+import { useState, useRef, useMemo, useCallback, useEffect, useLayoutEffect, Fragment, type KeyboardEvent } from "react"
 import { Icons } from "@/components/global/icons"
 import { Button } from "@workspace/ui/components/button"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { cn } from "@workspace/ui/lib/utils"
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query"
+import { useInfiniteQuery } from "@tanstack/react-query"
 import { messages as messagesApi } from "@/api/conversations"
-import type { ConversationItem, MessageItem, CreateMessagePayload } from "@/api/conversations"
+import type { MessageItem } from "@/api/conversations"
+import { useMessages } from "@/hooks/use-messages"
+import { useChatStore } from "@/stores/chat-store"
 import {
   getInitials,
   getConversationDisplayName,
@@ -33,26 +35,27 @@ function DateSeparator({ date }: { date: string }) {
 // ─── Bảng tin nhắn ──────────────────────────────────────
 
 export function ChatPanel({
-  conversation,
-  onBack,
   onToggleCustomerPanel,
 }: {
-  conversation: ConversationItem
-  onBack?: () => void
   onToggleCustomerPanel?: () => void
-}) {
-  const [inputValue, setInputValue] = React.useState("")
-  const messagesEndRef = React.useRef<HTMLDivElement>(null)
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null)
+} = {}) {
+  const conversation = useChatStore((s) => s.selectedConversation)
+  const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
+  const conversationId = conversation?.id ?? ""
+
+  const [inputValue, setInputValue] = useState("")
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // ─── Lấy danh sách tin nhắn (phân trang vô hạn) ──────
   // Server trả về mới→cũ (desc), client reverse lại thành cũ→mới để hiển thị
   // Page 1 = 30 tin mới nhất, page 2 = 30 tin tiếp theo (cũ hơn), ...
   const MESSAGES_PER_PAGE = 30
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["messages", "list", conversation.id, MESSAGES_PER_PAGE],
+    queryKey: ["messages", "list", conversationId, MESSAGES_PER_PAGE],
     queryFn: ({ pageParam = 1 }) =>
-      messagesApi.getByConversation(conversation.id, { page: pageParam, limit: MESSAGES_PER_PAGE }),
+      messagesApi.getByConversation(conversationId, { page: pageParam, limit: MESSAGES_PER_PAGE }),
+    enabled: !!conversationId,
     initialPageParam: 1,
     // Xác định page tiếp theo: nếu chưa hết trang thì trả về số trang kế, hết thì undefined (dừng)
     getNextPageParam: (lastPage) => {
@@ -61,31 +64,34 @@ export function ChatPanel({
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
     // Gộp tất cả pages thành 1 mảng và đảo ngược: cũ ở trên, mới ở dưới
-    select: (data) => ({
-      pages: data.pages,
-      pageParams: data.pageParams,
-      messages: data.pages
-        .flatMap((page) => page.data?.items ?? [])
-        .reverse(),
-    }),
+    select: (data) => {
+      const all = data.pages.flatMap((page) => page.data?.items ?? []).reverse()
+      const seen = new Set<string>()
+      return {
+        pages: data.pages,
+        pageParams: data.pageParams,
+        messages: all.filter((m) => {
+          if (seen.has(m.id)) return false
+          seen.add(m.id)
+          return true
+        }),
+      }
+    },
   })
 
   // ─── Gửi tin nhắn ────────────────────────────────────
-  const sendMessage = useMutation({
-    mutationFn: (payload: CreateMessagePayload) => messagesApi.create(payload),
-    onSuccess: () => {},
-  })
+  const { sendMessage } = useMessages(conversationId)
 
   // ─── Danh sách tin nhắn đã gộp ───────────────────────
-  const messageList = React.useMemo(() => data?.messages ?? [], [data?.messages])
+  const messageList = useMemo(() => data?.messages ?? [], [data?.messages])
   const pageCount = data?.pages.length ?? 0
-  const prevPageCountRef = React.useRef(0) // Số page trước đó, dùng để phát hiện load thêm tin cũ
-  const prevScrollHeightRef = React.useRef(0) // Chiều cao scroll trước khi load thêm, dùng để giữ vị trí
-  const isInitialLoadRef = React.useRef(true) // Đánh dấu lần đầu load tin nhắn
+  const prevPageCountRef = useRef(0) // Số page trước đó, dùng để phát hiện load thêm tin cũ
+  const prevScrollHeightRef = useRef(0) // Chiều cao scroll trước khi load thêm, dùng để giữ vị trí
+  const isInitialLoadRef = useRef(true) // Đánh dấu lần đầu load tin nhắn
 
   // ─── Nhóm tin nhắn theo ngày ─────────────────────────
   // Duyệt qua messageList, mỗi khi gặp ngày mới thì tạo group mới
-  const messageGroups = React.useMemo(() => {
+  const messageGroups = useMemo(() => {
     const groups: { date: string; messages: MessageItem[] }[] = []
     let currentDate = ""
 
@@ -105,7 +111,7 @@ export function ChatPanel({
   // ─── Quản lý vị trí scroll ───────────────────────────
   // useLayoutEffect chạy SAU khi React cập nhật DOM nhưng TRƯỚC khi trình duyệt vẽ
   // → Đảm bảo không bị giật khi thay đổi nội dung
-  React.useLayoutEffect(() => {
+  useLayoutEffect(() => {
     const el = scrollContainerRef.current
     if (!el || isLoading || messageList.length === 0) return
 
@@ -126,15 +132,15 @@ export function ChatPanel({
   }, [messageList, pageCount, isLoading])
 
   // ─── Reset khi chuyển cuộc trò chuyện ────────────────
-  React.useEffect(() => {
+  useEffect(() => {
     isInitialLoadRef.current = true
     prevPageCountRef.current = 0
     prevScrollHeightRef.current = 0
-  }, [conversation.id])
+  }, [conversationId])
 
   // ─── Xử lý cuộn lên để load thêm tin cũ ─────────────
   // Khi cuộn gần đến đỉnh (scrollTop < 100px) → lưu chiều cao hiện tại → gọi fetchNextPage
-  const handleScroll = React.useCallback(() => {
+  const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el || !hasNextPage || isFetchingNextPage) return
     if (el.scrollTop < 100) {
@@ -147,37 +153,38 @@ export function ChatPanel({
   // ─── Gửi tin nhắn ────────────────────────────────────
   const handleSend = () => {
     const content = inputValue.trim()
-    if (!content) return
+    if (!content || sendMessage.isPending) return
 
     sendMessage.mutate({
-      conversationId: conversation.id,
+      conversationId: conversationId,
       content,
     })
     setInputValue("") // Xóa ô nhập ngay, không chờ server phản hồi
   }
 
   // Enter gửi tin, Shift+Enter xuống dòng
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.nativeEvent.isComposing) return
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
   }
 
+  if (!conversation) return null
+
   const displayName = getConversationDisplayName(conversation)
   const initials = getInitials(displayName)
-  const avatarColor = getAvatarColor(conversation.id)
+  const avatarColor = getAvatarColor(conversationId)
 
   return (
     <div className="flex h-full flex-col bg-background">
       {/* ─── Header ──────────────────────────────────────── */}
       <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          {onBack && (
-            <Button variant="ghost" size="icon-sm" onClick={onBack}>
-              <Icons.chevronLeft className="h-5 w-5" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => setSelectedConversation(null)}>
+            <Icons.chevronLeft className="h-5 w-5" />
+          </Button>
           <Avatar className="size-10">
             <AvatarFallback className="text-sm font-semibold text-white" style={{ backgroundColor: avatarColor }}>
               {initials}
@@ -187,7 +194,7 @@ export function ChatPanel({
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground">{displayName}</h3>
               <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal">
-                {getProviderLabel(conversation.linkedAccount.provider)}
+                {conversation.linkedAccount && getProviderLabel(conversation.linkedAccount.provider)}
               </Badge>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -270,7 +277,7 @@ export function ChatPanel({
           /* Danh sách tin nhắn theo nhóm ngày */
           <div className="flex flex-col gap-1">
             {messageGroups.map((group, groupIndex) => (
-              <React.Fragment key={groupIndex}>
+              <Fragment key={groupIndex}>
                 <DateSeparator date={group.date} />
                 {group.messages.map((message, msgIndex) => (
                   <MessageBubble
@@ -280,7 +287,7 @@ export function ChatPanel({
                     showAvatar={msgIndex === 0 || group.messages[msgIndex - 1]?.senderType !== message.senderType}
                   />
                 ))}
-              </React.Fragment>
+              </Fragment>
             ))}
             {/* Điểm neo cuối cùng để scroll xuống */}
             <div ref={messagesEndRef} />

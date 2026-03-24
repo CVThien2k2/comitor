@@ -45,9 +45,10 @@ export function MessageBubble({
   const avatarUrl = isCustomer ? message.accountCustomer?.avatarUrl : message.user?.avatarUrl
   const avatarColor = isCustomer ? conversationAvatarColor : getAvatarColor(message.userId || message.id)
 
-  const imageAtts = message.attachments.filter((att) => att.fileMimeType?.startsWith("image/") && att.fileUrl)
-  const pdfAtts = message.attachments.filter((att) => att.fileMimeType === "application/pdf" && att.fileUrl)
-  const fileAtts = message.attachments.filter(
+  const attachments = message.attachments ?? []
+  const imageAtts = attachments.filter((att) => att.fileMimeType?.startsWith("image/") && att.fileUrl)
+  const pdfAtts = attachments.filter((att) => att.fileMimeType === "application/pdf" && att.fileUrl)
+  const fileAtts = attachments.filter(
     (att) => att.fileUrl && !att.fileMimeType?.startsWith("image/") && att.fileMimeType !== "application/pdf"
   )
   const hasMedia = imageAtts.length > 0 || pdfAtts.length > 0

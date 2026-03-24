@@ -2,15 +2,13 @@
 
 import { useResizablePanel } from "@workspace/ui/hooks/use-resizable-panel"
 import { cn } from "@workspace/ui/lib/utils"
-import * as React from "react"
+import { useChatStore } from "@/stores/chat-store"
 import { ChatPanel } from "./chat-panel"
 import { ConversationListPanel } from "./conversation-list"
 import { EmptyState } from "./empty-state"
-import type { ConversationItem } from "@/api/conversations"
 
 export function ConversationsPage() {
-  const [selectedId, setSelectedId] = React.useState<string | null>(null)
-  const [selectedConversation, setSelectedConversation] = React.useState<ConversationItem | null>(null)
+  const selectedConversation = useChatStore((s) => s.selectedConversation)
 
   const {
     width: listWidth,
@@ -23,21 +21,11 @@ export function ConversationsPage() {
     maxWidth: 480,
   })
 
-  const handleSelectConversation = (conversation: ConversationItem) => {
-    setSelectedId(conversation.id)
-    setSelectedConversation(conversation)
-  }
-
-  const handleBackToList = () => {
-    setSelectedId(null)
-    setSelectedConversation(null)
-  }
-
   return (
     <div className="flex h-full overflow-hidden bg-background">
       <div className="hidden w-full md:flex">
         <div className="relative shrink-0 border-r border-border" style={{ width: listWidth }}>
-          <ConversationListPanel selectedId={selectedId} onSelect={handleSelectConversation} />
+          <ConversationListPanel />
           <div
             onMouseDown={onResizeStart}
             className={cn(
@@ -48,17 +36,12 @@ export function ConversationsPage() {
         </div>
 
         <div className="min-w-0 flex-1">
-          {selectedConversation ? <ChatPanel conversation={selectedConversation} /> : <EmptyState />}
+          {selectedConversation ? <ChatPanel /> : <EmptyState />}
         </div>
       </div>
 
-      {/* Mobile (<768px) - View switching */}
       <div className="flex w-full flex-col md:hidden">
-        {selectedConversation ? (
-          <ChatPanel conversation={selectedConversation} onBack={handleBackToList} />
-        ) : (
-          <ConversationListPanel selectedId={selectedId} onSelect={handleSelectConversation} />
-        )}
+        {selectedConversation ? <ChatPanel /> : <ConversationListPanel />}
       </div>
     </div>
   )

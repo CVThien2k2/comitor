@@ -138,220 +138,147 @@ async function main() {
   const userMap = new Map(createdUsers.map((u) => [u.username, u]))
   console.log(`Seeded ${users.length} users (password: 123456)`)
 
-  // ─── Golden Profiles ───────────────────────────────────
-  const goldenProfiles = [
-    {
-      fullName: "Nguyễn Văn An",
-      gender: "male" as const,
-      primaryPhone: "0901234567",
-      primaryEmail: "an.nguyen@gmail.com",
-      city: "Hồ Chí Minh",
-      customerType: "individual" as const,
-      memberTier: "gold" as const,
-    },
-    {
-      fullName: "Trần Thị Bình",
-      gender: "female" as const,
-      primaryPhone: "0912345678",
-      primaryEmail: "binh.tran@gmail.com",
-      city: "Hà Nội",
-      customerType: "individual" as const,
-      memberTier: "silver" as const,
-    },
-    {
-      fullName: "Lê Hoàng Cường",
-      gender: "male" as const,
-      primaryPhone: "0923456789",
-      primaryEmail: "cuong.le@gmail.com",
-      city: "Đà Nẵng",
-      customerType: "business" as const,
-      memberTier: "platinum" as const,
-    },
-    {
-      fullName: "Phạm Minh Dũng",
-      gender: "male" as const,
-      primaryPhone: "0934567890",
-      primaryEmail: "dung.pham@gmail.com",
-      city: "Hồ Chí Minh",
-      customerType: "individual" as const,
-    },
-    {
-      fullName: "Võ Thị Em",
-      gender: "female" as const,
-      primaryPhone: "0945678901",
-      primaryEmail: "em.vo@gmail.com",
-      city: "Cần Thơ",
-      customerType: "individual" as const,
-      memberTier: "bronze" as const,
-    },
-  ]
-
-  for (const gp of goldenProfiles) {
-    await prisma.goldenProfile.create({ data: gp })
-  }
-  const createdProfiles = await prisma.goldenProfile.findMany({ orderBy: { createdAt: "asc" } })
-  if (createdProfiles.length < 5) {
-    throw new Error(`Expected at least 5 golden profiles, got ${createdProfiles.length}`)
-  }
-  const gp0 = createdProfiles[0]!
-  const gp1 = createdProfiles[1]!
-  const gp2 = createdProfiles[2]!
-  const gp3 = createdProfiles[3]!
-  const gp4 = createdProfiles[4]!
-  console.log(`Seeded ${goldenProfiles.length} golden profiles`)
-
-  // ─── Link Accounts ─────────────────────────────────────
+  // ─── Golden Profiles (100 khách hàng) ──────────────────
   const systemUser = userMap.get("admin")!
   const aliceUser = userMap.get("alice")!
+  const bobUser = userMap.get("bob")!
 
+  const lastNames = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Huỳnh", "Phan", "Vũ", "Võ", "Đặng"]
+  const maleNames = ["Văn An", "Minh Dũng", "Hoàng Cường", "Quốc Bảo", "Đức Huy", "Thanh Tùng", "Anh Khoa", "Hữu Phát", "Trọng Nhân", "Tiến Đạt"]
+  const femaleNames = ["Thị Bình", "Thị Em", "Mai Lan", "Ngọc Hà", "Thuỳ Linh", "Phương Anh", "Thanh Hương", "Kim Chi", "Bích Ngọc", "Hồng Nhung"]
+  const cities = ["Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Huế", "Nha Trang", "Hải Phòng", "Biên Hoà", "Vũng Tàu", "Đà Lạt"]
+  const tiers = ["bronze", "silver", "gold", "platinum", undefined] as const
+  const customerTypes = ["individual", "business"] as const
+
+  const TOTAL_CUSTOMERS = 100
+
+  for (let i = 0; i < TOTAL_CUSTOMERS; i++) {
+    const isMale = i % 2 === 0
+    const lastName = lastNames[i % lastNames.length]
+    const firstName = isMale ? maleNames[i % maleNames.length] : femaleNames[i % femaleNames.length]
+    const fullName = `${lastName} ${firstName}`
+    const phone = `09${String(i).padStart(8, "0")}`
+
+    await prisma.goldenProfile.create({
+      data: {
+        fullName,
+        gender: isMale ? "male" : "female",
+        primaryPhone: phone,
+        primaryEmail: `customer${i}@gmail.com`,
+        city: cities[i % cities.length],
+        customerType: customerTypes[i % customerTypes.length],
+        memberTier: tiers[i % tiers.length],
+      },
+    })
+  }
+  const createdProfiles = await prisma.goldenProfile.findMany({ orderBy: { createdAt: "asc" } })
+  console.log(`Seeded ${createdProfiles.length} golden profiles`)
+
+  // ─── Link Accounts ─────────────────────────────────────
   const linkAccounts = [
-    {
-      provider: "zalo_oa" as const,
-      linkedByUserId: systemUser.id,
-      displayName: "Comitor Zalo OA",
-      accountId: "zalo_oa_001",
-      providerCredentialsId: "",
-    },
-    {
-      provider: "facebook" as const,
-      linkedByUserId: systemUser.id,
-      displayName: "Comitor Facebook",
-      accountId: "fb_001",
-      providerCredentialsId: "",
-    },
-    {
-      provider: "zalo_personal" as const,
-      linkedByUserId: aliceUser.id,
-      displayName: "Alice Zalo",
-      accountId: "zalo_personal_001",
-      providerCredentialsId: "",
-    },
+    { provider: "zalo_oa" as const, linkedByUserId: systemUser.id, displayName: "Comitor Zalo OA", accountId: "zalo_oa_001", providerCredentialsId: "" },
+    { provider: "facebook" as const, linkedByUserId: systemUser.id, displayName: "Comitor Facebook", accountId: "fb_001", providerCredentialsId: "" },
+    { provider: "zalo_personal" as const, linkedByUserId: aliceUser.id, displayName: "Alice Zalo", accountId: "zalo_personal_001", providerCredentialsId: "" },
   ]
 
   for (const la of linkAccounts) {
     await prisma.linkAccount.create({ data: la })
   }
   const createdLinkAccounts = await prisma.linkAccount.findMany()
-  console.log(`Seeded ${linkAccounts.length} link accounts`)
-
-  // ─── Account Customers ─────────────────────────────────
   const zaloOA = createdLinkAccounts.find((la) => la.accountId === "zalo_oa_001")!
   const facebook = createdLinkAccounts.find((la) => la.accountId === "fb_001")!
+  const zaloPersonal = createdLinkAccounts.find((la) => la.accountId === "zalo_personal_001")!
+  const linkedAccountPool = [zaloOA, facebook, zaloPersonal]
+  console.log(`Seeded ${linkAccounts.length} link accounts`)
 
-  const accountCustomers = [
-    { accountId: "cust_zalo_001", linkedAccountId: zaloOA.id, goldenProfileId: gp0.id, avatarUrl: null },
-    { accountId: "cust_zalo_002", linkedAccountId: zaloOA.id, goldenProfileId: gp1.id, avatarUrl: null },
-    { accountId: "cust_fb_001", linkedAccountId: facebook.id, goldenProfileId: gp2.id, avatarUrl: null },
-    { accountId: "cust_zalo_003", linkedAccountId: zaloOA.id, goldenProfileId: gp3.id, avatarUrl: null },
-    { accountId: "cust_fb_002", linkedAccountId: facebook.id, goldenProfileId: gp4.id, avatarUrl: null },
-  ]
-
-  for (const ac of accountCustomers) {
-    await prisma.accountCustomer.create({ data: ac })
+  // ─── Account Customers (100, mỗi profile 1 account) ───
+  for (let i = 0; i < createdProfiles.length; i++) {
+    const la = linkedAccountPool[i % linkedAccountPool.length]!
+    await prisma.accountCustomer.create({
+      data: {
+        accountId: `cust_${la.provider}_${String(i).padStart(3, "0")}`,
+        linkedAccountId: la.id,
+        goldenProfileId: createdProfiles[i]!.id,
+        avatarUrl: null,
+      },
+    })
   }
   const createdAccountCustomers = await prisma.accountCustomer.findMany({ orderBy: { createdAt: "asc" } })
-  if (createdAccountCustomers.length < 5) {
-    throw new Error(`Expected at least 5 account customers, got ${createdAccountCustomers.length}`)
-  }
-  const ac0 = createdAccountCustomers[0]!
-  const ac1 = createdAccountCustomers[1]!
-  const ac2 = createdAccountCustomers[2]!
-  const ac3 = createdAccountCustomers[3]!
-  const ac4 = createdAccountCustomers[4]!
-  console.log(`Seeded ${accountCustomers.length} account customers`)
+  console.log(`Seeded ${createdAccountCustomers.length} account customers`)
 
-  // ─── Conversations ─────────────────────────────────────
-  const conversations = [
-    {
-      linkedAccountId: zaloOA.id,
-      name: "Nguyễn Văn An",
-      type: "personal" as const,
-      tag: "business" as const,
-      journeyState: "searching" as const,
-      accountCustomerId: ac0.id,
-      lastActivityAt: new Date("2026-03-17T08:00:00Z"),
-    },
-    {
-      linkedAccountId: zaloOA.id,
-      name: "Trần Thị Bình",
-      type: "personal" as const,
-      tag: "other" as const,
-      accountCustomerId: ac1.id,
-      lastActivityAt: new Date("2026-03-17T09:30:00Z"),
-    },
-    {
-      linkedAccountId: facebook.id,
-      name: "Lê Hoàng Cường",
-      type: "personal" as const,
-      tag: "business" as const,
-      journeyState: "ticketed" as const,
-      accountCustomerId: ac2.id,
-      lastActivityAt: new Date("2026-03-16T15:00:00Z"),
-    },
-    {
-      linkedAccountId: zaloOA.id,
-      name: "Phạm Minh Dũng",
-      type: "personal" as const,
-      tag: "other" as const,
-      journeyState: "holding" as const,
-      accountCustomerId: ac3.id,
-      lastActivityAt: new Date("2026-03-15T10:00:00Z"),
-    },
-    {
-      linkedAccountId: facebook.id,
-      name: "Võ Thị Em",
-      type: "personal" as const,
-      tag: "business" as const,
-      journeyState: "searching" as const,
-      accountCustomerId: ac4.id,
-      lastActivityAt: new Date("2026-03-17T10:00:00Z"),
-    },
-    {
-      linkedAccountId: zaloOA.id,
-      name: "Nhóm tư vấn tour Đà Lạt",
-      type: "group" as const,
-      tag: "business" as const,
-      externalId: "group_001",
-      lastActivityAt: new Date("2026-03-17T07:00:00Z"),
-    },
-  ]
+  // ─── Conversations (90 personal + 10 group = 100) ─────
+  const TOTAL_CONVERSATIONS = 100
+  const TOTAL_GROUPS = 10
+  const tags = ["business", "other"] as const
+  const journeyStates = ["searching", "ticketed", "holding", null] as const
+  const agents = [aliceUser, bobUser]
+  const baseDate = new Date("2026-03-10T08:00:00Z")
 
-  for (const conv of conversations) {
-    await prisma.conversation.create({ data: conv })
+  // 90 cuộc personal
+  for (let i = 0; i < TOTAL_CONVERSATIONS - TOTAL_GROUPS; i++) {
+    const ac = createdAccountCustomers[i % createdAccountCustomers.length]!
+    const la = linkedAccountPool[i % linkedAccountPool.length]!
+    const profile = createdProfiles[i % createdProfiles.length]!
+    const activityDate = new Date(baseDate.getTime() + i * 30 * 60 * 1000) // cách 30 phút
+
+    await prisma.conversation.create({
+      data: {
+        linkedAccountId: la.id,
+        name: profile.fullName,
+        type: "personal",
+        tag: tags[i % tags.length],
+        journeyState: journeyStates[i % journeyStates.length],
+        accountCustomerId: ac.id,
+        lastActivityAt: activityDate,
+      },
+    })
   }
+
+  // 10 cuộc group
+  for (let i = 0; i < TOTAL_GROUPS; i++) {
+    const la = linkedAccountPool[i % linkedAccountPool.length]!
+    const activityDate = new Date(baseDate.getTime() + (90 + i) * 30 * 60 * 1000)
+
+    await prisma.conversation.create({
+      data: {
+        linkedAccountId: la.id,
+        name: `Nhóm tư vấn ${i + 1}`,
+        type: "group",
+        tag: tags[i % tags.length],
+        externalId: `group_${String(i + 1).padStart(3, "0")}`,
+        lastActivityAt: activityDate,
+      },
+    })
+  }
+
   const createdConversations = await prisma.conversation.findMany({ orderBy: { createdAt: "asc" } })
-  if (createdConversations.length < 6) {
-    throw new Error(`Expected at least 6 conversations, got ${createdConversations.length}`)
-  }
-  const c0 = createdConversations[0]!
-  const c1 = createdConversations[1]!
-  const c2 = createdConversations[2]!
-  const c3 = createdConversations[3]!
-  const c4 = createdConversations[4]!
-  const c5 = createdConversations[5]!
-  console.log(`Seeded ${conversations.length} conversations`)
+  console.log(`Seeded ${createdConversations.length} conversations`)
 
   // ─── Conversation Customers ────────────────────────────
-  const conversationCustomers = [
-    { conversationId: c0.id, accountCustomerId: ac0.id },
-    { conversationId: c1.id, accountCustomerId: ac1.id },
-    { conversationId: c2.id, accountCustomerId: ac2.id },
-    { conversationId: c3.id, accountCustomerId: ac3.id },
-    { conversationId: c4.id, accountCustomerId: ac4.id },
-    // Nhóm: nhiều khách
-    { conversationId: c5.id, accountCustomerId: ac0.id, isAdmin: true },
-    { conversationId: c5.id, accountCustomerId: ac1.id },
-    { conversationId: c5.id, accountCustomerId: ac3.id },
-  ]
-
-  for (const cc of conversationCustomers) {
-    await prisma.conversationCustomer.create({ data: cc })
+  for (const conv of createdConversations) {
+    if (conv.type === "personal" && conv.accountCustomerId) {
+      await prisma.conversationCustomer.create({
+        data: { conversationId: conv.id, accountCustomerId: conv.accountCustomerId },
+      })
+    } else if (conv.type === "group") {
+      // Mỗi nhóm 3 thành viên ngẫu nhiên
+      const memberCount = 3
+      const startIdx = createdConversations.indexOf(conv) % createdAccountCustomers.length
+      for (let j = 0; j < memberCount; j++) {
+        const ac = createdAccountCustomers[(startIdx + j) % createdAccountCustomers.length]!
+        await prisma.conversationCustomer.create({
+          data: {
+            conversationId: conv.id,
+            accountCustomerId: ac.id,
+            isAdmin: j === 0,
+          },
+        })
+      }
+    }
   }
-  console.log(`Seeded ${conversationCustomers.length} conversation customers`)
+  console.log(`Seeded conversation customers`)
 
   // ─── Messages (100 per conversation) ───────────────────
-  const bobUser = userMap.get("bob")!
-
   const MESSAGES_PER_CONVERSATION = 100
 
   const customerMessages = [
@@ -400,27 +327,23 @@ async function main() {
     "Dạ có xe đón tận nhà trong nội thành ạ",
   ]
 
-  const conversationConfigs = [
-    { conv: c0, customer: ac0, agents: [aliceUser], baseDate: new Date("2026-03-17T08:00:00Z") },
-    { conv: c1, customer: ac1, agents: [bobUser], baseDate: new Date("2026-03-17T09:00:00Z") },
-    { conv: c2, customer: ac2, agents: [aliceUser], baseDate: new Date("2026-03-16T14:00:00Z") },
-    { conv: c3, customer: ac3, agents: [bobUser, aliceUser], baseDate: new Date("2026-03-15T10:00:00Z") },
-    { conv: c4, customer: ac4, agents: [aliceUser], baseDate: new Date("2026-03-17T10:00:00Z") },
-    { conv: c5, customer: ac0, agents: [bobUser], baseDate: new Date("2026-03-17T06:00:00Z") },
-  ]
-
   let totalMessages = 0
-  for (const config of conversationConfigs) {
+  for (let ci = 0; ci < createdConversations.length; ci++) {
+    const conv = createdConversations[ci]!
+    const customer = createdAccountCustomers[ci % createdAccountCustomers.length]!
+    const agent = agents[ci % agents.length]!
+    const convBaseDate = new Date(baseDate.getTime() + ci * 30 * 60 * 1000)
+
     for (let i = 0; i < MESSAGES_PER_CONVERSATION; i++) {
       const isCustomer = i % 2 === 0
-      const msgDate = new Date(config.baseDate.getTime() + i * 60 * 1000) // 1 min apart
+      const msgDate = new Date(convBaseDate.getTime() + i * 60 * 1000)
 
       await prisma.message.create({
         data: {
-          conversationId: config.conv.id,
+          conversationId: conv.id,
           senderType: isCustomer ? "customer" : "agent",
-          accountCustomerId: isCustomer ? config.customer.id : undefined,
-          userId: isCustomer ? undefined : config.agents[i % config.agents.length]!.id,
+          accountCustomerId: isCustomer ? customer.id : undefined,
+          userId: isCustomer ? undefined : agent.id,
           content: isCustomer
             ? customerMessages[i % customerMessages.length]
             : agentMessages[i % agentMessages.length],

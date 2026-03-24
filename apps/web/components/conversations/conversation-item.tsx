@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import type { ConversationItem } from "@/api/conversations"
+import type { Conversation } from "@/api/conversations"
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { cn } from "@workspace/ui/lib/utils"
@@ -9,23 +9,31 @@ import {
   getConversationDisplayName,
   getInitials,
 } from "@/lib/helper"
+import { useChatStore } from "@/stores/chat-store"
+import { useConversations } from "@/hooks/use-conversations"
 import { ChannelBadge } from "./channel-badge"
 
-export function ConversationListItem({
+export function ConversationItem({
   conversation,
-  isSelected,
-  onClick,
 }: {
-  conversation: ConversationItem
-  isSelected: boolean
-  onClick: () => void
+  conversation: Conversation
 }) {
+  const isSelected = useChatStore((s) => s.selectedConversation?.id === conversation.id)
+  const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
+  const { markAsRead } = useConversations()
+
+  const handleClick = () => {
+    setSelectedConversation(conversation)
+    if (conversation.unreadCount) {
+      markAsRead(conversation.id)
+    }
+  }
   const displayName = getConversationDisplayName(conversation)
   const initials = getInitials(displayName)
-  const lastMsg = conversation.lastMessage
-  const unreadCount = conversation.unreadCount
+  const lastMsg = conversation.messages?.[0]
+  const unreadCount = conversation.unreadCount ?? 0
   const isUnread = unreadCount > 0
-  const avatarColor = getAvatarColor(conversation.id)
+  
   const isRecentlyActive = useMemo(() => {
     if (!lastMsg) return false
     const now = new Date()
@@ -34,7 +42,7 @@ export function ConversationListItem({
 
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "flex w-full items-start gap-3 border-b border-border p-3 text-left transition-all duration-200",
         "hover:bg-accent/50",
@@ -44,11 +52,11 @@ export function ConversationListItem({
     >
       <div className="relative shrink-0">
         <Avatar className="size-10">
-          <AvatarFallback className="text-xs font-semibold text-white" style={{ backgroundColor: avatarColor }}>
+          <AvatarFallback className="text-xs font-semibold text-white" style={{ backgroundColor: getAvatarColor(conversation.id) }}>
             {initials}
           </AvatarFallback>
         </Avatar>
-        <ChannelBadge provider={conversation.linkedAccount.provider} />
+        {conversation.linkedAccount && <ChannelBadge provider={conversation.linkedAccount.provider} />}
         {isRecentlyActive && (
           <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
         )}

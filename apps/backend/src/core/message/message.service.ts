@@ -9,17 +9,7 @@ import { ConversationService } from "../conversation/conversation.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
-const MESSAGE_INCLUDE = {
-  attachments: true,
-  user: { select: { id: true, name: true, avatarUrl: true } },
-  accountCustomer: {
-    select: {
-      id: true,
-      avatarUrl: true,
-      goldenProfile: { select: { fullName: true } },
-    },
-  },
-} as const
+import { MESSAGE_INCLUDE } from "./message.include"
 
 @Injectable()
 export class MessageService {

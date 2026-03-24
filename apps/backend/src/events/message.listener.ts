@@ -23,6 +23,10 @@ export class MessageListener {
       this.logger.warn("Tài khoản liên kết hoặc tin nhắn không tồn tại")
       return
     }
+    if (linkedAccount.status === "inactive") {
+      this.logger.warn(`Tài khoản ${linkedAccount.provider}:${linkedAccount.id} đang ở trạng thái inactive`)
+      return
+    }
     const fullMessage = await this.messageService.findById(messageId)
 
     this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)

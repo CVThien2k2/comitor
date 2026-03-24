@@ -19,6 +19,9 @@ export class LinkAccountEntity {
   @ApiProperty({ example: null, nullable: true })
   avatarUrl: string | null
 
+  @ApiProperty({ example: "active", enum: ["active", "inactive"] })
+  status: string
+
   @ApiProperty()
   createdAt: Date
 

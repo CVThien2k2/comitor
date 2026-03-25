@@ -7,29 +7,55 @@ import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { useAppStore } from "@/stores/app-store"
-import * as React from "react"
+import { useChatStore } from "@/stores/chat-store"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type UIEvent } from "react"
+import { useShallow } from "zustand/react/shallow"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { useDebounce } from "use-debounce"
 import { ConversationItem } from "./conversation-item"
+
+function ConversationListSkeleton({ count }: { count: number }) {
+  return (
+    <div className="space-y-1 p-2">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex items-start gap-3 p-3">
+          <div className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
+          <div className="flex-1 space-y-2">
+            <div className="h-4 w-32 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-48 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ─── Conversation List Panel ────────────────────────────
 
 export function ConversationListPanel() {
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const debouncedSearch = useDebouncedValue(searchQuery.trim())
-  const [activeTab, setActiveTab] = React.useState("all")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearch] = useDebounce(searchQuery.trim(), 500)
+  const [activeTab, setActiveTab] = useState("all")
 
   const CONVERSATIONS_PER_PAGE = 20
 
   const unreadConversationsCount = useAppStore((s) => s.badges.conversationsUnreadCount ?? 0)
 
   const {
-    data: conversationList,
-    isLoading,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+    setConversations,
+    appendConversations,
+    conversations: filtered,
+  } = useChatStore(
+    useShallow((s) => ({
+      setConversations: s.setConversations,
+      appendConversations: s.appendConversations,
+      conversations: s.conversations,
+    }))
+  )
+
+  const lastSyncedPageCount = useRef(0)
+
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, debouncedSearch, activeTab],
     queryFn: ({ pageParam = 1 }) =>
       conversations.getAll({
@@ -44,25 +70,39 @@ export function ConversationListPanel() {
       if (!meta) return undefined
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
-    select: (data) => {
-      const all = data.pages.flatMap((p) => p.data?.items ?? [])
-      const seen = new Set<string>()
-      return all.filter((c) => {
-        if (seen.has(c.id)) return false
-        seen.add(c.id)
-        return true
-      })
-    },
   })
 
-  const filtered = conversationList ?? []
+  useEffect(() => {
+    lastSyncedPageCount.current = 0
+    setConversations([])
+  }, [debouncedSearch, activeTab, setConversations])
 
-  const handleScroll = React.useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const pages = data?.pages
+    if (!pages?.length) return
+
+    if (pages.length === 1) {
+      const items = pages[0]?.data?.items ?? []
+      setConversations(items)
+      lastSyncedPageCount.current = 1
+      return
+    }
+
+    if (pages.length > lastSyncedPageCount.current) {
+      const newPages = pages.slice(lastSyncedPageCount.current)
+      for (const p of newPages) {
+        appendConversations(p.data?.items ?? [])
+      }
+      lastSyncedPageCount.current = pages.length
+    }
+  }, [data?.pages, appendConversations, setConversations])
+
+  const handleScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
       if (!hasNextPage || isFetchingNextPage) return
 
       const el = e.currentTarget
-      if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) fetchNextPage()
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 500) fetchNextPage()
     },
     [fetchNextPage, hasNextPage, isFetchingNextPage]
   )
@@ -82,7 +122,7 @@ export function ConversationListPanel() {
           <Input
             placeholder="Tìm kiếm hội thoại"
             value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             className="h-9 border-transparent bg-muted/50 pl-9 focus-visible:border-border"
           />
         </div>
@@ -106,17 +146,7 @@ export function ConversationListPanel() {
 
       <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
         {isLoading ? (
-          <div className="space-y-1 p-2">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="flex items-start gap-3 p-3">
-                <div className="size-10 shrink-0 animate-pulse rounded-full bg-muted" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-48 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <ConversationListSkeleton count={20} />
         ) : filtered.length === 0 ? (
           <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
             <Icons.messageSquare className="mb-2 size-8 opacity-50" />
@@ -126,11 +156,7 @@ export function ConversationListPanel() {
           filtered.map((conversation) => <ConversationItem key={conversation.id} conversation={conversation} />)
         )}
 
-        {isFetchingNextPage && hasNextPage && (
-          <div className="flex justify-center py-2">
-            <Icons.spinner className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        {isFetchingNextPage && hasNextPage && <ConversationListSkeleton count={5} />}
       </div>
     </div>
   )

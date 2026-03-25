@@ -31,7 +31,7 @@ export class ConversationService {
       this.prisma.client.conversation.findMany({
         where,
         include: {
-          linkedAccount: { select: { provider: true } },
+          linkedAccount: true,
           messages: {
             orderBy: { createdAt: "desc" },
             take: 1,
@@ -58,7 +58,7 @@ export class ConversationService {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id },
       include: {
-        linkedAccount: { select: { provider: true } },
+        linkedAccount: true,
         messages: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -78,17 +78,32 @@ export class ConversationService {
   }
 
   async update(id: string, dto: UpdateConversationDto) {
-    const conversation = await this.prisma.client.conversation.findUnique({ where: { id } })
-    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+    const existing = await this.prisma.client.conversation.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    return this.prisma.client.conversation.update({
+    const conversation = await this.prisma.client.conversation.update({
       where: { id },
       data: {
         name: dto.name,
         tag: dto.tag as any,
         journeyState: dto.journeyState as any,
       },
+      include: {
+        linkedAccount: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: MESSAGE_INCLUDE,
+        },
+        _count: { select: { messages: { where: { isRead: false } } } },
+      },
     })
+
+    const { _count, ...conv } = conversation
+    return {
+      ...conv,
+      unreadCount: _count.messages,
+    }
   }
 
   async getOrCreate(

@@ -1,3 +1,5 @@
+import type { ChannelType } from "@workspace/database"
+
 // ─── Message ────────────────────────────────────────────
 
 export interface MessageAttachment {
@@ -36,6 +38,20 @@ export interface MessageItem {
 
 // ─── Conversation ───────────────────────────────────────
 
+/** Tài khoản liên kết đầy đủ khi API include (khớp LinkAccount + chuỗi ISO) */
+export interface LinkAccount {
+  id: string
+  provider: ChannelType
+  linkedByUserId: string
+  providerCredentialsId: string | null
+  displayName: string | null
+  accountId: string | null
+  avatarUrl: string | null
+  createdAt: string
+  updatedAt: string
+  status: "active" | "inactive"
+}
+
 export interface Conversation {
   id: string
   linkedAccountId: string
@@ -48,7 +64,7 @@ export interface Conversation {
   accountCustomerId: string | null
   createdAt: string
   updatedAt: string
-  linkedAccount?: { provider: string }
+  linkedAccount?: LinkAccount
   accountCustomer?: {
     id: string
     avatarUrl: string | null

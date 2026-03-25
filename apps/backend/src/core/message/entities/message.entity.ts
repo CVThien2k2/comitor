@@ -98,6 +98,10 @@ export class MessageEntity extends MessageBaseEntity {
   @ApiProperty({ type: MessageSenderUser, nullable: true, description: "Thông tin agent gửi (khi senderType = agent)" })
   user: MessageSenderUser | null
 
-  @ApiProperty({ type: MessageSenderAccountCustomer, nullable: true, description: "Thông tin khách gửi (khi senderType = customer)" })
+  @ApiProperty({
+    type: MessageSenderAccountCustomer,
+    nullable: true,
+    description: "Thông tin khách gửi (khi senderType = customer)",
+  })
   accountCustomer: MessageSenderAccountCustomer | null
 }

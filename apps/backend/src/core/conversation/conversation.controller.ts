@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Query } from "@nestjs/common"
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
-  ApiBadRequestResponse,
-  ApiNotFoundResponse,
 } from "@nestjs/swagger"
 import { P } from "@workspace/database"
 import { Permissions } from "../../common/decorators/permissions.decorator"
@@ -23,9 +23,9 @@ import {
   NotFoundEntity,
   UnauthorizedEntity,
 } from "../../common/entities/api-response.entity"
-import { ConversationDetailEntity, ConversationListEntity } from "./entities/conversation.entity"
 import { ConversationService } from "./conversation.service"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
+import { ConversationEntity } from "./entities/conversation.entity"
 
 @ApiTags("Conversations")
 @ApiBearerAuth()
@@ -37,7 +37,7 @@ export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
 
   @ApiOperation({ summary: "Lấy danh sách cuộc hội thoại" })
-  @ApiOkResponse({ type: ApiPaginatedResponseOf(ConversationListEntity) })
+  @ApiOkResponse({ type: ApiPaginatedResponseOf(ConversationEntity) })
   @Permissions(P.CONVERSATION_READ)
   @Get()
   async findAll(@Query() query: PaginationQueryDto) {
@@ -55,7 +55,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Lấy thông tin cuộc hội thoại theo ID" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationListEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_READ)
   @Get(":id")
@@ -65,7 +65,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Cập nhật cuộc hội thoại" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationDetailEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_UPDATE)

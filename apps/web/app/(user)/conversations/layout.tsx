@@ -15,7 +15,7 @@ const Layout = ({ children }: LayoutProps) => {
     handleMouseDown: onResizeStart,
   } = useResizablePanel({
     storageKey: "conversation-list-width",
-    minWidth: 320,
+    minWidth: 200,
     defaultWidth: 320,
     maxWidth: 480,
   })

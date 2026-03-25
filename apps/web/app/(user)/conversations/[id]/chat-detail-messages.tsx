@@ -1,16 +1,19 @@
 "use client"
 
-import { messages as messagesApi, type Conversation, type MessageItem } from "@/api/conversations"
+import { messages as messagesApi, type MessageItem } from "@/api/conversations"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
+import { useConversations } from "@/hooks/use-conversations"
+import { useSendConversationMessage } from "@/hooks/use-messages"
+import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
 import {
   getConversationDisplayName,
   getConversationTagLabel,
   getProviderLabel,
   mergeConversationSeedWithFetchedMessages,
 } from "@/lib/helper"
-import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
 import { ROUTES } from "@/lib/routes"
+import { useChatStore } from "@/stores/chat-store"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -18,9 +21,6 @@ import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { MessageBubble } from "../_components/message-bubble"
-import { useSendConversationMessage } from "@/hooks/use-messages"
-import { useConversations } from "@/hooks/use-conversations"
-import { useChatStore } from "@/stores/chat-store"
 
 function FlowSeparator({ startTime }: { startTime: string }) {
   const d = new Date(startTime)
@@ -68,6 +68,8 @@ function MessageListSkeleton({ count }: { count: number }) {
 export function ChatDetailMessages() {
   const router = useRouter()
   const [inputValue, setInputValue] = useState("")
+  const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
+  const toggleUserInfo = useChatStore((s) => s.toggleUserInfoPanel)
   const conversation = useChatStore((s) => s.selectedConversation)
   const conversationId = conversation?.id ?? ""
   const { sendMessage, isPending } = useSendConversationMessage(conversationId)
@@ -114,7 +116,6 @@ export function ChatDetailMessages() {
     () => mergeConversationSeedWithFetchedMessages(seedMessages, fetchedChronological),
     [seedMessages, fetchedChronological]
   )
-  const lastMessageId = messageList[messageList.length - 1]?.id ?? null
   const pageCount = data?.pages.length ?? 0
 
   const messageGroups = useMemo(() => {
@@ -234,10 +235,8 @@ export function ChatDetailMessages() {
             provider={conversation.linkedAccount?.provider}
             className="size-8 md:size-10"
           />
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
-            </div>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               {conversation.linkedAccount?.provider && (
                 <Badge className="h-5 max-w-full px-1.5 text-[10px] font-normal">
@@ -250,6 +249,26 @@ export function ChatDetailMessages() {
                 </Badge>
               )}
             </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-1.5">
+            <Button variant="ghost" size="icon-sm" className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9">
+              <Icons.phone className="size-4 md:size-[18px]" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9">
+              <Icons.video className="size-4 md:size-[18px]" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "size-8 hover:bg-primary/20 hover:text-primary md:size-9",
+                showUserInfo ? "bg-primary/20 text-primary" : "text-foreground"
+              )}
+              onClick={toggleUserInfo}
+            >
+              <Icons.moreHorizontal className="size-4 md:size-[18px]" />
+            </Button>
           </div>
         </div>
       </div>
@@ -270,7 +289,7 @@ export function ChatDetailMessages() {
             <p className="mt-1 text-xs">Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-4xl flex-col gap-1">
+          <div className="flex w-full flex-col gap-1">
             {messageGroups.map((group, groupIndex) => (
               <Fragment key={`${group.startTime}-${groupIndex}`}>
                 <FlowSeparator startTime={group.startTime} />
@@ -279,7 +298,6 @@ export function ChatDetailMessages() {
                     key={message.id}
                     message={message}
                     showAvatar={msgIndex === 0 || group.messages[msgIndex - 1]?.senderType !== message.senderType}
-                    showSuccessStatus={message.id === lastMessageId}
                   />
                 ))}
               </Fragment>
@@ -290,7 +308,7 @@ export function ChatDetailMessages() {
       </div>
 
       <div className="border-t border-border bg-muted/50 px-2 py-2.5 sm:px-3 sm:py-3 md:p-4">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3">
+        <div className="flex w-full flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

@@ -17,6 +17,7 @@ function mergeMessagesNewestFirst(existing: MessageItem[] | undefined, incoming:
 type ChatState = {
   conversations: Conversation[]
   selectedConversation: Conversation | null
+  showUserInfoPanel: boolean
 }
 
 type ChatActions = {
@@ -39,6 +40,8 @@ type ChatActions = {
    * @returns `{ wasUnread, hasUnreadInState }` để caller quyết định decrement/un-sync server
    */
   markAsRead: (conversationId: string) => { wasUnread: boolean; hasUnreadInState: boolean }
+  setShowUserInfoPanel: (show: boolean) => void
+  toggleUserInfoPanel: () => void
   reset: () => void
 }
 
@@ -54,8 +57,11 @@ function dedupeById(items: Conversation[]): Conversation[] {
 export const useChatStore = create<ChatState & ChatActions>()((set, get) => ({
   conversations: [],
   selectedConversation: null,
+  showUserInfoPanel: false,
 
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
+  setShowUserInfoPanel: (show) => set({ showUserInfoPanel: show }),
+  toggleUserInfoPanel: () => set((state) => ({ showUserInfoPanel: !state.showUserInfoPanel })),
 
   setConversations: (conversations) => set({ conversations: dedupeById(conversations) }),
 
@@ -210,5 +216,5 @@ export const useChatStore = create<ChatState & ChatActions>()((set, get) => ({
     return { wasUnread, hasUnreadInState }
   },
 
-  reset: () => set({ conversations: [], selectedConversation: null }),
+  reset: () => set({ conversations: [], selectedConversation: null, showUserInfoPanel: true }),
 }))

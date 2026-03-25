@@ -7,6 +7,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import type { MessageItem } from "@/api/conversations"
 import { getSenderName } from "@/lib/helper"
 import { ImageGallery } from "./image-gallery"
+import { MessageActions } from "./message-actions"
 
 // ─── PDF Preview ────────────────────────────────────────
 
@@ -34,11 +35,9 @@ function MessagePdf({ src, name }: { src: string; name: string }) {
 export function MessageBubble({
   message,
   showAvatar = true,
-  showSuccessStatus = true,
 }: {
   message: MessageItem
   showAvatar?: boolean
-  showSuccessStatus?: boolean
 }) {
   const isCustomer = message.senderType === "customer"
   const senderName = getSenderName(message)
@@ -74,9 +73,10 @@ export function MessageBubble({
   const hasText = !!message.content
   const bubbleRound = isCustomer ? "rounded-tl-md" : "rounded-tr-md"
   const textBg = isCustomer ? "bg-muted text-foreground" : "bg-primary text-primary-foreground"
+  const actionsRow = isCustomer ? "flex-row" : "flex-row-reverse"
 
   return (
-    <div className={cn("flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}>
+    <div className={cn("group/msg flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}>
       {showAvatar && isCustomer && (
         <div className="mt-1 shrink-0">
           <ConversationAvatar
@@ -93,61 +93,72 @@ export function MessageBubble({
         className={cn(
           "relative flex flex-col gap-1",
           isCustomer ? "items-start" : "items-end",
-          message.status === "success" && showSuccessStatus && "pb-4"
         )}
       >
         <span className={cn("text-xs text-muted-foreground", isCustomer ? "ml-1" : "mr-1")}>{senderName}</span>
 
         {/* Images */}
         {imageAtts.length > 0 && (
-          <div
-            className={cn(
-              "max-w-[75vw] overflow-hidden rounded-2xl border border-border sm:max-w-[420px]",
-              bubbleRound
-            )}
-          >
-            <ImageGallery
-              images={imageAtts.map((att) => ({ id: att.id, src: att.fileUrl!, alt: att.fileName || "attachment" }))}
-            />
+          <div className={cn("flex items-end gap-1", actionsRow)}>
+            <div
+              className={cn(
+                "max-w-[75vw] overflow-hidden rounded-2xl border border-border sm:max-w-[420px]",
+                bubbleRound
+              )}
+            >
+              <ImageGallery
+                images={imageAtts.map((att) => ({ id: att.id, src: att.fileUrl!, alt: att.fileName || "attachment" }))}
+              />
+            </div>
+            {!hasText && <MessageActions isCustomer={isCustomer} content={message.content} />}
           </div>
         )}
 
         {/* PDFs */}
         {pdfAtts.length > 0 && (
-          <div
-            className={cn("max-w-[320px] min-w-[220px] overflow-hidden rounded-2xl border border-border", bubbleRound)}
-          >
-            {pdfAtts.map((att) => (
-              <MessagePdf key={att.id} src={att.fileUrl!} name={att.fileName || "document.pdf"} />
-            ))}
+          <div className={cn("flex items-end gap-1", actionsRow)}>
+            <div
+              className={cn("max-w-[320px] min-w-[220px] overflow-hidden rounded-2xl border border-border", bubbleRound)}
+            >
+              {pdfAtts.map((att) => (
+                <MessagePdf key={att.id} src={att.fileUrl!} name={att.fileName || "document.pdf"} />
+              ))}
+            </div>
+            {!hasText && <MessageActions isCustomer={isCustomer} content={message.content} />}
           </div>
         )}
 
         {/* Text bubble */}
         {hasText && (
-          <div
-            className={cn(
-              "rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word",
-              textBg,
-              bubbleRound,
-              message.status === "failed" && "border border-red-500/70"
-            )}
-          >
-            {message.content}
+          <div className={cn("flex items-center gap-1", actionsRow)}>
+            <div
+              className={cn(
+                "rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word",
+                textBg,
+                bubbleRound,
+                message.status === "failed" && "border border-red-500/70"
+              )}
+            >
+              {message.content}
+            </div>
+            <MessageActions isCustomer={isCustomer} content={message.content} />
           </div>
         )}
 
         {/* Fallback when no text and no media */}
         {!hasText && !hasMedia && (
-          <div
-            className={cn(
-              "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
-              textBg,
-              bubbleRound,
-              message.status === "failed" && "border border-red-500/70"
-            )}
-          >
-            [Tệp đính kèm]
+          <div className={cn("flex items-center gap-1", actionsRow)}>
+            <div
+              className={cn(
+                "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                textBg,
+                bubbleRound,
+                message.status === "failed" && "border border-red-500/70"
+              )}
+            >
+              [Tệp đính kèm]
+            </div>
+            <MessageActions isCustomer={isCustomer} content={message.content} />
           </div>
         )}
 
@@ -181,12 +192,6 @@ export function MessageBubble({
             {message.status === "failed" && <Icons.xCircle className="size-3" />}
             {message.status === "processing" && "Đang gửi"}
             {message.status === "failed" && "Lỗi"}
-          </div>
-        )}
-
-        {message.status === "success" && showSuccessStatus && (
-          <div className="absolute right-1 bottom-0 text-emerald-600">
-            <Icons.checkCircle2 className="size-3" />
           </div>
         )}
       </div>

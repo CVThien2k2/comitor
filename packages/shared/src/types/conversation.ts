@@ -56,6 +56,7 @@ export interface Conversation {
   id: string
   linkedAccountId: string
   name: string | null
+  avatarUrl: string | null
   externalId: string | null
   type: "personal" | "group"
   tag: "other" | "business"

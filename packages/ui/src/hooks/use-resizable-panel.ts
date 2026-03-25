@@ -7,6 +7,7 @@ interface UseResizablePanelOptions {
   minWidth: number
   defaultWidth: number
   maxWidth: number
+  reverse?: boolean
 }
 
 export function useResizablePanel({
@@ -14,6 +15,7 @@ export function useResizablePanel({
   minWidth,
   defaultWidth,
   maxWidth,
+  reverse = false,
 }: UseResizablePanelOptions) {
   const [width, setWidth] = React.useState(defaultWidth)
   const [isResizing, setIsResizing] = React.useState(false)
@@ -45,7 +47,7 @@ export function useResizablePanel({
 
       const onMouseMove = (e: MouseEvent) => {
         const delta = e.clientX - startX
-        const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta))
+        const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + (reverse ? -delta : delta)))
         widthRef.current = newWidth
         setWidth(newWidth)
       }
@@ -69,7 +71,7 @@ export function useResizablePanel({
       document.body.style.cursor = "col-resize"
       document.body.style.userSelect = "none"
     },
-    [minWidth, maxWidth, storageKey]
+    [minWidth, maxWidth, storageKey, reverse]
   )
 
   return { width, isResizing, handleMouseDown }

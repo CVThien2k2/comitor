@@ -2,6 +2,7 @@ model Conversation {
   id              String           @id @default(uuid())
   linkedAccountId String           @map("linked_account_id")
   name            String?
+  avatarUrl       String?          @map("avatar_url")
   externalId      String?          @map("external_id")
   type            ConversationType @default(personal)
   tag             ConversationTag  @default(other)

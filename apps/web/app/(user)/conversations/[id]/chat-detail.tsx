@@ -26,5 +26,5 @@ export function ChatDetail({ id }: { id: string }) {
   if (isLoadingConversation) return <ChatDetailSkeleton />
 
   if (!selectedConversation) return <ChatDetailNotFound />
-  return <ChatDetailMessages conversation={selectedConversation} />
+  return <ChatDetailMessages />
 }

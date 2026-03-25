@@ -123,7 +123,7 @@ export class MessageService {
   ) {
     const db = tx ?? this.prisma.client
 
-    const conversation = await this.conversationService.getOrCreate(
+    const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
       {
         externalId: data.externalConversationId,
         linkedAccountId: data.linkedAccountId,
@@ -163,7 +163,7 @@ export class MessageService {
         where: { id: conversation.id },
         data: { lastActivityAt: new Date() },
       })
-      return message
+      return { message, isNewConversation }
     } catch (error) {
       throw new Error(`Lỗi tạo tin nhắn: ${(error as Error).message}`)
     }
@@ -184,7 +184,7 @@ export class MessageService {
   ) {
     const db = tx ?? this.prisma.client
 
-    const conversation = await this.conversationService.getOrCreate(
+    const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
       {
         externalId: data.externalConversationId,
         linkedAccountId: data.linkedAccountId,
@@ -224,7 +224,7 @@ export class MessageService {
         data: { lastActivityAt: new Date() },
       })
 
-      return message
+      return { message, isNewConversation }
     } catch (error) {
       throw new Error(`Lỗi tạo tin nhắn outbound: ${(error as Error).message}`)
     }

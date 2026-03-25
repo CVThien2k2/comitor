@@ -84,4 +84,14 @@ export class ConversationController {
     await this.conversationService.delete(id)
     return { message: "Xóa cuộc hội thoại thành công" }
   }
+
+  @ApiOperation({ summary: "Đánh dấu toàn bộ tin nhắn trong cuộc hội thoại đã đọc" })
+  @ApiOkResponse({ type: ApiResponseOf(Number) })
+  @ApiNotFoundResponse({ type: NotFoundEntity })
+  @Permissions(P.MESSAGE_UPDATE)
+  @Patch(":id/mark-read")
+  async markAsRead(@Param("id") id: string) {
+    const result = await this.conversationService.markAsRead(id)
+    return { message: "Đánh dấu đã đọc thành công", data: result.updatedMessages }
+  }
 }

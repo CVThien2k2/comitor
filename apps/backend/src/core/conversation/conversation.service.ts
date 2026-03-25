@@ -106,6 +106,21 @@ export class ConversationService {
     }
   }
 
+  async markAsRead(conversationId: string) {
+    const conversation = await this.prisma.client.conversation.findUnique({
+      where: { id: conversationId },
+      select: { id: true },
+    })
+    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+
+    const { count } = await this.prisma.client.message.updateMany({
+      where: { conversationId, isRead: false },
+      data: { isRead: true },
+    })
+
+    return { updatedMessages: count }
+  }
+
   async getOrCreate(
     data: {
       externalId: string
@@ -123,7 +138,7 @@ export class ConversationService {
         where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
       })
 
-      if (existing) return existing
+      if (existing) return { conversation: existing, isNew: false }
 
       const conversation = await db.conversation.create({
         data: {
@@ -142,7 +157,7 @@ export class ConversationService {
         },
       })
 
-      return conversation
+      return { conversation, isNew: true }
     } catch (error) {
       throw new Error(`Lỗi tạo cuộc hội thoại: ${(error as Error).message}`)
     }

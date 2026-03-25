@@ -20,6 +20,8 @@ export const conversations = {
   getUnreadCount: () => api.get<ApiResponse<number>>("/conversations/unread-count"),
 
   getById: (id: string) => api.get<ApiResponse<Conversation>>(`/conversations/${id}`),
+
+  markAsRead: (id: string) => api.patch<ApiResponse<number>>(`/conversations/${id}/mark-read`),
 }
 
 export const messages = {

@@ -4,7 +4,6 @@ import { messages as messagesApi, type Conversation, type MessageItem } from "@/
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
 import {
-  formatMessageDate,
   getConversationDisplayName,
   getConversationTagLabel,
   getProviderLabel,
@@ -17,15 +16,26 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
-import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { MessageBubble } from "../_components/message-bubble"
+import { useSendConversationMessage } from "@/hooks/use-messages"
+import { useConversations } from "@/hooks/use-conversations"
+import { useChatStore } from "@/stores/chat-store"
 
-function DateSeparator({ date }: { date: string }) {
+function FlowSeparator({ startTime }: { startTime: string }) {
+  const d = new Date(startTime)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const timeLabel = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+  const dateLabel = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
   return (
-    <div className="my-4 flex items-center gap-3">
-      <div className="h-px flex-1 bg-border" />
-      <span className="px-2 text-xs font-medium text-muted-foreground">{date}</span>
-      <div className="h-px flex-1 bg-border" />
+    <div className="my-2 flex items-center gap-3">
+      <div className="h-px flex-1 bg-border/70" />
+      <div className="flex items-center gap-2 px-2 leading-none">
+        <span className="text-[11px] font-medium text-muted-foreground">{timeLabel}</span>
+        {!isToday && <span className="text-[11px] font-medium text-muted-foreground/80">{dateLabel}</span>}
+      </div>
+      <div className="h-px flex-1 bg-border/70" />
     </div>
   )
 }
@@ -55,19 +65,24 @@ function MessageListSkeleton({ count }: { count: number }) {
   )
 }
 
-export function ChatDetailMessages({ conversation }: { conversation: Conversation }) {
+export function ChatDetailMessages() {
   const router = useRouter()
   const [inputValue, setInputValue] = useState("")
+  const conversation = useChatStore((s) => s.selectedConversation)
+  const conversationId = conversation?.id ?? ""
+  const { sendMessage, isPending } = useSendConversationMessage(conversationId)
+  const { markAsRead } = useConversations()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevPageCountRef = useRef(0)
   const prevScrollHeightRef = useRef(0)
   const isInitialLoadRef = useRef(true)
   const prevConversationIdRef = useRef("")
+  const shouldScrollToBottomRef = useRef(false)
 
-  const id = conversation.id
+  const id = conversationId
 
-  const seedMessages = useMemo(() => conversation.messages ?? [], [conversation.messages])
+  const seedMessages = useMemo(() => conversation?.messages ?? [], [conversation?.messages])
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["messages", "list", id, MESSAGES_PER_PAGE],
@@ -99,22 +114,38 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     () => mergeConversationSeedWithFetchedMessages(seedMessages, fetchedChronological),
     [seedMessages, fetchedChronological]
   )
+  const lastMessageId = messageList[messageList.length - 1]?.id ?? null
   const pageCount = data?.pages.length ?? 0
 
   const messageGroups = useMemo(() => {
-    const groups: { date: string; messages: MessageItem[] }[] = []
-    let currentDate = ""
+    const FLOW_GAP_MS = 30 * 60 * 1000
+    const groups: { startTime: string; messages: MessageItem[] }[] = []
+    let current: { startTime: string; messages: MessageItem[] } | null = null
 
-    messageList.forEach((msg) => {
-      const dateLabel = formatMessageDate(msg.createdAt)
-      if (dateLabel !== currentDate) {
-        currentDate = dateLabel
-        groups.push({ date: dateLabel, messages: [msg] })
-      } else {
-        groups[groups.length - 1]?.messages.push(msg)
+    for (const msg of messageList) {
+      const msgTime = new Date(msg.createdAt).getTime()
+      const msgHour = new Date(msg.createdAt).getHours()
+
+      if (!current) {
+        current = { startTime: msg.createdAt, messages: [msg] }
+        continue
       }
-    })
 
+      const lastMsg = current.messages[current.messages.length - 1]!
+      const lastMsgTime = new Date(lastMsg.createdAt).getTime()
+      const lastMsgHour = new Date(lastMsg.createdAt).getHours()
+
+      const shouldSplit = lastMsgHour !== msgHour || msgTime - lastMsgTime >= FLOW_GAP_MS
+
+      if (shouldSplit) {
+        groups.push(current)
+        current = { startTime: msg.createdAt, messages: [msg] }
+      } else {
+        current.messages.push(msg)
+      }
+    }
+
+    if (current) groups.push(current)
     return groups
   }, [messageList])
 
@@ -136,13 +167,26 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     } else if (pageCount > prevPageCountRef.current) {
       const newScrollHeight = el.scrollHeight
       el.scrollTop = newScrollHeight - prevScrollHeightRef.current
+    } else if (shouldScrollToBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+      shouldScrollToBottomRef.current = false
     }
-    //  else {
-    //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    // }
 
     prevPageCountRef.current = pageCount
   }, [id, messageList, pageCount, isLoading, seedMessages.length])
+
+  // Khi đang mở cuộc trò chuyện:
+  // - Nếu `selectedConversation` trong Zustand store còn unread (`unreadCount > 0`)
+  //   hoặc có message chưa đọc (`messages[].isRead === false`)
+  // thì tự động mark-as-read để UI + unread badge đồng bộ.
+  useEffect(() => {
+    const unreadCount = conversation?.unreadCount ?? 0
+    const hasUnreadInStoreMessages = (conversation?.messages ?? []).some((m) => !m.isRead)
+
+    if (unreadCount > 0 || hasUnreadInStoreMessages) {
+      markAsRead(id)
+    }
+  }, [id, conversation?.unreadCount, conversation?.messages, markAsRead])
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
@@ -154,13 +198,11 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const handleSend = () => {
-    // const content = inputValue.trim()
-    // if (!content || sendMessage.isPending) return
-    // sendMessage.mutate({
-    //   conversationId: id,
-    //   content,
-    // })
-    // setInputValue("")
+    const content = inputValue.trim()
+    if (!content) return
+    shouldScrollToBottomRef.current = true
+    sendMessage(content)
+    setInputValue("")
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -175,12 +217,14 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     router.push(ROUTES.conversations.path)
   }
 
+  if (!conversation) return null
+
   const displayName = getConversationDisplayName(conversation)
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="border-b border-border bg-muted/50 px-3 py-2.5 backdrop-blur-sm sm:px-4 sm:py-3">
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+      <div className="border-b border-border bg-muted/50 px-2 py-2 backdrop-blur-sm sm:px-3 sm:py-2.5 md:px-4 md:py-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 md:gap-3">
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={handleBack}>
             <Icons.chevronLeft className="h-5 w-5" />
           </Button>
@@ -210,7 +254,11 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
         </div>
       </div>
 
-      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto bg-background px-4 py-4">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto bg-background px-2 py-3 sm:px-3 sm:py-4 md:px-4"
+      >
         {(isFetchingNextPage || isLoading) && <MessageListSkeleton count={10} />}
 
         {isLoading && messageList.length === 0 ? (
@@ -222,15 +270,16 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
             <p className="mt-1 text-xs">Hãy bắt đầu cuộc trò chuyện!</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-1">
             {messageGroups.map((group, groupIndex) => (
-              <Fragment key={groupIndex}>
-                <DateSeparator date={group.date} />
+              <Fragment key={`${group.startTime}-${groupIndex}`}>
+                <FlowSeparator startTime={group.startTime} />
                 {group.messages.map((message, msgIndex) => (
                   <MessageBubble
                     key={message.id}
                     message={message}
                     showAvatar={msgIndex === 0 || group.messages[msgIndex - 1]?.senderType !== message.senderType}
+                    showSuccessStatus={message.id === lastMessageId}
                   />
                 ))}
               </Fragment>
@@ -240,19 +289,19 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
         )}
       </div>
 
-      <div className="border-t border-border bg-muted/50 p-4">
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20">
+      <div className="border-t border-border bg-muted/50 px-2 py-2.5 sm:px-3 sm:py-3 md:p-4">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3">
           <textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Nhập tin nhắn"
             rows={2}
-            className="w-full resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="max-h-40 min-h-[40px] w-full resize-y bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none sm:max-h-52"
           />
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
                 <Icons.paperclip className="size-4" />
               </Button>
@@ -261,7 +310,12 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
               </Button>
             </div>
 
-            <Button size="sm" onClick={handleSend} disabled={!inputValue.trim()} className="h-8 gap-1.5 px-4">
+            <Button
+              size="sm"
+              onClick={handleSend}
+              disabled={!inputValue.trim() || isPending}
+              className="h-8 min-w-[74px] gap-1 px-3 sm:gap-1.5 sm:px-4"
+            >
               <Icons.send className="size-3.5" />
               <span className="text-xs">Gửi</span>
             </Button>

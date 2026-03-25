@@ -6,6 +6,7 @@ import { MessageProcessor } from "./message.processor"
 import { MessageHandler } from "./message.handler"
 import { QueueService } from "./queue.service"
 import { AccountCustomerModule } from "../core/account-customer/account-customer.module"
+import { ConversationModule } from "../core/conversation/conversation.module"
 import { MessageModule } from "../core/message/message.module"
 import { ZaloPersonalModule } from "../platform/zalo_personal/zalo_personal.module"
 
@@ -30,6 +31,7 @@ import { ZaloPersonalModule } from "../platform/zalo_personal/zalo_personal.modu
       },
     }),
     AccountCustomerModule,
+    ConversationModule,
     MessageModule,
     ZaloPersonalModule,
   ],

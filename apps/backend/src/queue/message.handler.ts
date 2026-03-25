@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "src/database/prisma.service"
 import { AccountCustomerService } from "src/core/account-customer/account-customer.service"
+import { ConversationService } from "src/core/conversation/conversation.service"
 import { MessageService } from "src/core/message/message.service"
 import type { Message } from "src/utils/types"
 import { EVENTS } from "@workspace/shared"
@@ -14,6 +15,7 @@ export class MessageHandler {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountCustomerService: AccountCustomerService,
+    private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
     private readonly socketGateway: SocketGateway,
     private readonly zaloPersonalService: ZaloPersonalService
@@ -48,7 +50,7 @@ export class MessageHandler {
     if (linkedAccount.status === "inactive")
       this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
 
-    const dbMessage = await this.prisma.client.$transaction(async (tx) => {
+    const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
       const conversationName = await this.resolveConversationName({
         provider,
@@ -77,9 +79,14 @@ export class MessageHandler {
       )
     })
     this.logger.log(`Đã lưu tin nhắn inbound: ${dbMessage.id} (external: ${externalMessageId})`)
-    const fullMessage = await this.messageService.findById(dbMessage.id)
-    this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
 
+    if (isNewConversation) {
+      const fullConversation = await this.conversationService.findById(dbMessage.conversationId)
+      this.socketGateway.broadcast(EVENTS.CONVERSATION_CREATED, fullConversation)
+    } else {
+      const fullMessage = await this.messageService.findById(dbMessage.id)
+      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    }
     return dbMessage
   }
 
@@ -108,7 +115,7 @@ export class MessageHandler {
       return null
     }
 
-    const dbMessage = await this.prisma.client.$transaction(async (tx) => {
+    const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate(
         { accountId: recipientId, linkedAccount },
         tx
@@ -130,8 +137,14 @@ export class MessageHandler {
     })
 
     this.logger.log(`Đã lưu tin nhắn outbound: ${dbMessage.id} (external: ${externalMessageId})`)
-    const fullMessage = await this.messageService.findById(dbMessage.id)
-    this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+
+    if (isNewConversation) {
+      const fullConversation = await this.conversationService.findById(dbMessage.conversationId)
+      this.socketGateway.broadcast(EVENTS.CONVERSATION_CREATED, fullConversation)
+    } else {
+      const fullMessage = await this.messageService.findById(dbMessage.id)
+      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    }
 
     return dbMessage
   }

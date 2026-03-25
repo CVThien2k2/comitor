@@ -5,7 +5,7 @@ import { Icons } from "@/components/global/icons"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 import type { MessageItem } from "@/api/conversations"
-import { getSenderName, formatMessageTime } from "@/lib/helper"
+import { getSenderName } from "@/lib/helper"
 import { ImageGallery } from "./image-gallery"
 
 // ─── PDF Preview ────────────────────────────────────────
@@ -31,7 +31,15 @@ function MessagePdf({ src, name }: { src: string; name: string }) {
 
 // ─── Message Bubble ─────────────────────────────────────
 
-export function MessageBubble({ message, showAvatar = true }: { message: MessageItem; showAvatar?: boolean }) {
+export function MessageBubble({
+  message,
+  showAvatar = true,
+  showSuccessStatus = true,
+}: {
+  message: MessageItem
+  showAvatar?: boolean
+  showSuccessStatus?: boolean
+}) {
   const isCustomer = message.senderType === "customer"
   const senderName = getSenderName(message)
   const avatarUrl = isCustomer ? message.accountCustomer?.avatarUrl : message.user?.avatarUrl
@@ -81,8 +89,14 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
       )}
       {!showAvatar && isCustomer && <div className="size-8 shrink-0" />}
 
-      <div className={cn("flex flex-col gap-1", isCustomer ? "items-start" : "items-end")}>
-        {showAvatar && <span className="ml-1 text-xs text-muted-foreground">{senderName}</span>}
+      <div
+        className={cn(
+          "relative flex flex-col gap-1",
+          isCustomer ? "items-start" : "items-end",
+          message.status === "success" && showSuccessStatus && "pb-4"
+        )}
+      >
+        <span className={cn("text-xs text-muted-foreground", isCustomer ? "ml-1" : "mr-1")}>{senderName}</span>
 
         {/* Images */}
         {imageAtts.length > 0 && (
@@ -111,14 +125,28 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
 
         {/* Text bubble */}
         {hasText && (
-          <div className={cn("rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word", textBg, bubbleRound)}>
+          <div
+            className={cn(
+              "rounded-2xl px-4 py-2.5 text-sm leading-relaxed wrap-break-word",
+              textBg,
+              bubbleRound,
+              message.status === "failed" && "border border-red-500/70"
+            )}
+          >
             {message.content}
           </div>
         )}
 
         {/* Fallback when no text and no media */}
         {!hasText && !hasMedia && (
-          <div className={cn("rounded-2xl px-4 py-2.5 text-sm leading-relaxed", textBg, bubbleRound)}>
+          <div
+            className={cn(
+              "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+              textBg,
+              bubbleRound,
+              message.status === "failed" && "border border-red-500/70"
+            )}
+          >
             [Tệp đính kèm]
           </div>
         )}
@@ -141,15 +169,26 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 px-1">
-          <span className="text-[10px] text-muted-foreground">{formatMessageTime(message.createdAt)}</span>
-          {message.senderType === "agent" && (
-            <span className="text-[10px] text-muted-foreground">
-              {message.status === "processing" && "Đang gửi"}
-              {message.status === "failed" && "Gửi thất bại"}
-            </span>
-          )}
-        </div>
+        {(message.status === "processing" || message.status === "failed") && (
+          <div
+            className={cn(
+              "flex items-center gap-1 px-1 text-[10px] font-medium",
+              message.status === "processing" && "text-amber-600",
+              message.status === "failed" && "text-red-600"
+            )}
+          >
+            {message.status === "processing" && <Icons.spinner className="size-3 animate-spin" />}
+            {message.status === "failed" && <Icons.xCircle className="size-3" />}
+            {message.status === "processing" && "Đang gửi"}
+            {message.status === "failed" && "Lỗi"}
+          </div>
+        )}
+
+        {message.status === "success" && showSuccessStatus && (
+          <div className="absolute right-1 bottom-0 text-emerald-600">
+            <Icons.checkCircle2 className="size-3" />
+          </div>
+        )}
       </div>
     </div>
   )

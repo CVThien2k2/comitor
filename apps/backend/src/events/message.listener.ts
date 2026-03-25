@@ -1,8 +1,8 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
 import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
-import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
 import { MessageService } from "../core/message/message.service"
+import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
 import { SocketGateway } from "../websocket/socket.gateway"
 
 @Injectable()
@@ -41,13 +41,15 @@ export class MessageListener {
       await this.messageService.updateStatus(event.messageId, "success")
 
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, {
-        messageId: event.messageId,
+        messageId: fullMessage.id,
+        conversationId: fullMessage.conversationId,
         status: "success",
       })
     } catch (error) {
       await this.messageService.updateStatus(event.messageId, "failed")
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
-        messageId: event.messageId,
+        messageId: fullMessage.id,
+        conversationId: fullMessage.conversationId,
         status: "failed",
       })
     }

@@ -8,12 +8,14 @@ import { useConversations } from "@/hooks/use-conversations"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { useRouter } from "next/navigation"
 import { ROUTES } from "@/lib/routes"
+import { useAuthStore } from "@/stores/auth-store"
 
 export function ConversationItem({ conversation }: { conversation: Conversation }) {
   const router = useRouter()
   const isSelected = useChatStore((s) => s.selectedConversation?.id === conversation.id)
   const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
   const { markAsRead } = useConversations()
+  const currentUserId = useAuthStore((s) => s.user?.id)
 
   const handleClick = () => {
     setSelectedConversation(conversation)
@@ -72,7 +74,10 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
 
         {lastMsg && (
           <p className={cn("truncate text-sm", isUnread ? "font-medium text-foreground/90" : "text-muted-foreground")}>
-            {lastMsg.senderType === "agent" && "Bạn: "}
+            {lastMsg.senderType === "agent" &&
+              ((lastMsg.userId ?? lastMsg.user?.id) && (lastMsg.userId ?? lastMsg.user?.id) === currentUserId
+                ? "Bạn: "
+                : `${lastMsg.user?.name ?? "Agent"}: `)}
             {lastMsg.content || "[Tệp đính kèm]"}
           </p>
         )}

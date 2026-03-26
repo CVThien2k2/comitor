@@ -77,6 +77,11 @@ import {
   X,
   XCircle,
   Zap,
+  ChevronsUpDown,
+  ChevronsDown,
+  ChevronUp,
+  Ellipsis,
+  SlidersHorizontal,
   type LucideProps,
 } from "lucide-react"
 
@@ -212,4 +217,9 @@ export const Icons = {
   gmail: Gmail,
   phoneChannel: PhoneChannel,
   website: Website,
+  chevronsUpDown: ChevronsUpDown,
+  chevronsDown: ChevronsDown,
+  chevronUp: ChevronUp,
+  ellipsis: Ellipsis,
+  slidersHorizontal: SlidersHorizontal,
 }

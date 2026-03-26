@@ -50,7 +50,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full">
-              <Icons.checkCircle className="h-8 w-8 text-[color:var(--color-success)]" />
+              <Icons.checkCircle className="h-8 w-8 text-(--color-success)" />
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Đặt lại mật khẩu thành công!</h3>
@@ -69,7 +69,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1 text-center">
+      <CardHeader className="space-y-2 p-2 text-center">
         <CardTitle className="text-2xl font-bold">Đặt lại mật khẩu</CardTitle>
         <CardDescription>Nhập mật khẩu mới cho tài khoản của bạn</CardDescription>
       </CardHeader>
@@ -137,11 +137,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             />
 
             <Button type="submit" className="w-full" disabled={resetMutation.isPending}>
-              {resetMutation.isPending ? (
-                  <Icons.spinner className="h-4 w-4 animate-spin" />
-              ) : (
-                "Đặt lại mật khẩu"
-              )}
+              {resetMutation.isPending ? <Icons.spinner className="h-4 w-4 animate-spin" /> : "Đặt lại mật khẩu"}
             </Button>
           </FieldGroup>
         </form>

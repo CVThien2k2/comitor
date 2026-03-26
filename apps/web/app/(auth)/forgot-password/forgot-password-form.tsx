@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full">
-              <Icons.checkCircle className="h-8 w-8 text-[color:var(--color-success)]" />
+              <Icons.checkCircle className="h-8 w-8 text-(--color-success)" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Kiểm tra email của bạn</CardTitle>
@@ -82,16 +82,9 @@ export function ForgotPasswordForm() {
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1 text-center">
-        <div className="mb-4 flex justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl">
-            <span className="text-xl font-bold">C</span>
-          </div>
-        </div>
+      <CardHeader className="space-y-2 p-4 text-center">
         <CardTitle className="text-2xl font-bold">Quên mật khẩu?</CardTitle>
-        <CardDescription>
-          Nhập tên đăng nhập và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email
-        </CardDescription>
+        <CardDescription>Nhập tên đăng nhập và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu qua email</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -119,16 +112,12 @@ export function ForgotPasswordForm() {
             />
 
             <Button type="submit" className="w-full" disabled={forgotMutation.isPending}>
-              {forgotMutation.isPending ? (
-                  <Icons.spinner className="h-4 w-4 animate-spin" />
-              ) : (
-                "Gửi hướng dẫn đặt lại"
-              )}
+              {forgotMutation.isPending ? <Icons.spinner className="h-4 w-4 animate-spin" /> : "Gửi hướng dẫn đặt lại"}
             </Button>
           </FieldGroup>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-center">
+      <CardFooter className="flex justify-center p-6">
         <Link
           href={ROUTES["sign-in"].path}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"

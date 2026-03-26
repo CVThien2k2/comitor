@@ -10,23 +10,18 @@ import { Readable } from "stream"
 export class UploadService {
   private readonly s3: S3Client
   private readonly bucket: string
-  private readonly endpoint: string
   private readonly region: string
 
   constructor(private readonly configService: ConfigService) {
     const region = this.configService.get<string>("AWS_REGION", "ap-southeast-1")
-    const endpoint = this.configService.get<string>("AWS_ENDPOINT", "")
     this.s3 = new S3Client({
       region,
-      endpoint: endpoint || undefined,
-      forcePathStyle: Boolean(endpoint),
       credentials: {
         accessKeyId: this.configService.get<string>("AWS_ACCESS_KEY_ID", ""),
         secretAccessKey: this.configService.get<string>("AWS_SECRET_ACCESS_KEY", ""),
       },
     })
     this.bucket = this.configService.get<string>("AWS_S3_BUCKET", "")
-    this.endpoint = endpoint
     this.region = region
   }
   async delete(key: string) {
@@ -65,9 +60,6 @@ export class UploadService {
   }
 
   getPublicUrl(key: string) {
-    if (this.endpoint) {
-      return `${this.endpoint.replace(/\/$/, "")}/${this.bucket}/${key}`
-    }
     return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`
   }
 

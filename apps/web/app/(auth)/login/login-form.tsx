@@ -67,7 +67,7 @@ export function LoginForm() {
                       {...field}
                       id="username"
                       type="text"
-                      placeholder="nguyenvana"
+                      placeholder="Nhập tên đăng nhập"
                       aria-invalid={fieldState.invalid}
                       className="pl-10"
                     />
@@ -97,7 +97,7 @@ export function LoginForm() {
                       {...field}
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Nhập mật khẩu"
                       aria-invalid={fieldState.invalid}
                       className="pr-10 pl-10"
                     />
@@ -123,20 +123,10 @@ export function LoginForm() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-              {loginMutation.isPending ? (
-                <Icons.spinner className="h-4 w-4 animate-spin" />
-              ) : (
-                "Đăng nhập"
-              )}
+              {loginMutation.isPending ? <Icons.spinner className="h-4 w-4 animate-spin" /> : "Đăng nhập"}
             </Button>
           </FieldGroup>
         </form>
-        {/* <p className="mt-4 text-center text-sm text-muted-foreground">
-          Chưa có tài khoản?{" "}
-          <Link href="/register" className="text-primary hover:underline">
-            Đăng ký
-          </Link>
-        </p> */}
       </CardContent>
     </Card>
   )

@@ -4,6 +4,7 @@ import * as React from "react"
 import { AppSidebar } from "./app-sidebar"
 import { MobileBottomNav } from "./mobile-bottom-nav"
 import { cn } from "@workspace/ui/lib/utils"
+import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
 
 interface AppShellProps {
   children: React.ReactNode
@@ -15,27 +16,16 @@ export function AppShell({ children }: AppShellProps) {
   const [collapsed, setCollapsed] = React.useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [railExpanded, setRailExpanded] = React.useState(false)
-  const [breakpoint, setBreakpoint] = React.useState<BreakpointMode>("desktop-large")
+  const isMobile = useMediaQuery("(max-width: 639px)")
+  const isTablet = useMediaQuery("(min-width: 640px) and (max-width: 767px)")
+  const isDesktopSmall = useMediaQuery("(min-width: 768px) and (max-width: 1131px)")
 
-  // Detect breakpoint
-  React.useEffect(() => {
-    const checkBreakpoint = () => {
-      const width = window.innerWidth
-      if (width < 640) {
-        setBreakpoint("mobile")
-      } else if (width < 768) {
-        setBreakpoint("tablet")
-      } else if (width < 1132) {
-        setBreakpoint("desktop-small")
-      } else {
-        setBreakpoint("desktop-large")
-      }
-    }
-
-    checkBreakpoint()
-    window.addEventListener("resize", checkBreakpoint)
-    return () => window.removeEventListener("resize", checkBreakpoint)
-  }, [])
+  const breakpoint: BreakpointMode = React.useMemo(() => {
+    if (isMobile) return "mobile"
+    if (isTablet) return "tablet"
+    if (isDesktopSmall) return "desktop-small"
+    return "desktop-large"
+  }, [isDesktopSmall, isMobile, isTablet])
 
   // Close mobile menu on breakpoint change
   React.useEffect(() => {
@@ -74,7 +64,7 @@ export function AppShell({ children }: AppShellProps) {
           {railExpanded && (
             <>
               <div
-                className="fixed inset-0 z-30 bg-black/20 transition-opacity duration-300"
+                className="fixed inset-0 z-30 bg-foreground/20 transition-opacity duration-200"
                 onClick={() => setRailExpanded(false)}
               />
               <div className="fixed top-0 left-16 z-40 h-screen">
@@ -91,7 +81,7 @@ export function AppShell({ children }: AppShellProps) {
           {mobileMenuOpen && (
             <>
               <div
-                className="fixed inset-0 z-40 bg-black/40 transition-opacity duration-300"
+                className="fixed inset-0 z-40 bg-foreground/20 transition-opacity duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               />
               <div className="fixed top-0 left-0 z-50 h-screen">
@@ -105,7 +95,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main Content */}
       <main
         className={cn(
-          "flex-1 overflow-hidden bg-muted/30 transition-all duration-300",
+          "flex-1 overflow-hidden bg-background transition-[padding] duration-200",
           breakpoint === "mobile" && "pb-16"
         )}
       >

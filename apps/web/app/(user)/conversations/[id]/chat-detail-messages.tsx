@@ -4,7 +4,6 @@ import { messages as messagesApi, type MessageItem } from "@/api/conversations"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
 import { useConversations } from "@/hooks/use-conversations"
-import { useSendConversationMessage } from "@/hooks/use-messages"
 import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
 import {
   getConversationDisplayName,
@@ -19,8 +18,9 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { MessageBubble } from "../_components/message-bubble"
+import { ChatComposer } from "./chat-composer"
 
 function FlowSeparator({ startTime }: { startTime: string }) {
   const d = new Date(startTime)
@@ -67,20 +67,20 @@ function MessageListSkeleton({ count }: { count: number }) {
 
 export function ChatDetailMessages() {
   const router = useRouter()
-  const [inputValue, setInputValue] = useState("")
   const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
   const toggleUserInfo = useChatStore((s) => s.toggleUserInfoPanel)
   const conversation = useChatStore((s) => s.selectedConversation)
   const conversationId = conversation?.id ?? ""
-  const { sendMessage, isPending } = useSendConversationMessage(conversationId)
   const { markAsRead } = useConversations()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevPageCountRef = useRef(0)
   const prevScrollHeightRef = useRef(0)
+  const prevMessageCountRef = useRef(0)
   const isInitialLoadRef = useRef(true)
   const prevConversationIdRef = useRef("")
   const shouldScrollToBottomRef = useRef(false)
+  const isNearBottomRef = useRef(true)
 
   const id = conversationId
 
@@ -156,6 +156,8 @@ export function ChatDetailMessages() {
       isInitialLoadRef.current = true
       prevPageCountRef.current = 0
       prevScrollHeightRef.current = 0
+      prevMessageCountRef.current = 0
+      isNearBottomRef.current = true
     }
 
     const el = scrollContainerRef.current
@@ -168,12 +170,16 @@ export function ChatDetailMessages() {
     } else if (pageCount > prevPageCountRef.current) {
       const newScrollHeight = el.scrollHeight
       el.scrollTop = newScrollHeight - prevScrollHeightRef.current
-    } else if (shouldScrollToBottomRef.current) {
+    } else if (
+      shouldScrollToBottomRef.current ||
+      (isNearBottomRef.current && messageList.length > prevMessageCountRef.current)
+    ) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
       shouldScrollToBottomRef.current = false
     }
 
     prevPageCountRef.current = pageCount
+    prevMessageCountRef.current = messageList.length
   }, [id, messageList, pageCount, isLoading, seedMessages.length])
 
   // Khi đang mở cuộc trò chuyện:
@@ -191,28 +197,21 @@ export function ChatDetailMessages() {
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
-    if (!el || !hasNextPage || isFetchingNextPage) return
+    if (!el) return
+
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    isNearBottomRef.current = distanceFromBottom < 120
+
+    if (!hasNextPage || isFetchingNextPage) return
     if (el.scrollTop < 300) {
       prevScrollHeightRef.current = el.scrollHeight
       fetchNextPage()
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const handleSend = () => {
-    const content = inputValue.trim()
-    if (!content) return
+  const requestScrollToBottom = useCallback(() => {
     shouldScrollToBottomRef.current = true
-    sendMessage(content)
-    setInputValue("")
-  }
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.nativeEvent.isComposing) return
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
+  }, [])
 
   const handleBack = () => {
     router.push(ROUTES.conversations.path)
@@ -252,10 +251,18 @@ export function ChatDetailMessages() {
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-1.5">
-            <Button variant="ghost" size="icon-sm" className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9"
+            >
               <Icons.phone className="size-4 md:size-[18px]" />
             </Button>
-            <Button variant="ghost" size="icon-sm" className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9"
+            >
               <Icons.video className="size-4 md:size-[18px]" />
             </Button>
             <Button
@@ -307,39 +314,7 @@ export function ChatDetailMessages() {
         )}
       </div>
 
-      <div className="border-t border-border bg-muted/50 px-2 py-2.5 sm:px-3 sm:py-3 md:p-4">
-        <div className="flex w-full flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3">
-          <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Nhập tin nhắn"
-            rows={2}
-            className="max-h-40 min-h-[40px] w-full resize-y bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none sm:max-h-52"
-          />
-
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-0.5 sm:gap-1">
-              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                <Icons.paperclip className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground">
-                <Icons.smile className="size-4" />
-              </Button>
-            </div>
-
-            <Button
-              size="sm"
-              onClick={handleSend}
-              disabled={!inputValue.trim() || isPending}
-              className="h-8 min-w-[74px] gap-1 px-3 sm:gap-1.5 sm:px-4"
-            >
-              <Icons.send className="size-3.5" />
-              <span className="text-xs">Gửi</span>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ChatComposer key={conversationId} onRequestScrollToBottom={requestScrollToBottom} />
     </div>
   )
 }

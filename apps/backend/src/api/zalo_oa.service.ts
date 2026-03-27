@@ -159,7 +159,7 @@ export class ZaloOaService {
 
     let lastResponses: MessageSenderResponse[] = []
 
-    return await Promise.all(
+    await Promise.all(
       files.map(async (file) => {
         const contentLength = Number(file.contentLength?.toString())
         const isValidFile =
@@ -220,6 +220,12 @@ export class ZaloOaService {
             },
           })
 
+          lastResponses.push({
+            messageId: response?.data?.message_id || "",
+            conversationId: payload.conversationId,
+            userId: response?.data?.user_id || payload.recipientId,
+          } as MessageSenderResponse)
+
           return {
             messageId: response?.data?.message_id || "",
             conversationId: payload.conversationId,
@@ -258,6 +264,12 @@ export class ZaloOaService {
           },
         })
 
+        lastResponses.push({
+          messageId: response?.data?.message_id || "",
+          conversationId: payload.conversationId,
+          userId: response?.data?.user_id || payload.recipientId,
+        } as MessageSenderResponse)
+
         return {
           messageId: response?.data?.message_id || "",
           conversationId: payload.conversationId,
@@ -265,6 +277,8 @@ export class ZaloOaService {
         } as MessageSenderResponse
       })
     )
+
+    return lastResponses
   }
 
   async sendMessage(payload: SendMessagePayload): Promise<MessageSenderResponse | MessageSenderResponse[]> {

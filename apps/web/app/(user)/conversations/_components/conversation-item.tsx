@@ -46,7 +46,12 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
       )}
     >
       <div className="relative shrink-0">
-        <ConversationAvatar id={conversation.id} name={displayName} provider={conversation.linkedAccount?.provider} />
+        <ConversationAvatar
+          id={conversation.id}
+          name={displayName}
+          provider={conversation.linkedAccount?.provider}
+          avatarUrl={conversation.avatarUrl || undefined}
+        />
         {isRecentlyActive && (
           <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-emerald-500" />
         )}

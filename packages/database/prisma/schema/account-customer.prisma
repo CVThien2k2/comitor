@@ -2,6 +2,7 @@ model AccountCustomer {
   id              String    @id @default(uuid())
   accountId       String    @map("account_id")
   linkedAccountId String    @map("linked_account_id")
+  name            String?   @map("name")
   goldenProfileId String    @map("golden_profile_id")
   avatarUrl       String?   @map("avatar_url")
   isOnline        Boolean   @default(false) @map("is_online")

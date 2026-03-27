@@ -1,4 +1,4 @@
-import type { LinkAccount, MessageStatus } from "@workspace/database/dist/generated/client"
+import type { LinkAccount, Message, MessageAttachment, MessageStatus } from "@workspace/database/dist/generated/client"
 
 export { EVENTS, type SocketEvent } from "./socket-events"
 
@@ -7,7 +7,7 @@ export type UserStatusEvent = {
 }
 
 export type MessageCreatedEvent = {
-  messageId: string
+  message: Message & { attachments?: MessageAttachment[] }
   linkedAccount: LinkAccount
 }
 

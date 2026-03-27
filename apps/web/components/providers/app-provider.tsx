@@ -19,10 +19,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (res.data?.user) useAuthStore.getState().setUser(res.data.user)
         if (res.data?.badges) useAppStore.getState().setBadges(res.data.badges)
         return res
-      } catch {
-        useAuthStore.getState().logout()
-        useAppStore.getState().reset()
-        throw new Error("Unauthorized")
+      } catch (error: unknown) {
+        const statusCode =
+          typeof error === "object" && error !== null
+            ? (error as { statusCode?: number; status?: number }).statusCode ??
+              (error as { statusCode?: number; status?: number }).status
+            : undefined
+
+        if (statusCode === 401) {
+          useAuthStore.getState().logout()
+          useAppStore.getState().reset()
+          throw new Error("Unauthorized")
+        }
+
+        throw error
       }
     },
     enabled: hydrated && !!accessToken,

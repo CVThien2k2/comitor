@@ -25,11 +25,18 @@ CREATE TYPE "ConversationType" AS ENUM ('personal', 'group');
 -- CreateEnum
 CREATE TYPE "ConversationTag" AS ENUM ('other', 'business');
 
+-- CreateEnum
+CREATE TYPE "CredentialType" AS ENUM ('oauth2', 'browser_session');
+
+-- CreateEnum
+CREATE TYPE "LinkAccountStatus" AS ENUM ('active', 'inactive');
+
 -- CreateTable
 CREATE TABLE "account_customer" (
     "id" TEXT NOT NULL,
     "account_id" TEXT NOT NULL,
     "linked_account_id" TEXT NOT NULL,
+    "name" TEXT,
     "golden_profile_id" TEXT NOT NULL,
     "avatar_url" TEXT,
     "is_online" BOOLEAN NOT NULL DEFAULT false,
@@ -57,6 +64,7 @@ CREATE TABLE "conversations" (
     "id" TEXT NOT NULL,
     "linked_account_id" TEXT NOT NULL,
     "name" TEXT,
+    "avatar_url" TEXT,
     "external_id" TEXT,
     "type" "ConversationType" NOT NULL DEFAULT 'personal',
     "tag" "ConversationTag" NOT NULL DEFAULT 'other',
@@ -98,11 +106,13 @@ CREATE TABLE "link_accounts" (
     "id" TEXT NOT NULL,
     "provider" "ChannelType" NOT NULL,
     "linked_by_user_id" TEXT NOT NULL,
+    "provider_credentials_id" TEXT,
     "display_name" TEXT,
     "account_id" TEXT,
     "avatar_url" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "status" "LinkAccountStatus" NOT NULL DEFAULT 'active',
 
     CONSTRAINT "link_accounts_pkey" PRIMARY KEY ("id")
 );
@@ -138,6 +148,20 @@ CREATE TABLE "message_attachments" (
     "key" VARCHAR(255),
 
     CONSTRAINT "message_attachments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "provider_credential" (
+    "id" TEXT NOT NULL,
+    "credential_type" "CredentialType" NOT NULL,
+    "access_token" TEXT,
+    "refresh_token" TEXT,
+    "access_token_expires_at" TIMESTAMP(3),
+    "refresh_token_expires_at" TIMESTAMP(3),
+    "credential_payload" JSONB,
+    "link_account_id" TEXT NOT NULL,
+
+    CONSTRAINT "provider_credential_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -233,6 +257,9 @@ CREATE INDEX "message_user_id" ON "messages"("user_id");
 CREATE INDEX "message_account_customer_id" ON "messages"("account_customer_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "provider_credential_link_account_id_key" ON "provider_credential"("link_account_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "refresh_tokens_token_key" ON "refresh_tokens"("token");
 
 -- CreateIndex
@@ -291,6 +318,9 @@ ALTER TABLE "messages" ADD CONSTRAINT "messages_user_id_fkey" FOREIGN KEY ("user
 
 -- AddForeignKey
 ALTER TABLE "message_attachments" ADD CONSTRAINT "message_attachments_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "messages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "provider_credential" ADD CONSTRAINT "provider_credential_link_account_id_fkey" FOREIGN KEY ("link_account_id") REFERENCES "link_accounts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;

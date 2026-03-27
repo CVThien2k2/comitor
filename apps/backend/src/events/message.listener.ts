@@ -17,9 +17,9 @@ export class MessageListener {
 
   @OnEvent(EVENTS.MESSAGE_CREATED)
   async handleMessageCreated(event: MessageCreatedEvent) {
-    const { messageId, linkedAccount } = event
+    const { message: fullMessage, linkedAccount } = event
 
-    if (!linkedAccount || !messageId) {
+    if (!linkedAccount || !fullMessage) {
       this.logger.warn("Tài khoản liên kết hoặc tin nhắn không tồn tại")
       return
     }
@@ -27,9 +27,11 @@ export class MessageListener {
       this.logger.warn(`Tài khoản ${linkedAccount.provider}:${linkedAccount.id} đang ở trạng thái inactive`)
       return
     }
-    const fullMessage = await this.messageService.findById(messageId as string)
-
-    this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    if (fullMessage.userId) {
+      this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_CREATED, fullMessage)
+    } else {
+      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    }
     const sender = this.senderRegistry.get(linkedAccount.provider)
     if (!sender) {
       this.logger.warn(`Không tìm thấy sender cho provider: ${linkedAccount.provider}`)
@@ -38,7 +40,7 @@ export class MessageListener {
 
     try {
       const response = await sender.send({ message: fullMessage, linkedAccount })
-      await this.messageService.updateStatus(event.messageId, {
+      await this.messageService.updateStatus(fullMessage.id, {
         status: "success",
         externalId: Array.isArray(response) ? response.at(0)?.messageId : response?.messageId,
       })
@@ -48,8 +50,8 @@ export class MessageListener {
         status: "success",
       })
     } catch (error) {
-      this.logger.error(`Error sending message ${event.messageId}: ${error}`)
-      await this.messageService.updateStatus(event.messageId, { status: "failed" })
+      this.logger.error(`Error sending message ${fullMessage.id}: ${error}`)
+      await this.messageService.updateStatus(fullMessage.id, { status: "failed" })
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
         messageId: fullMessage.id,
         conversationId: fullMessage.conversationId,

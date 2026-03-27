@@ -35,29 +35,6 @@ export class ZaloPersonalListenerService {
       }
       const direction = message?.isSelf ? "OUTBOUND_SELF" : "INBOUND"
 
-      this.logger.log(
-        `[Zalo Personal][${direction}] ` +
-          inspect(
-            {
-              sessionKey: params.sessionKey,
-              accountId: params.accountId,
-              displayName: params.displayName,
-              isSelf: Boolean(message?.isSelf),
-              threadId: message?.threadId ?? null,
-              normalized: {
-                ...normalizedMessage,
-                messageId: Number(normalizedMessage.messageId) ?? normalizedMessage.messageId,
-              },
-            },
-            { depth: 6, breakLength: 120 }
-          )
-      )
-
-      if (message?.isSelf) {
-        this.logger.log(`Da ghi nhan tin nhan tu gui cua Zalo Personal: ${mapped.messageId}`)
-        return
-      }
-
       try {
         await this.queueService.addIncomingMessage(normalizedMessage)
         this.logger.log(`Da them tin nhan Zalo Personal vao hang doi: ${mapped.messageId}`)

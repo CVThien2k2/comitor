@@ -122,7 +122,7 @@ export class WebhookService {
         ? (EventMessage.OUTBOUND as unknown as EventMessage)
         : (EventMessage.INBOUND as unknown as EventMessage),
       messageId: msg.msg_id,
-      conversationId: isOutbound ? payload.conversationId : payload.sender.id,
+      conversationId: isOutbound ? payload.recipient.id : payload.sender.id,
       senderId: payload.sender.id,
       recipientId: payload.recipient.id,
       timestamp: Number(payload.timestamp),

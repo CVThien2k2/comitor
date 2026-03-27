@@ -12,14 +12,15 @@ export function getSocket(): Socket | null {
 
 export function connectSocket() {
   const token = useAuthStore.getState().accessToken
-  if (!token || socket?.connected) return
+  if (!token) return
+  if (socket) return
 
   socket = io(`${SOCKET_URL}/websocket`, {
     auth: { token },
     transports: ["websocket"],
     reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 2000,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 5000,
   })
 
   registerSocketHandlers(socket)

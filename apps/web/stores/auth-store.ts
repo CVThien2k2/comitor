@@ -32,6 +32,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
       }),
-    },
-  ),
+    }
+  )
 )

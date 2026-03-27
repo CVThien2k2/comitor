@@ -40,20 +40,18 @@ class MessageSenderUser {
   avatarUrl: string | null
 }
 
-class MessageSenderGoldenProfile {
-  @ApiProperty({ example: "Nguyễn Văn An", nullable: true })
-  fullName: string | null
-}
-
 class MessageSenderAccountCustomer {
   @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
   id: string
 
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000", nullable: true })
+  goldenProfileId: string | null
+
   @ApiProperty({ example: null, nullable: true })
   avatarUrl: string | null
 
-  @ApiProperty({ type: MessageSenderGoldenProfile })
-  goldenProfile: MessageSenderGoldenProfile
+  @ApiProperty({ example: "Nguyen Van A", nullable: true })
+  name: string | null
 }
 
 export class MessageBaseEntity {

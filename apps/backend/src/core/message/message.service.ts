@@ -9,9 +9,9 @@ import { ConversationService } from "../conversation/conversation.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
+import { MessageSender } from "@workspace/database"
+import { MessageStatus } from "node_modules/@workspace/database/dist/generated/enums"
 import { MESSAGE_INCLUDE } from "./message.include"
-import { MessageSenderResponse } from "src/platform/message-senders/message-sender.interface"
-import { randomUUID } from "crypto"
 
 export function transformSingleMessage(messages: any[]) {
   if (!messages?.length) return null
@@ -112,7 +112,6 @@ export class MessageService {
 
     const messages = await this.prisma.client.$transaction(async (tx) => {
       const createdMessageIds: string[] = []
-
       // 1. Nếu có text → tạo 1 message text
       if (hasContent) {
         const textMessage = await tx.message.create({
@@ -126,39 +125,36 @@ export class MessageService {
             status: "processing",
           },
         })
-
         createdMessageIds.push(textMessage.id)
       }
 
       // 2. Nếu có attachments → mỗi attachment = 1 message
       if (hasAttachments) {
-        const newMessages = attachments.map(() => ({
-          id: randomUUID(),
-          conversationId: dto.conversationId,
-          senderType: "agent",
-          userId,
-          isRead: true,
-          timestamp: new Date(),
-          content: null,
-          status: "processing",
-        }))
-
-        await tx.message.createMany({
-          data: newMessages as any[],
+        const now = new Date()
+        const attachmentMessages = await tx.message.createManyAndReturn({
+          data: attachments.map(() => ({
+            conversationId: dto.conversationId,
+            senderType: "agent" as MessageSender,
+            userId,
+            isRead: true,
+            timestamp: now,
+            content: null,
+            status: "processing" as MessageStatus,
+          })),
+          select: { id: true },
         })
 
-        createdMessageIds.push(...newMessages.map((m) => m.id))
-
-        // tạo attachments
         await tx.messageAttachment.createMany({
-          data: newMessages.map((msg, index) => ({
-            messageId: msg.id,
-            fileName: attachments[index].fileName,
-            fileType: attachments[index].fileType,
-            fileUrl: attachments[index].fileUrl,
-            key: attachments[index].key,
+          data: attachmentMessages.map((message, index) => ({
+            messageId: message.id,
+            fileName: attachments[index]!.fileName,
+            fileType: attachments[index]!.fileType,
+            fileUrl: attachments[index]!.fileUrl,
+            key: attachments[index]!.key,
           })),
         })
+
+        createdMessageIds.push(...attachmentMessages.map((m) => m.id))
       }
 
       // 🔥 3. Query lại messages + include attachments
@@ -166,28 +162,22 @@ export class MessageService {
         where: {
           id: { in: createdMessageIds },
         },
-        include: {
-          attachments: true,
-          user: { select: { id: true, name: true, avatarUrl: true } },
-        },
+        include: MESSAGE_INCLUDE,
         orderBy: {
           createdAt: "asc",
         },
       })
-
+      await tx.conversation.update({
+        where: { id: dto.conversationId },
+        data: { lastActivityAt: new Date() },
+      })
       return fullMessages
-    })
-
-    // update conversation
-    await this.prisma.client.conversation.update({
-      where: { id: dto.conversationId },
-      data: { lastActivityAt: new Date() },
     })
 
     // emit events
     messages.forEach((msg) => {
       this.eventEmitter.emit(EVENTS.MESSAGE_CREATED, {
-        messageId: msg.id,
+        message: msg,
         linkedAccount: conversation.linkedAccount,
       } satisfies MessageCreatedEvent)
     })
@@ -216,7 +206,6 @@ export class MessageService {
       accountCustomerId: string
       externalId: string
       timestamp: number
-      conversationName?: string
       content?: string
       attachments?: Attachment[]
       isGroupMessage: boolean
@@ -231,7 +220,6 @@ export class MessageService {
         linkedAccountId: data.linkedAccountId,
         accountCustomerId: data.accountCustomerId,
         isGroupMessage: data.isGroupMessage,
-        name: data.conversationName,
       },
       tx
     )

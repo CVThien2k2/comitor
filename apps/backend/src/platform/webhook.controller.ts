@@ -27,7 +27,16 @@ export class WebhookController {
   @ApiBody({ type: ZaloOAWebhookDto })
   async handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
     res.status(200).send("OK")
-    this.logger.debug(`Received Zalo OA webhook: ${JSON.stringify(payload)}`)
+    const allowedParticipantId = ["2994357122857097520", "6503616889426404863"]
+    const senderId = payload.sender?.id
+    const recipientId = payload.recipient?.id
+    // if (!allowedParticipantId.includes(senderId) && !allowedParticipantId.includes(recipientId)) {
+    //   this.logger.warn(
+    //     `Ignored Zalo OA webhook with sender_id=${senderId ?? "unknown"} recipient_id=${recipientId ?? "unknown"}`
+    //   )
+    //   return
+    // }
+
     const message = this.webhookService.mapZaloWebhook(payload)
     await this.queueService.addIncomingMessage(message)
   }

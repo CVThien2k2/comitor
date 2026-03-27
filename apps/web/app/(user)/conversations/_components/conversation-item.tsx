@@ -83,6 +83,7 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
               ((lastMsg.userId ?? lastMsg.user?.id) && (lastMsg.userId ?? lastMsg.user?.id) === currentUserId
                 ? "Bạn: "
                 : `${lastMsg.user?.name ?? "Agent"}: `)}
+            {lastMsg.senderType === "customer" && `${lastMsg.accountCustomer?.name ?? "Khách hàng"}: `}
             {lastMsg.content || "[Tệp đính kèm]"}
           </p>
         )}

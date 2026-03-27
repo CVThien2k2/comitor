@@ -7,10 +7,13 @@ function createPrismaClient() {
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL!,
   })
+
+  const enableQueryLog = process.env.PRISMA_QUERY_LOG === "true"
+  const logs: ("query" | "error")[] = enableQueryLog ? ["query", "error"] : ["error"]
+
   return new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development" ? ["query", "error"] : ["error"],
+    log: logs,
   })
 }
 

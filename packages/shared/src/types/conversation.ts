@@ -31,8 +31,9 @@ export interface MessageItem {
   user?: { id: string; name: string; avatarUrl: string | null } | null
   accountCustomer?: {
     id: string
+    goldenProfileId: string | null
     avatarUrl: string | null
-    goldenProfile?: { fullName: string | null }
+    name: string | null
   } | null
 }
 
@@ -68,8 +69,9 @@ export interface Conversation {
   linkedAccount?: LinkAccount
   accountCustomer?: {
     id: string
+    goldenProfileId: string | null
     avatarUrl: string | null
-    goldenProfile?: { fullName: string | null }
+    name: string | null
   }
   conversationCustomers?: {
     id: string
@@ -80,8 +82,9 @@ export interface Conversation {
     updatedAt: string
     accountCustomer?: {
       id: string
+      goldenProfileId: string | null
       avatarUrl: string | null
-      goldenProfile?: { fullName: string | null }
+      name: string | null
     }
   }[]
   messages?: MessageItem[]

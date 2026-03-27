@@ -4,10 +4,14 @@ import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
 import { MESSAGE_INCLUDE } from "../message/message.include"
+import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly zaloPersonalService: ZaloPersonalService
+  ) {}
 
   async countUnreadConversations() {
     return this.prisma.client.conversation.count({
@@ -127,7 +131,6 @@ export class ConversationService {
       linkedAccountId: string
       accountCustomerId: string
       isGroupMessage?: boolean
-      name?: string
     },
     tx?: TransactionClient
   ) {
@@ -137,21 +140,51 @@ export class ConversationService {
       const existing = await db.conversation.findFirst({
         where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
       })
+
+      if (existing) {
+        const existingMember = await db.conversationCustomer.findFirst({
+          where: {
+            conversationId: existing.id,
+            accountCustomerId: data.accountCustomerId,
+          },
+        })
+
+        if (!existingMember) {
+          await db.conversationCustomer.create({
+            data: {
+              conversationId: existing.id,
+              accountCustomerId: data.accountCustomerId,
+            },
+          })
+        }
+
+        return { conversation: existing, isNew: false }
+      }
+
       const accountCustomer = await db.accountCustomer.findFirst({
         where: { id: data.accountCustomerId },
         include: { goldenProfile: true },
       })
-
-      if (existing) return { conversation: existing, isNew: false }
-
+      let conversationName, conversationAvatarUrl
+      if (!data.isGroupMessage) {
+        conversationName = accountCustomer?.goldenProfile.fullName || "Khách hàng"
+        conversationAvatarUrl = accountCustomer?.avatarUrl || null
+      } else {
+        const { name, avatarUrl } = await this.zaloPersonalService.getGroupConversationName(
+          data.externalId,
+          data.linkedAccountId
+        )
+        conversationName = name
+        conversationAvatarUrl = avatarUrl
+      }
       const conversation = await db.conversation.create({
         data: {
           externalId: data.externalId,
           linkedAccountId: data.linkedAccountId,
           accountCustomerId: data.accountCustomerId,
-          name: data.name || accountCustomer?.goldenProfile?.fullName || "Khách hàng",
+          name: conversationName || "Nhóm hội thoại",
           type: data.isGroupMessage ? "group" : "personal",
-          avatarUrl: accountCustomer?.avatarUrl || null,
+          avatarUrl: conversationAvatarUrl,
         },
       })
 

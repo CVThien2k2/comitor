@@ -76,13 +76,11 @@ export function UserInfoPanel({ conversation, onClose }: UserInfoPanelProps) {
           </div>
         )}
 
-        {conversation.accountCustomer?.goldenProfile?.fullName && (
+        {conversation.accountCustomer?.name && (
           <div className="flex items-center gap-3 text-sm">
             <Icons.user className="size-4 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground">Khách hàng:</span>
-            <span className="font-medium text-foreground">
-              {conversation.accountCustomer.goldenProfile.fullName}
-            </span>
+            <span className="font-medium text-foreground">{conversation.accountCustomer.name}</span>
           </div>
         )}
       </div>

@@ -5,8 +5,9 @@ export const MESSAGE_INCLUDE = {
   accountCustomer: {
     select: {
       id: true,
+      goldenProfileId: true,
       avatarUrl: true,
-      goldenProfile: { select: { fullName: true } },
+      name: true,
     },
   },
 } as const

@@ -170,10 +170,7 @@ export function ChatDetailMessages() {
     } else if (pageCount > prevPageCountRef.current) {
       const newScrollHeight = el.scrollHeight
       el.scrollTop = newScrollHeight - prevScrollHeightRef.current
-    } else if (
-      shouldScrollToBottomRef.current ||
-      (isNearBottomRef.current && messageList.length > prevMessageCountRef.current)
-    ) {
+    } else if (shouldScrollToBottomRef.current || messageList.length > prevMessageCountRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
       shouldScrollToBottomRef.current = false
     }

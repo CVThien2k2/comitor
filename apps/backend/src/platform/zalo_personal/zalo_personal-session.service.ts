@@ -57,7 +57,10 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
     return profile as ZaloPersonalUserProfile
   }
 
-  async getGroupConversationName(groupId: string, linkedAccountId: string): Promise<string> {
+  async getGroupConversationName(
+    groupId: string,
+    linkedAccountId: string
+  ): Promise<{ name: string; avatarUrl: string }> {
     const normalizedGroupId = String(groupId).trim()
 
     if (!normalizedGroupId) {
@@ -66,6 +69,7 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
 
     const session = await this.ensureActiveSession(linkedAccountId)
     const response = await session.api.getGroupInfo(normalizedGroupId)
+    console.log("response", JSON.stringify(response, null, 2))
     const groupInfoMap = response?.gridInfoMap ?? {}
     const groupInfo = groupInfoMap[normalizedGroupId] ?? Object.values(groupInfoMap)[0]
 
@@ -73,7 +77,7 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
       throw new NotFoundException(`Không tìm thấy thông tin nhóm Zalo Personal cho group ${normalizedGroupId}`)
     }
 
-    return groupInfo["name"] ?? `Nhóm ${normalizedGroupId}`
+    return { name: groupInfo["name"] ?? `Nhóm ${normalizedGroupId}`, avatarUrl: groupInfo["fullAvt"] ?? null }
   }
 
   activateSession(params: ZaloPersonalListenerParams) {

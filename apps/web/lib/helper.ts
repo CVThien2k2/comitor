@@ -80,7 +80,7 @@ export function getConversationDisplayName(conv: Conversation) {
   if (conv.name) return conv.name
   const lastMsg = conv.messages?.[0]
   const customer = lastMsg?.accountCustomer
-  if (customer?.goldenProfile?.fullName) return customer.goldenProfile.fullName
+  if (customer?.name) return customer.name
   return "Khách hàng"
 }
 
@@ -104,7 +104,7 @@ export function getConversationTagLabel(tag: string) {
 
 export function getSenderName(msg: MessageItem) {
   if (msg.senderType === "customer") {
-    return msg.accountCustomer?.goldenProfile?.fullName || "Khách hàng"
+    return msg.accountCustomer?.name || "Khách hàng"
   }
   if (msg.senderType === "agent") {
     return msg.user?.name || "Agent"

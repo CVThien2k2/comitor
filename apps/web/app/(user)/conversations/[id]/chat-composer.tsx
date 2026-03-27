@@ -66,7 +66,6 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
       })
   }, [files])
 
-  // Cleanup blob URLs when previews change/unmount
   useEffect(() => {
     return () => {
       for (const p of previewItems) {

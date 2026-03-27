@@ -5,7 +5,7 @@ import { useAuthStore } from "@/stores/auth-store"
 import { useChatStore } from "@/stores/chat-store"
 import { useMutation } from "@tanstack/react-query"
 import type { ApiResponse, MessageItem } from "@workspace/shared"
-import { useCallback, useRef } from "react"
+import { useCallback } from "react"
 
 const OPTIMISTIC_PREFIX = "optimistic:"
 
@@ -53,7 +53,25 @@ export function useSendConversationMessage(conversationId: string) {
         const created = res.data
         const tempId = context?.tempId
         if (created && tempId) {
-          replaceMessage(conversationId, tempId, created)
+          const state = useChatStore.getState()
+          const selectedMessage =
+            state.selectedConversation?.id === conversationId
+              ? state.selectedConversation.messages?.find((m) => m.id === tempId)
+              : undefined
+          const listMessage = state.conversations
+            .find((c) => c.id === conversationId)
+            ?.messages?.find((m) => m.id === tempId)
+          const optimisticMessage = selectedMessage ?? listMessage
+
+          const messageToReplace = optimisticMessage
+            ? {
+                ...created,
+                timestamp: optimisticMessage.timestamp,
+                createdAt: optimisticMessage.createdAt,
+              }
+            : created
+
+          replaceMessage(conversationId, tempId, messageToReplace)
         } else if (created && !tempId) {
           appendConversationMessages(conversationId, [created])
         } else if (tempId) {

@@ -40,7 +40,6 @@ export interface SendMessagePayload {
   senderId: string
   recipientId: string
   conversationId: string
-  type: MessageType
   text: string
   attachments: string[]
 }

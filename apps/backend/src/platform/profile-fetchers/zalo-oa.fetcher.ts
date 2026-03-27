@@ -7,16 +7,10 @@ import type { ProfileFetcher, ProfileResult } from "./profile-fetcher.interface"
 export class ZaloOaProfileFetcher implements ProfileFetcher {
   constructor(private readonly zaloOaService: ZaloOaService) {}
 
-  async getProfile(userId: string, _linkedAccount: LinkAccount): Promise<ProfileResult> {
-    // return this.zaloOaService.getProfile(userId)
-    // NOTE: hardcoded response for testing
-    return {
-      avatarUrl: "https://i.pravatar.cc/256?img=12",
-      profile: {
-        fullName: "Test Zalo OA User",
-        primaryPhone: "0900000000",
-        primaryEmail: "test.zalo.oa@example.com",
-      },
+  async getProfile(userId: string, linkedAccount: LinkAccount): Promise<ProfileResult> {
+    if (!linkedAccount.accountId) {
+      throw new Error(`LinkedAccount ${linkedAccount.id} chưa có accountId cho Zalo OA`)
     }
+    return this.zaloOaService.getProfile(userId, linkedAccount.accountId)
   }
 }

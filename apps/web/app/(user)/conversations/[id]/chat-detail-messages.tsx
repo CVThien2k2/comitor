@@ -19,6 +19,7 @@ import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { MessageImageRunGallery } from "../_components/message-image-run-gallery"
 import { MessageBubble } from "../_components/message-bubble"
 import { ChatComposer } from "./chat-composer"
 
@@ -63,6 +64,75 @@ function MessageListSkeleton({ count }: { count: number }) {
       })}
     </div>
   )
+}
+
+const getMessageSenderKey = (message: MessageItem) => {
+  return `${message.senderType}:${message.accountCustomerId ?? message.userId ?? "unknown"}`
+}
+
+const getRenderableAttachment = (message: MessageItem) => {
+  return (message.attachments ?? []).find((att) => !!(att.fileUrl || att.thumbnailUrl))
+}
+
+const isImageAttachment = (message: MessageItem) => {
+  const att = getRenderableAttachment(message)
+  if (!att) return false
+
+  const mime = att.fileMimeType?.toLowerCase() ?? ""
+  if (mime.startsWith("image/")) return true
+
+  const type = att.fileType?.toLowerCase() ?? ""
+  if (type === "image") return true
+
+  const source = `${att.fileUrl ?? ""} ${att.thumbnailUrl ?? ""} ${att.fileName ?? ""}`.toLowerCase()
+  return /\.(jpg|jpeg|png|gif|bmp|webp|svg)(\?|$)/.test(source)
+}
+
+const getMessageTimeMs = (message: MessageItem) => {
+  const createdAtMs = new Date(message.createdAt).getTime()
+  if (Number.isFinite(createdAtMs)) return createdAtMs
+  return new Date(message.timestamp).getTime()
+}
+
+type MessageRenderItem =
+  | { type: "single"; message: MessageItem; showAvatar: boolean }
+  | { type: "gallery"; messages: MessageItem[]; showAvatar: boolean }
+
+const buildMessageRenderItems = (messages: MessageItem[]): MessageRenderItem[] => {
+  const IMAGE_RUN_MAX_GAP_MS = 10 * 1000
+  const items: MessageRenderItem[] = []
+
+  for (let i = 0; i < messages.length; ) {
+    const current = messages[i]!
+    const previous = messages[i - 1]
+    const showAvatar = !previous || getMessageSenderKey(previous) !== getMessageSenderKey(current)
+
+    if (!isImageAttachment(current)) {
+      items.push({ type: "single", message: current, showAvatar })
+      i += 1
+      continue
+    }
+
+    let j = i + 1
+    while (
+      j < messages.length &&
+      isImageAttachment(messages[j]!) &&
+      getMessageSenderKey(messages[j]!) === getMessageSenderKey(current) &&
+      getMessageTimeMs(messages[j]!) - getMessageTimeMs(messages[j - 1]!) < IMAGE_RUN_MAX_GAP_MS
+    ) {
+      j += 1
+    }
+
+    const imageRun = messages.slice(i, j)
+    if (imageRun.length >= 2) {
+      items.push({ type: "gallery", messages: imageRun, showAvatar })
+    } else {
+      items.push({ type: "single", message: current, showAvatar })
+    }
+    i = j
+  }
+
+  return items
 }
 
 export function ChatDetailMessages() {
@@ -298,13 +368,18 @@ export function ChatDetailMessages() {
             {messageGroups.map((group, groupIndex) => (
               <Fragment key={`${group.startTime}-${groupIndex}`}>
                 <FlowSeparator startTime={group.startTime} />
-                {group.messages.map((message, msgIndex) => (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    showAvatar={msgIndex === 0 || group.messages[msgIndex - 1]?.senderType !== message.senderType}
-                  />
-                ))}
+                {buildMessageRenderItems(group.messages).map((item) => {
+                  if (item.type === "single") {
+                    return <MessageBubble key={item.message.id} message={item.message} showAvatar={item.showAvatar} />
+                  }
+                  return (
+                    <MessageImageRunGallery
+                      key={`gallery-${item.messages[0]!.id}-${item.messages[item.messages.length - 1]!.id}`}
+                      messages={item.messages}
+                      showAvatar={item.showAvatar}
+                    />
+                  )
+                })}
               </Fragment>
             ))}
             <div ref={messagesEndRef} />

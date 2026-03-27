@@ -7,6 +7,7 @@ type AppState = {
 
 type AppActions = {
   setBadges: (badges: AppData["badges"]) => void
+  incrementConversationsUnreadCount: (delta?: number) => void
   decrementConversationsUnreadCount: (delta?: number) => void
   reset: () => void
 }
@@ -17,6 +18,14 @@ export const useAppStore = create<AppState & AppActions>()((set) => ({
   },
 
   setBadges: (badges) => set({ badges }),
+
+  incrementConversationsUnreadCount: (delta = 1) =>
+    set((state) => ({
+      badges: {
+        ...state.badges,
+        conversationsUnreadCount: Math.max(0, (state.badges.conversationsUnreadCount ?? 0) + delta),
+      },
+    })),
 
   decrementConversationsUnreadCount: (delta = 1) =>
     set((state) => ({

@@ -13,6 +13,69 @@ import { MessageSender } from "@workspace/database"
 import { MessageStatus } from "node_modules/@workspace/database/dist/generated/enums"
 import { MESSAGE_INCLUDE } from "./message.include"
 
+const MIME_BY_EXTENSION: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".bmp": "image/bmp",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".mp4": "video/mp4",
+  ".mov": "video/quicktime",
+  ".avi": "video/x-msvideo",
+  ".mkv": "video/x-matroska",
+  ".webm": "video/webm",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".txt": "text/plain",
+  ".zip": "application/zip",
+  ".rar": "application/vnd.rar",
+}
+
+const normalizeMimeType = (value?: string | null) => {
+  const normalized = value?.split(";")[0]?.trim().toLowerCase()
+  return normalized || null
+}
+
+const inferMimeType = (...values: Array<string | null | undefined>) => {
+  const joined = values.filter(Boolean).join(" ").toLowerCase()
+  const ext = Object.keys(MIME_BY_EXTENSION).find((candidate) => joined.includes(candidate))
+  return ext ? MIME_BY_EXTENSION[ext] : null
+}
+
+const getAttachmentMimeType = (input: {
+  mimeType?: string | null
+  fileType?: string | null
+  fileName?: string | null
+  fileUrl?: string | null
+  type?: string | null
+}) => {
+  const normalizedMime = normalizeMimeType(input.mimeType)
+  if (normalizedMime) return normalizedMime
+
+  const inferredFromExt = inferMimeType(input.fileName, input.fileUrl)
+  if (inferredFromExt) return inferredFromExt
+
+  const normalizedType = input.type?.trim().toLowerCase() ?? input.fileType?.trim().toLowerCase() ?? ""
+  if (normalizedType === "image") return "image/*"
+  if (normalizedType === "video") return "video/*"
+  if (normalizedType === "audio") return "audio/*"
+  if (normalizedType === "file" || normalizedType === "document") return "application/octet-stream"
+
+  return null
+}
+
 export function transformSingleMessage(messages: any[]) {
   if (!messages?.length) return null
 
@@ -150,6 +213,12 @@ export class MessageService {
             fileName: attachments[index]!.fileName,
             fileType: attachments[index]!.fileType,
             fileUrl: attachments[index]!.fileUrl,
+            fileMimeType: getAttachmentMimeType({
+              mimeType: attachments[index]!.fileMimeType,
+              fileType: attachments[index]!.fileType,
+              fileName: attachments[index]!.fileName,
+              fileUrl: attachments[index]!.fileUrl,
+            }),
             key: attachments[index]!.key,
           })),
         })
@@ -241,7 +310,13 @@ export class MessageService {
                     fileType: a.type,
                     fileUrl: a.url,
                     thumbnailUrl: a.thumbnail,
-                    fileMimeType: a.mimeType,
+                    fileMimeType: getAttachmentMimeType({
+                      mimeType: a.mimeType,
+                      fileType: a.type,
+                      fileName: a.name,
+                      fileUrl: a.url,
+                      type: a.type,
+                    }),
                   })),
                 },
               }
@@ -301,7 +376,13 @@ export class MessageService {
                     fileType: a.type,
                     fileUrl: a.url,
                     thumbnailUrl: a.thumbnail,
-                    fileMimeType: a.mimeType,
+                    fileMimeType: getAttachmentMimeType({
+                      mimeType: a.mimeType,
+                      fileType: a.type,
+                      fileName: a.name,
+                      fileUrl: a.url,
+                      type: a.type,
+                    }),
                   })),
                 },
               }

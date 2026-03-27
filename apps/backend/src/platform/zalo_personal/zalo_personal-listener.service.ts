@@ -30,11 +30,8 @@ export class ZaloPersonalListenerService {
       const mapped = mapZaloPersonal(message)
       const normalizedMessage = {
         ...mapped,
-        recipientId: params.accountId ?? mapped.recipientId,
         messageId: String(mapped.messageId),
       }
-      const direction = message?.isSelf ? "OUTBOUND_SELF" : "INBOUND"
-
       try {
         await this.queueService.addIncomingMessage(normalizedMessage)
         this.logger.log(`Da them tin nhan Zalo Personal vao hang doi: ${mapped.messageId}`)

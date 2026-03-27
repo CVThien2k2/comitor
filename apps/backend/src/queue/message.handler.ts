@@ -125,8 +125,6 @@ export class MessageHandler {
         where: { externalId: externalMessageId },
       })
 
-      console.log(">>> MessageHandler.handleOutbound - messageExisting:", message)
-
       if (messageExisting) {
         this.logger.warn(`Tin nhắn đã được xử lý từ trước trong transaction: ${externalMessageId}`)
         return { message: messageExisting, isNewConversation: false }

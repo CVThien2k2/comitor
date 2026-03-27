@@ -38,7 +38,6 @@ export class MessageListener {
 
     try {
       const response = await sender.send({ message: fullMessage, linkedAccount })
-      console.log("Response from sender:", response)
       await this.messageService.updateStatus(event.messageId, {
         status: "success",
         externalId: Array.isArray(response) ? response.at(0)?.messageId : response?.messageId,

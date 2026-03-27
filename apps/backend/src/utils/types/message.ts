@@ -42,5 +42,4 @@ export interface SendMessagePayload {
   conversationId: string
   text: string
   attachments: string[]
-  isSelf?: boolean
 }

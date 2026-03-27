@@ -13,55 +13,25 @@ export type ChatComposerProps = {
 
 export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
   const conversationId = useChatStore((s) => s.selectedConversation?.id ?? "")
-  const { sendMessage, isPending } = useSendConversationMessage(conversationId)
+  const { isPending } = useSendConversationMessage(conversationId)
   const [inputValue, setInputValue] = useState("")
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const previewItems = useMemo(() => {
     return files
       .map((file, index) => ({ file, index }))
       .map(({ file, index }) => {
         const isImage = file.type.startsWith("image/")
-        const ext = file.name.includes(".") ? file.name.split(".").pop()?.toUpperCase() : "FILE"
-        const lowerExt = (ext || "file").toLowerCase()
-        const fileTone = (() => {
-          if (lowerExt === "pdf") {
-            return {
-              bg: "bg-red-500/10",
-              text: "text-red-600",
-            }
-          }
-          if (["doc", "docx"].includes(lowerExt)) {
-            return {
-              bg: "bg-blue-500/10",
-              text: "text-blue-600",
-            }
-          }
-          if (["xls", "xlsx", "csv"].includes(lowerExt)) {
-            return {
-              bg: "bg-emerald-500/10",
-              text: "text-emerald-600",
-            }
-          }
-          if (["ppt", "pptx"].includes(lowerExt)) {
-            return {
-              bg: "bg-orange-500/10",
-              text: "text-orange-600",
-            }
-          }
-          return {
-            bg: "bg-muted/60",
-            text: "text-muted-foreground",
-          }
-        })()
+        const ext = file.name.includes(".") ? file.name.split(".").pop()?.toUpperCase() : ""
+        const label = ext || "FILE"
         return {
           index,
           isImage,
           name: file.name,
-          label: ext || "FILE",
+          label,
           url: isImage ? URL.createObjectURL(file) : null,
-          fileTone,
         }
       })
   }, [files])
@@ -77,13 +47,18 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
   const handleSend = () => {
     const content = inputValue.trim()
     if (!conversationId) return
-    if (!content) return
+    if (!content && files.length === 0) return
     onRequestScrollToBottom?.()
-    console.log("[ChatComposer] send", {
+    console.log("[ChatComposer] send (ui-only)", {
+      conversationId,
       text: content,
-      files,
+      files: files.map((f) => ({
+        name: f.name,
+        type: f.type,
+        size: f.size,
+      })),
     })
-    sendMessage(content)
+    // UI-only: chưa upload/gửi thật. Xóa input để người dùng thấy action đã nhận.
     setInputValue("")
     setFiles([])
   }
@@ -96,7 +71,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     }
   }
 
-  const isDisabled = !conversationId || !inputValue.trim() || isPending
+  const isDisabled = !conversationId || (!inputValue.trim() && files.length === 0) || isPending
 
   const handlePickFiles = () => {
     fileInputRef.current?.click()
@@ -104,7 +79,8 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
 
   const handleFilesSelected = (incoming: FileList | null) => {
     if (!incoming || incoming.length === 0) return
-    setFiles((prev) => [...prev, ...Array.from(incoming)])
+    const next = Array.from(incoming)
+    setFiles((prev) => [...prev, ...next].slice(0, 9))
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -112,14 +88,65 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     setFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (!e.dataTransfer?.files?.length) return
+    handleFilesSelected(e.dataTransfer.files)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items
+    if (!items?.length) return
+
+    const pastedFiles: File[] = []
+    for (const item of Array.from(items)) {
+      if (item.kind !== "file") continue
+      const f = item.getAsFile()
+      if (f) pastedFiles.push(f)
+    }
+
+    if (pastedFiles.length === 0) return
+    e.preventDefault()
+    const dt = new DataTransfer()
+    for (const f of pastedFiles) dt.items.add(f)
+    handleFilesSelected(dt.files)
+  }
+
   return (
     <div className="border-t border-border bg-muted/50 px-2 py-2.5 sm:px-3 sm:py-3 md:p-4">
-      <div className="flex w-full flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3">
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className="flex w-full flex-col gap-2 rounded-xl border border-border bg-background p-2.5 transition-all duration-200 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 sm:p-3"
+        style={
+          isDragging
+            ? {
+                outline: "2px dashed rgba(59,130,246,0.6)",
+                outlineOffset: "4px",
+              }
+            : undefined
+        }
+      >
         <input
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+          accept="*/*"
           className="hidden"
           onChange={(e) => handleFilesSelected(e.target.files)}
         />
@@ -132,9 +159,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
                   {p.isImage && p.url ? (
                     <Image src={p.url} alt="Ảnh đính kèm" fill unoptimized className="object-cover" />
                   ) : (
-                    <div
-                      className={`flex h-full w-full items-center justify-center text-[10px] font-semibold ${p.fileTone.bg} ${p.fileTone.text}`}
-                    >
+                    <div className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
                       {p.label}
                     </div>
                   )}
@@ -158,6 +183,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
         <textarea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
+          onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           placeholder="Nhập tin nhắn"
           rows={2}

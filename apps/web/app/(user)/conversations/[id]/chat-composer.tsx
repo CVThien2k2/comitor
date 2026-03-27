@@ -2,6 +2,7 @@
 
 import { Icons } from "@/components/global/icons"
 import { useSendConversationMessage } from "@/hooks/use-messages"
+import { useChatStore } from "@/stores/chat-store"
 import { Button } from "@workspace/ui/components/button"
 import Image from "next/image"
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
@@ -145,7 +146,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
                 <button
                   type="button"
                   onClick={() => handleRemoveFile(p.index)}
-                  className="absolute -top-1 -right-1 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-300 bg-red-50 text-[10px] text-red-600 opacity-0 shadow-sm transition-opacity hover:bg-red-100 group-hover:opacity-100"
+                  className="absolute -top-1 -right-1 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-300 bg-red-50 text-[10px] text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:bg-red-100"
                   aria-label="Xóa tệp"
                 >
                   ×

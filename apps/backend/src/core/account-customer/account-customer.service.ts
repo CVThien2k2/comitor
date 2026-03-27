@@ -89,6 +89,7 @@ export class AccountCustomerService {
     let profileResult: ProfileResult
     try {
       profileResult = await fetcher.getProfile(data.accountId, data.linkedAccount)
+      this.logger.log(`>>> profileResult: ${JSON.stringify(profileResult)}`)
     } catch (error) {
       throw new Error(
         `Lỗi lấy dữ liệu người dùng từ ${data.linkedAccount.provider} (userId=${data.accountId}): ${(error as Error).message}`

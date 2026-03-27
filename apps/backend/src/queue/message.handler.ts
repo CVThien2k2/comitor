@@ -4,7 +4,7 @@ import { AccountCustomerService } from "src/core/account-customer/account-custom
 import { ConversationService } from "src/core/conversation/conversation.service"
 import { MessageService } from "src/core/message/message.service"
 import type { Message } from "src/utils/types"
-import { EVENTS } from "@workspace/shared"
+import { EVENTS, P } from "@workspace/shared"
 import { SocketGateway } from "src/websocket/socket.gateway"
 import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
 
@@ -120,6 +120,17 @@ export class MessageHandler {
         { accountId: recipientId, linkedAccount },
         tx
       )
+
+      const messageExisting = await tx.message.findFirst({
+        where: { externalId: externalMessageId },
+      })
+
+      console.log(">>> MessageHandler.handleOutbound - messageExisting:", message)
+
+      if (messageExisting) {
+        this.logger.warn(`Tin nhắn đã được xử lý từ trước trong transaction: ${externalMessageId}`)
+        return { message: messageExisting, isNewConversation: false }
+      }
 
       return this.messageService.createOutbound(
         {

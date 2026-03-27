@@ -27,7 +27,7 @@ export class MessageListener {
       this.logger.warn(`Tài khoản ${linkedAccount.provider}:${linkedAccount.id} đang ở trạng thái inactive`)
       return
     }
-    const fullMessage = await this.messageService.findById(messageId)
+    const fullMessage = await this.messageService.findById(messageId as string)
 
     this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
     const sender = this.senderRegistry.get(linkedAccount.provider)
@@ -37,16 +37,20 @@ export class MessageListener {
     }
 
     try {
-      await sender.send({ message: fullMessage, linkedAccount })
-      await this.messageService.updateStatus(event.messageId, "success")
-
+      const response = await sender.send({ message: fullMessage, linkedAccount })
+      console.log("Response from sender:", response)
+      await this.messageService.updateStatus(event.messageId, {
+        status: "success",
+        externalId: Array.isArray(response) ? response.at(0)?.messageId : response?.messageId,
+      })
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, {
         messageId: fullMessage.id,
         conversationId: fullMessage.conversationId,
         status: "success",
       })
     } catch (error) {
-      await this.messageService.updateStatus(event.messageId, "failed")
+      this.logger.error(`Error sending message ${event.messageId}: ${error}`)
+      await this.messageService.updateStatus(event.messageId, { status: "failed" })
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
         messageId: fullMessage.id,
         conversationId: fullMessage.conversationId,

@@ -52,8 +52,9 @@ const dedupeAttachments = (attachments: Attachment[]) =>
   attachments.filter((attachment, index, values) => {
     const key = `${attachment.type}|${attachment.url ?? ""}|${attachment.name ?? ""}|${attachment.thumbnail ?? ""}`
     return (
-      values.findIndex((item) => `${item.type}|${item.url ?? ""}|${item.name ?? ""}|${item.thumbnail ?? ""}` === key) ===
-      index
+      values.findIndex(
+        (item) => `${item.type}|${item.url ?? ""}|${item.name ?? ""}|${item.thumbnail ?? ""}` === key
+      ) === index
     )
   })
 
@@ -121,7 +122,7 @@ export class WebhookService {
         ? (EventMessage.OUTBOUND as unknown as EventMessage)
         : (EventMessage.INBOUND as unknown as EventMessage),
       messageId: msg.msg_id,
-      conversationId: payload.sender.id,
+      conversationId: isOutbound ? payload.conversationId : payload.sender.id,
       senderId: payload.sender.id,
       recipientId: payload.recipient.id,
       timestamp: Number(payload.timestamp),

@@ -189,8 +189,6 @@ export const mapZaloPersonal = (response: ZaloPersonalMessageListener): Message 
     else if (hint.includes("text") || hint.includes("chat") || hint.includes("webchat")) type = "text"
   }
 
-  console.log("Mapped Zalo Personal message:", raw.type === 1)
-
   return {
     provider: "zalo_personal",
     eventName: raw?.isSelf ? EventMessage.OUTBOUND : EventMessage.INBOUND,

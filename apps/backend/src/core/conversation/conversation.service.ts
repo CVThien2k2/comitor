@@ -137,6 +137,10 @@ export class ConversationService {
       const existing = await db.conversation.findFirst({
         where: { externalId: data.externalId, linkedAccountId: data.linkedAccountId },
       })
+      const accountCustomer = await db.accountCustomer.findFirst({
+        where: { id: data.accountCustomerId },
+        include: { goldenProfile: true },
+      })
 
       if (existing) return { conversation: existing, isNew: false }
 
@@ -145,8 +149,9 @@ export class ConversationService {
           externalId: data.externalId,
           linkedAccountId: data.linkedAccountId,
           accountCustomerId: data.accountCustomerId,
-          name: data.name,
+          name: data.name || accountCustomer?.goldenProfile?.fullName || "Khách hàng",
           type: data.isGroupMessage ? "group" : "personal",
+          avatarUrl: accountCustomer?.avatarUrl || null,
         },
       })
 

@@ -232,6 +232,7 @@ export function ChatDetailMessages() {
             id={id}
             name={displayName}
             provider={conversation.linkedAccount?.provider}
+            avatarUrl={conversation.avatarUrl || undefined}
             className="size-8 md:size-10"
           />
           <div className="min-w-0 flex-1 overflow-hidden">

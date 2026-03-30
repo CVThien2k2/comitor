@@ -68,8 +68,8 @@ export class ZaloOAWebhookDto {
   @ApiProperty({ type: ZaloOARecipientDto })
   recipient: ZaloOARecipientDto
 
-  @ApiProperty({ type: ZaloOAMessageContentDto })
-  message: ZaloOAMessageContentDto
+  @ApiPropertyOptional({ type: ZaloOAMessageContentDto, description: "Một số event Zalo OA không gửi kèm message payload" })
+  message?: ZaloOAMessageContentDto
 
   @ApiProperty({ example: "1710000000000" })
   timestamp: string

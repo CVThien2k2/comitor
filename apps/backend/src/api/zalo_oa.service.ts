@@ -218,6 +218,70 @@ export class ZaloOaService {
     return mapProfileToGoldenProfile(profile, userId)
   }
 
+  /**
+   * Upload a single image to Zalo OA and return the attachment_id.
+   */
+  private async uploadImageToZalo(senderId: string, file: { stream: any; contentType?: string; name?: string }) {
+    const formData = new FormData()
+    const fileBlob = await streamToBlob(file.stream, file.contentType)
+    formData.append("file", fileBlob, file.name)
+
+    const uploadData = await this.fetchZaloJson<ZaloUploadImageResponse>({
+      senderId,
+      path: `/v2.0/oa/upload/image`,
+      init: { method: "POST", body: formData },
+    })
+
+    const attachmentId = (uploadData as any)?.data?.attachment_id ?? (uploadData as any)?.attachment_id
+    if (!attachmentId) {
+      throw new Error((uploadData as any)?.message || "Upload image tới Zalo không thành công")
+    }
+    return attachmentId as string
+  }
+
+  /**
+   * Send all images in a single Zalo OA message using media template with multiple elements.
+   * Zalo renders this as a grid on the user's device.
+   */
+  private async sendImageGridMessage(
+    payload: Pick<SendMessagePayload, "recipientId" | "senderId" | "conversationId">,
+    files: Array<{ stream: any; contentType?: string; name?: string }>
+  ): Promise<MessageSenderResponse[]> {
+    const attachmentIds = await Promise.all(files.map((file) => this.uploadImageToZalo(payload.senderId, file)))
+
+    const response = await this.fetchZaloJson<Partial<ZaloOaSendMessageResponse>>({
+      senderId: payload.senderId,
+      path: `/v3.0/oa/message/cs`,
+      init: {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { user_id: payload.recipientId },
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "media",
+                elements: attachmentIds.slice(0, 5).map((attachmentId) => ({
+                  media_type: "image",
+                  attachment_id: attachmentId,
+                })),
+              },
+            },
+          },
+        }),
+      },
+    })
+
+    return [
+      {
+        messageId: response?.data?.message_id || "",
+        conversationId: payload.conversationId,
+        userId: response?.data?.user_id || payload.recipientId,
+      } as MessageSenderResponse,
+    ]
+  }
+
   async sendAttachments(
     payload: Pick<SendMessagePayload, "attachments" | "recipientId" | "senderId" | "conversationId">
   ): Promise<any> {
@@ -234,6 +298,22 @@ export class ZaloOaService {
         return file
       })
     )
+
+    const allAreValidImages =
+      files.length > 0 &&
+      files.every((file) => {
+        const contentLength = Number(file.contentLength?.toString())
+        return (
+          file.contentType?.startsWith("image/") &&
+          this.allowedImageTypes.includes(file.contentType || "") &&
+          Number.isFinite(contentLength) &&
+          contentLength <= this.MAX_IMAGE_SIZE
+        )
+      })
+
+    if (allAreValidImages) {
+      return this.sendImageGridMessage(payload, files)
+    }
 
     let lastResponses: MessageSenderResponse[] = []
 
@@ -304,11 +384,7 @@ export class ZaloOaService {
             userId: response?.data?.user_id || payload.recipientId,
           } as MessageSenderResponse)
 
-          return {
-            messageId: response?.data?.message_id || "",
-            conversationId: payload.conversationId,
-            userId: response?.data?.user_id || payload.senderId,
-          } as MessageSenderResponse
+          return
         }
 
         const uploadData = await this.fetchZaloJson<ZaloUploadFileResponse>({
@@ -347,12 +423,6 @@ export class ZaloOaService {
           conversationId: payload.conversationId,
           userId: response?.data?.user_id || payload.recipientId,
         } as MessageSenderResponse)
-
-        return {
-          messageId: response?.data?.message_id || "",
-          conversationId: payload.conversationId,
-          userId: response?.data?.user_id || payload.recipientId,
-        } as MessageSenderResponse
       })
     )
 

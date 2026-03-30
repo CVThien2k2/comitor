@@ -7,6 +7,7 @@ import type { ApiResponse } from "@workspace/shared"
 import { Icons } from "@/components/global/icons"
 import { api } from "@/lib/axios"
 import { useCallback, useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 
 const ZALO_OA_PERMISSION_URL = process.env.NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL ?? ""
 
@@ -118,6 +119,7 @@ const ZaloTabContents = ({ open }: ZaloTabContentsProps) => {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [qrError, setQrError] = useState<QrFlowError | null>(null)
   const [isPersonalLoading, setIsPersonalLoading] = useState(false)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!open) {
@@ -213,6 +215,7 @@ const ZaloTabContents = ({ open }: ZaloTabContentsProps) => {
             setLinkedStatus(payload)
             setQrImage(null)
             setSessionId(null)
+            void queryClient.invalidateQueries({ queryKey: ["link-accounts"] })
           }
         } else if (session.status === "failed") {
           window.clearInterval(intervalId)

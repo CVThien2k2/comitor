@@ -1,10 +1,13 @@
 import { Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import dotenv from "dotenv"
 import { PrismaService } from "src/database/prisma.service"
 import { RedisService } from "src/redis"
-
-dotenv.config()
+import {
+  getZaloOaAccessTokenRedisKey,
+  getZaloOaRefreshTokenRedisKey,
+  ZALO_OA_ACCESS_TOKEN_TTL_SECONDS,
+  ZALO_OA_REFRESH_TOKEN_TTL_SECONDS,
+} from "./zalo_oa.redis"
 
 @Injectable()
 export class ZaloOaAuthService {
@@ -15,15 +18,24 @@ export class ZaloOaAuthService {
   ) {}
 
   async getAccessToken(accountId: string): Promise<string> {
-    const cached = await this.redis.get<string>(`link_account:zalo_oa:${accountId}`)
-    if (cached) return JSON.parse(cached).access_token
+    const cachedAccessToken = await this.redis.get<string>(getZaloOaAccessTokenRedisKey(accountId))
+    if (cachedAccessToken) return cachedAccessToken
 
     const linked = await this.prisma.client.linkAccount.findFirst({
       where: { provider: "zalo_oa", accountId },
       include: { providerCredentials: true },
     })
     const accessToken = linked?.providerCredentials?.accessToken ?? undefined
+    const refreshToken = linked?.providerCredentials?.refreshToken ?? undefined
     if (!accessToken) throw new Error("Missing ZALO_OA_ACCESS_TOKEN")
+
+    await Promise.all([
+      this.redis.set(getZaloOaAccessTokenRedisKey(accountId), accessToken, ZALO_OA_ACCESS_TOKEN_TTL_SECONDS),
+      refreshToken
+        ? this.redis.set(getZaloOaRefreshTokenRedisKey(accountId), refreshToken, ZALO_OA_REFRESH_TOKEN_TTL_SECONDS)
+        : Promise.resolve(),
+    ])
+
     return accessToken
   }
 
@@ -36,7 +48,7 @@ export class ZaloOaAuthService {
     const appId = this.configService.get<string>("ZALO_OA_ID")
     if (!appId) throw new Error("Missing ZALO_OA_ID")
 
-    const refreshToken = params?.refreshToken ?? this.configService.get<string>("ZALO_OA_REFRESH_TOKEN")
+    const refreshToken = params?.refreshToken
     if (!refreshToken) throw new Error("Missing ZALO_OA_REFRESH_TOKEN")
 
     const body = new URLSearchParams()
@@ -56,6 +68,7 @@ export class ZaloOaAuthService {
     const data = json?.data ?? json
 
     if (!data?.access_token || !data?.refresh_token) {
+      console.log("Failed to refresh Zalo OA token:", json)
       throw new Error(json?.message || "Refresh token Zalo OA thất bại")
     }
 

@@ -41,4 +41,12 @@ export const ROUTES = {
       robots: "noindex, nofollow",
     } satisfies Metadata,
   },
+  links: {
+    path: "/links",
+    metadata: {
+      title: "Liên kết tài khoản",
+      description: "Quản lý liên kết tài khoản với các kênh giao tiếp",
+      robots: "noindex, nofollow",
+    } satisfies Metadata,
+  },
 } as const

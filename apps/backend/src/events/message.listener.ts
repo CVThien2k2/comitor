@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
-import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
+import { EVENTS, type MessageCreatedEvent, type MessageDeliveryEvent } from "@workspace/shared"
 import { MessageService } from "../core/message/message.service"
 import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
 import { SocketGateway } from "../websocket/socket.gateway"
@@ -50,12 +50,28 @@ export class MessageListener {
         status: "success",
       })
     } catch (error) {
-      this.logger.error(`Error sending message ${fullMessage.id}: ${error}`)
+      const errorMessage = error instanceof Error ? error.message : "Gửi tin nhắn thất bại"
+      this.logger.error(`Error sending message ${fullMessage.id}: ${errorMessage}`)
       await this.messageService.updateStatus(fullMessage.id, { status: "failed" })
-      this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
+
+      const payload: MessageDeliveryEvent = {
         messageId: fullMessage.id,
         conversationId: fullMessage.conversationId,
         status: "failed",
+      }
+
+      if (fullMessage.userId) {
+        this.socketGateway.sendToUser([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, {
+          ...payload,
+          errorMessage,
+        })
+        this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, payload)
+        return
+      }
+
+      this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
+        ...payload,
+        errorMessage,
       })
     }
   }

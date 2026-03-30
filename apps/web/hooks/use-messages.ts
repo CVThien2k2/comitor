@@ -6,6 +6,7 @@ import { useChatStore } from "@/stores/chat-store"
 import { useMutation } from "@tanstack/react-query"
 import type { ApiResponse, MessageItem } from "@workspace/shared"
 import { useCallback } from "react"
+import { toast } from "@workspace/ui/components/sonner"
 
 const OPTIMISTIC_PREFIX = "optimistic:"
 
@@ -78,8 +79,9 @@ export function useSendConversationMessage(conversationId: string) {
           updateConversationMessageStatus(conversationId, tempId, "failed")
         }
       },
-      onError: (_err, _content, context) => {
+      onError: (err, _content, context) => {
         if (context?.tempId) updateConversationMessageStatus(conversationId, context.tempId, "failed")
+        toast.error(err?.message ?? "Không thể gửi tin nhắn. Vui lòng thử lại.", { position: "bottom-right" })
       },
     }
   )

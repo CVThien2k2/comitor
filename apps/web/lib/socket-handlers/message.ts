@@ -1,8 +1,9 @@
 import type { Socket } from "socket.io-client"
 import { EVENTS } from "@workspace/shared/socket-events"
-import type { MessageItem } from "@workspace/shared"
+import type { MessageDeliveryEvent, MessageItem } from "@workspace/shared"
 import { useChatStore } from "@/stores/chat-store"
 import { useAppStore } from "@/stores/app-store"
+import { toast } from "@workspace/ui/components/sonner"
 
 export function handleMessageEvents(socket: Socket) {
   try {
@@ -21,24 +22,15 @@ export function handleMessageEvents(socket: Socket) {
         useAppStore.getState().incrementConversationsUnreadCount(1)
       }
     })
-    socket.on(
-      EVENTS.MESSAGE_DELIVERY_SUCCEEDED,
-      (payload: { messageId: string; conversationId: string; status: MessageItem["status"] }) => {
-        console.log("MESSAGE_DELIVERY_SUCCEEDED")
-        useChatStore
-          .getState()
-          .updateConversationMessageStatus(payload.conversationId, payload.messageId, payload.status)
+    socket.on(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, (payload: MessageDeliveryEvent) => {
+      useChatStore.getState().updateConversationMessageStatus(payload.conversationId, payload.messageId, payload.status)
+    })
+    socket.on(EVENTS.MESSAGE_DELIVERY_FAILED, (payload: MessageDeliveryEvent) => {
+      useChatStore.getState().updateConversationMessageStatus(payload.conversationId, payload.messageId, payload.status)
+      if (payload.errorMessage) {
+        toast.error(payload.errorMessage, { position: "bottom-right" })
       }
-    )
-    socket.on(
-      EVENTS.MESSAGE_DELIVERY_FAILED,
-      (payload: { messageId: string; conversationId: string; status: MessageItem["status"] }) => {
-        console.log("MESSAGE_DELIVERY_FAILED")
-        useChatStore
-          .getState()
-          .updateConversationMessageStatus(payload.conversationId, payload.messageId, payload.status)
-      }
-    )
+    })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     console.error("[WebSocket] Error handling message events:", message)

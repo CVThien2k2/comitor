@@ -8,6 +8,12 @@ import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
 import { FetchWrapper } from "../../common/http/fetch.wrapper"
 import { ChannelType } from "@workspace/database"
 import { ZaloPersonalSessionService } from "../../platform/zalo_personal/zalo_personal-session.service"
+import {
+  getZaloOaAccessTokenRedisKey,
+  getZaloOaRefreshTokenRedisKey,
+  ZALO_OA_ACCESS_TOKEN_TTL_SECONDS,
+  ZALO_OA_REFRESH_TOKEN_TTL_SECONDS,
+} from "../../api/zalo_oa.redis"
 
 interface ZaloOaTokenResponse {
   access_token: string
@@ -147,7 +153,14 @@ export class LinkAccountService {
     })
 
     if (account.accountId) {
-      await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
+      if (account.provider === ChannelType.zalo_oa) {
+        await this.redisService.del(
+          getZaloOaAccessTokenRedisKey(account.accountId),
+          getZaloOaRefreshTokenRedisKey(account.accountId)
+        )
+      } else {
+        await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
+      }
     }
   }
 
@@ -198,9 +211,9 @@ export class LinkAccountService {
       throw new BadRequestException("Không thể lấy thông tin OA. Vui lòng thử lại.")
     }
 
-    const ttl = Number(tokenResponse.expires_in) || 86400
-    const accessTokenExpiresAt = new Date(Date.now() + ttl * 1000)
-    const refreshTokenExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+    const accessTokenLifetimeSeconds = Number(tokenResponse.expires_in) || ZALO_OA_ACCESS_TOKEN_TTL_SECONDS
+    const accessTokenExpiresAt = new Date(Date.now() + accessTokenLifetimeSeconds * 1000)
+    const refreshTokenExpiresAt = new Date(Date.now() + ZALO_OA_REFRESH_TOKEN_TTL_SECONDS * 1000)
 
     const linkAccount = await this.prisma.client.$transaction(async (tx) => {
       const linkAccount = await tx.linkAccount.upsert({
@@ -247,15 +260,18 @@ export class LinkAccountService {
       })
     })
 
-    await this.redisService.set(
-      `link_account:zalo_oa:${oaInfo.data?.oa_id || "unknown"}`,
-      {
-        access_token: tokenResponse.access_token,
-        refresh_token: tokenResponse.refresh_token,
-        expires_in: ttl,
-      },
-      ttl
-    )
+    await Promise.all([
+      this.redisService.set(
+        getZaloOaAccessTokenRedisKey(oaInfo.data?.oa_id || "unknown"),
+        tokenResponse.access_token,
+        ZALO_OA_ACCESS_TOKEN_TTL_SECONDS
+      ),
+      this.redisService.set(
+        getZaloOaRefreshTokenRedisKey(oaInfo.data?.oa_id || "unknown"),
+        tokenResponse.refresh_token,
+        ZALO_OA_REFRESH_TOKEN_TTL_SECONDS
+      ),
+    ])
 
     return linkAccount
   }

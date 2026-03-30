@@ -10,6 +10,12 @@ import {
   ZaloUploadImageResponse,
 } from "src/utils/types"
 import { ZaloOaAuthService } from "./zalo_oa_auth.service"
+import {
+  getZaloOaAccessTokenRedisKey,
+  getZaloOaRefreshTokenRedisKey,
+  ZALO_OA_ACCESS_TOKEN_TTL_SECONDS,
+  ZALO_OA_REFRESH_TOKEN_TTL_SECONDS,
+} from "./zalo_oa.redis"
 import { mapProfileToGoldenProfile } from "./utils/helper"
 import { RedisService } from "src/redis"
 import { PrismaService } from "src/database/prisma.service"
@@ -37,7 +43,10 @@ export class ZaloOaService {
   private allowedImageTypes = ["image/jpeg", "image/png", "image/gif"]
   private MAX_FILE_SIZE = 20 * 1024 * 1024
   private MAX_IMAGE_SIZE = 1 * 1024 * 1024
-  private readonly ERR_CODE_TOKEN_EXPIRED = -220
+  private readonly ERR_CODE_ACCESS_TOKEN_EXPIRED = -216
+  private readonly ERR_CODE_REFRESH_TOKEN_EXPIRED = -220
+  private readonly REAUTH_REQUIRED_MESSAGE =
+    "Phiên Zalo OA đã hết hạn, vui lòng liên kết lại tài khoản để tiếp tục sử dụng"
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,19 +64,55 @@ export class ZaloOaService {
 
   private isTokenExpiredResponse(json: any): boolean {
     const error = json?.error ?? json?.data?.error
-    if (error === this.ERR_CODE_TOKEN_EXPIRED) return true
+    if (error === this.ERR_CODE_ACCESS_TOKEN_EXPIRED) return true
+    if (error === this.ERR_CODE_REFRESH_TOKEN_EXPIRED) return true
     const msg = String(json?.message ?? json?.data?.message ?? "")
     return msg.toLowerCase().includes("expired")
+  }
+
+  private async cacheTokenPair(senderId: string, token: { access_token?: string; refresh_token?: string }) {
+    await Promise.all([
+      token.access_token
+        ? this.redis.set(getZaloOaAccessTokenRedisKey(senderId), token.access_token, ZALO_OA_ACCESS_TOKEN_TTL_SECONDS)
+        : Promise.resolve(),
+      token.refresh_token
+        ? this.redis.set(
+            getZaloOaRefreshTokenRedisKey(senderId),
+            token.refresh_token,
+            ZALO_OA_REFRESH_TOKEN_TTL_SECONDS
+          )
+        : Promise.resolve(),
+    ])
+  }
+
+  private async refreshAndPersistToken(senderId: string, refreshToken?: string) {
+    if (!refreshToken) {
+      throw new Error(this.REAUTH_REQUIRED_MESSAGE)
+    }
+
+    try {
+      const refreshed = await this.zaloOaAuthService.refreshToken({ refreshToken })
+      await this.setCachedToken(senderId, refreshed)
+      return refreshed
+    } catch {
+      throw new Error(this.REAUTH_REQUIRED_MESSAGE)
+    }
   }
 
   private async getCachedToken(
     senderId: string
   ): Promise<{ access_token: string; refresh_token?: string; expires_in?: number } | null> {
-    const cached = await this.redis.get<{ access_token: string; refresh_token?: string; expires_in?: number }>(
-      `link_account:zalo_oa:${senderId}`
-    )
-    if (cached?.access_token) {
-      return cached
+    const [cachedAccessToken, cachedRefreshToken] = await Promise.all([
+      this.redis.get<string>(getZaloOaAccessTokenRedisKey(senderId)),
+      this.redis.get<string>(getZaloOaRefreshTokenRedisKey(senderId)),
+    ])
+
+    if (cachedAccessToken) {
+      return {
+        access_token: cachedAccessToken,
+        refresh_token: cachedRefreshToken ?? undefined,
+        expires_in: ZALO_OA_ACCESS_TOKEN_TTL_SECONDS,
+      }
     }
 
     const linked = await this.prisma.client.linkAccount.findFirst({
@@ -75,29 +120,63 @@ export class ZaloOaService {
       include: { providerCredentials: true },
     })
     const accessToken = linked?.providerCredentials?.accessToken ?? undefined
-    const refreshToken = linked?.providerCredentials?.refreshToken ?? undefined
-    const expiresAt = linked?.providerCredentials?.accessTokenExpiresAt ?? undefined
+    const refreshToken = cachedRefreshToken ?? linked?.providerCredentials?.refreshToken ?? undefined
 
-    if (!accessToken) {
-      return null
+    if (!accessToken && !refreshToken) {
+      throw new Error(this.REAUTH_REQUIRED_MESSAGE)
     }
 
-    const ttl = expiresAt ? Math.max(30, Math.floor((expiresAt.getTime() - Date.now()) / 1000)) : 3500
-    const token = { access_token: accessToken, refresh_token: refreshToken, expires_in: ttl }
-    await this.redis.set(`link_account:zalo_oa:${senderId}`, token, ttl)
-    return token
+    if (accessToken) {
+      await this.cacheTokenPair(senderId, {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      })
+      return {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: ZALO_OA_ACCESS_TOKEN_TTL_SECONDS,
+      }
+    }
+
+    if (!refreshToken) {
+      throw new Error(this.REAUTH_REQUIRED_MESSAGE)
+    }
+
+    return this.refreshAndPersistToken(senderId, refreshToken)
   }
 
   private async setCachedToken(
     senderId: string,
     token: { access_token: string; refresh_token: string; expires_in?: number }
   ) {
-    const ttl = typeof token.expires_in === "number" && token.expires_in > 0 ? token.expires_in : 3500
-    await this.redis.set(
-      `link_account:zalo_oa:${senderId}`,
-      { access_token: token.access_token, refresh_token: token.refresh_token, expires_in: ttl },
-      ttl
-    )
+    const accessTokenLifetimeSeconds =
+      typeof token.expires_in === "number" && token.expires_in > 0 ? token.expires_in : ZALO_OA_ACCESS_TOKEN_TTL_SECONDS
+    const linkAccount = await this.prisma.client.linkAccount.findFirst({
+      where: { provider: "zalo_oa", accountId: senderId },
+    })
+    if (!linkAccount?.id) {
+      throw new Error("Không tìm thấy liên kết Zalo OA để cập nhật token")
+    }
+
+    await this.cacheTokenPair(senderId, token)
+
+    await this.prisma.client.providerCredentials.upsert({
+      where: { linkAccountId: linkAccount.id },
+      update: {
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        accessTokenExpiresAt: new Date(Date.now() + accessTokenLifetimeSeconds * 1000),
+        refreshTokenExpiresAt: new Date(Date.now() + ZALO_OA_REFRESH_TOKEN_TTL_SECONDS * 1000),
+      },
+      create: {
+        linkAccountId: linkAccount.id,
+        accessToken: token.access_token,
+        refreshToken: token.refresh_token,
+        accessTokenExpiresAt: new Date(Date.now() + accessTokenLifetimeSeconds * 1000),
+        refreshTokenExpiresAt: new Date(Date.now() + ZALO_OA_REFRESH_TOKEN_TTL_SECONDS * 1000),
+        credentialType: "oauth2",
+      },
+    })
   }
 
   private async fetchZaloJson<T>(params: {
@@ -118,10 +197,9 @@ export class ZaloOaService {
     const json = (await res.json()) as any
 
     if (retryOnExpired && this.isTokenExpiredResponse(json)) {
-      const refreshed = await this.zaloOaAuthService.refreshToken({ refreshToken: token?.refresh_token })
+      const refreshed = await this.refreshAndPersistToken(params.senderId, token?.refresh_token)
       const retryHeaders = new Headers(params.init.headers as any)
       retryHeaders.set("access_token", refreshed.access_token)
-      await this.setCachedToken(params.senderId, refreshed)
       const res2 = await fetch(`${base}${params.path}`, { ...params.init, headers: retryHeaders })
       const json2 = (await res2.json()) as any
       return json2 as T

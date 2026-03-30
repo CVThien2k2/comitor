@@ -13,5 +13,7 @@ export type MessageCreatedEvent = {
 
 export type MessageDeliveryEvent = {
   messageId: string
+  conversationId: string
   status: MessageStatus
+  errorMessage?: string
 }

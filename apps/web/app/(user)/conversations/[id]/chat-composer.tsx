@@ -13,7 +13,7 @@ export type ChatComposerProps = {
 
 export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
   const conversationId = useChatStore((s) => s.selectedConversation?.id ?? "")
-  const { sendTextMessage, sendMessageWithFiles } = useSendConversationMessage(conversationId)
+  const { handleSendMessage } = useSendConversationMessage(conversationId)
   const [inputValue, setInputValue] = useState("")
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -51,11 +51,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     setInputValue("")
     setFiles([])
 
-    if (currentFiles.length > 0) {
-      sendMessageWithFiles(content, currentFiles)
-    } else {
-      sendTextMessage(content)
-    }
+    void handleSendMessage(content, currentFiles)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

@@ -6,7 +6,6 @@ import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { cn } from "@workspace/ui/lib/utils"
 import type { MessageItem } from "@/api/conversations"
 import { getSenderName } from "@/lib/helper"
-import { ImageGallery } from "./image-gallery"
 import { MessageActions } from "./message-actions"
 
 const isImageAttachment = (att: NonNullable<MessageItem["attachments"]>[number]) => {
@@ -26,29 +25,18 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
   const isCustomer = message.senderType === "customer"
   const senderName = getSenderName(message)
   const avatarUrl = isCustomer ? message.accountCustomer?.avatarUrl : message.user?.avatarUrl
-  const contentText =
-    message && "content" in message && typeof message.content === "string" ? message.content.trim() : ""
+  const contentText = message.content?.trim() || ""
 
-  const renderableAttachments = useMemo(() => {
-    return (message.attachments ?? []).filter((att) => !!(att.fileUrl || att.thumbnailUrl))
+  // Rule: mỗi message chỉ render tối đa 1 attachment khả dụng (url hoặc thumbnail).
+  const attachment = useMemo(() => {
+    return (message.attachments ?? []).find((att) => !!(att.fileUrl || att.thumbnailUrl))
   }, [message.attachments])
-
-  const imageAttachments = useMemo(() => {
-    return renderableAttachments.filter(isImageAttachment)
-  }, [renderableAttachments])
-
-  const nonImageAttachments = useMemo(() => {
-    return renderableAttachments.filter((att) => !isImageAttachment(att))
-  }, [renderableAttachments])
-
-  const hasImageGrid = imageAttachments.length > 1
-  const attachment = hasImageGrid ? null : renderableAttachments[0] ?? null
   const attachmentUrl = attachment?.fileUrl || attachment?.thumbnailUrl || ""
   const attachmentName = attachment?.fileName?.trim() || contentText || "Tệp đính kèm"
   const isImage = !!attachment && isImageAttachment(attachment)
   const hasAttachment = !!attachment && !!attachmentUrl
-  const hasAnyAttachment = renderableAttachments.length > 0
-  const hasText = !!contentText && !hasAnyAttachment
+  // Nếu đã có attachment, content được dùng làm tên/caption thay vì text bubble riêng.
+  const hasText = !!contentText && !hasAttachment
 
   return (
     <div className={cn("group/msg flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}>
@@ -67,60 +55,8 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
       <div className={cn("relative flex flex-col gap-1", isCustomer ? "items-start" : "items-end")}>
         <span className={cn("text-xs text-muted-foreground", isCustomer ? "ml-1" : "mr-1")}>{senderName}</span>
 
-        {/* Multiple image attachments: grid layout */}
-        {hasImageGrid && (
-          <div className={cn("flex items-center gap-1", isCustomer ? "flex-row" : "flex-row-reverse")}>
-            <div
-              className={cn(
-                "max-w-[75vw] overflow-hidden rounded-2xl border border-border sm:max-w-[420px]",
-                isCustomer ? "rounded-tl-md" : "rounded-tr-md"
-              )}
-            >
-              <ImageGallery
-                images={imageAttachments.map((att) => ({
-                  id: att.id,
-                  src: att.fileUrl || att.thumbnailUrl || "",
-                  alt: att.fileName?.trim() || contentText || "attachment",
-                }))}
-              />
-            </div>
-            {!hasText && <MessageActions isCustomer={isCustomer} content={message.content} />}
-          </div>
-        )}
-
-        {/* Non-image attachments when image grid is shown */}
-        {hasImageGrid &&
-          nonImageAttachments.map((att) => (
-            <div
-              key={att.id}
-              className={cn("flex items-center gap-1", isCustomer ? "flex-row" : "flex-row-reverse")}
-            >
-              <div
-                className={cn(
-                  "max-w-[320px] min-w-[220px] overflow-hidden rounded-2xl border border-border",
-                  isCustomer ? "rounded-tl-md" : "rounded-tr-md"
-                )}
-              >
-                <a
-                  href={att.fileUrl || att.thumbnailUrl || ""}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/30"
-                >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Icons.paperclip className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{att.fileName?.trim() || "Tệp đính kèm"}</p>
-                    <p className="text-[11px] text-muted-foreground">Tệp đính kèm</p>
-                  </div>
-                </a>
-              </div>
-            </div>
-          ))}
-
-        {/* Single image attachment */}
-        {!hasImageGrid && hasAttachment && isImage && (
+        {/* Attachment là ảnh: hiển thị ảnh + caption (nếu có) */}
+        {hasAttachment && isImage && (
           <div className={cn("flex items-center gap-1", isCustomer ? "flex-row" : "flex-row-reverse")}>
             <div
               className={cn(
@@ -146,8 +82,8 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
           </div>
         )}
 
-        {/* Single non-image attachment */}
-        {!hasImageGrid && hasAttachment && !isImage && (
+        {/* Attachment không phải ảnh: hiển thị như file link */}
+        {hasAttachment && !isImage && (
           <div className={cn("flex items-center gap-1", isCustomer ? "flex-row" : "flex-row-reverse")}>
             <div
               className={cn(
@@ -192,7 +128,7 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
         )}
 
         {/* Fallback when no text and no attachment */}
-        {!hasText && !hasAnyAttachment && (
+        {!hasText && !hasAttachment && (
           <div className={cn("flex items-center gap-1", isCustomer ? "flex-row" : "flex-row-reverse")}>
             <div
               className={cn(
@@ -208,20 +144,17 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
           </div>
         )}
 
-        {!isCustomer && (
+        {(message.status === "processing" || message.status === "failed") && (
           <div
             className={cn(
               "flex items-center gap-1 px-1 text-[10px] font-medium",
               message.status === "processing" && "text-amber-600",
-              message.status === "success" && "text-emerald-600",
               message.status === "failed" && "text-red-600"
             )}
           >
             {message.status === "processing" && <Icons.spinner className="size-3 animate-spin" />}
-            {message.status === "success" && <Icons.checkCheck className="size-3" />}
             {message.status === "failed" && <Icons.xCircle className="size-3" />}
             {message.status === "processing" && "Đang gửi"}
-            {message.status === "success" && "Đã gửi"}
             {message.status === "failed" && "Lỗi"}
           </div>
         )}

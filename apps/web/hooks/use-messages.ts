@@ -151,5 +151,22 @@ export function useSendConversationMessage(conversationId: string) {
     [conversationId, appendConversationMessages, replaceMessage, updateConversationMessageStatus, sendTextMessage]
   )
 
-  return { sendTextMessage, sendMessageWithFiles, isPending: false }
+  const handleSendMessage = useCallback(
+    async (content: string, files: File[] = []) => {
+      if (!conversationId) return
+
+      const trimmedContent = content.trim()
+      if (!trimmedContent && files.length === 0) return
+
+      if (files.length > 0) {
+        await sendMessageWithFiles(trimmedContent, files)
+        return
+      }
+
+      await sendTextMessage(trimmedContent)
+    },
+    [conversationId, sendMessageWithFiles, sendTextMessage]
+  )
+
+  return { handleSendMessage, isPending: false }
 }

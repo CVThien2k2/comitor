@@ -13,27 +13,24 @@ export type ChatComposerProps = {
 
 export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
   const conversationId = useChatStore((s) => s.selectedConversation?.id ?? "")
-  const { isPending } = useSendConversationMessage(conversationId)
+  const { handleSendMessage } = useSendConversationMessage(conversationId)
   const [inputValue, setInputValue] = useState("")
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
 
   const previewItems = useMemo(() => {
-    return files
-      .map((file, index) => ({ file, index }))
-      .map(({ file, index }) => {
-        const isImage = file.type.startsWith("image/")
-        const ext = file.name.includes(".") ? file.name.split(".").pop()?.toUpperCase() : ""
-        const label = ext || "FILE"
-        return {
-          index,
-          isImage,
-          name: file.name,
-          label,
-          url: isImage ? URL.createObjectURL(file) : null,
-        }
-      })
+    return files.map((file, index) => {
+      const isImage = file.type.startsWith("image/")
+      const ext = file.name.includes(".") ? file.name.split(".").pop()?.toUpperCase() : ""
+      return {
+        index,
+        isImage,
+        name: file.name,
+        label: ext || "FILE",
+        url: isImage ? URL.createObjectURL(file) : null,
+      }
+    })
   }, [files])
 
   useEffect(() => {
@@ -49,18 +46,12 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     if (!conversationId) return
     if (!content && files.length === 0) return
     onRequestScrollToBottom?.()
-    console.log("[ChatComposer] send (ui-only)", {
-      conversationId,
-      text: content,
-      files: files.map((f) => ({
-        name: f.name,
-        type: f.type,
-        size: f.size,
-      })),
-    })
-    // UI-only: chưa upload/gửi thật. Xóa input để người dùng thấy action đã nhận.
+
+    const currentFiles = [...files]
     setInputValue("")
     setFiles([])
+
+    void handleSendMessage(content, currentFiles)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -71,7 +62,7 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     }
   }
 
-  const isDisabled = !conversationId || (!inputValue.trim() && files.length === 0) || isPending
+  const isDisabled = !conversationId || (!inputValue.trim() && files.length === 0)
 
   const handlePickFiles = () => {
     fileInputRef.current?.click()

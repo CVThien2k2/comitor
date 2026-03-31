@@ -8,7 +8,7 @@ export interface ZaloOAMessageWebhook {
   recipient: {
     id: string
   }
-  message: {
+  message?: {
     msg_id: string
     text?: string
     attachments?: {

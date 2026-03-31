@@ -19,6 +19,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const ctx = host.switchToHttp()
     const request = ctx.getRequest()
+    const response = ctx.getResponse()
 
     const statusCode =
       exception instanceof HttpException
@@ -60,6 +61,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ...(errors ? { errors } : {}),
     }
 
-    httpAdapter.reply(ctx.getResponse(), responseBody, statusCode)
+    if (response.headersSent) {
+      return
+    }
+
+    httpAdapter.reply(response, responseBody, statusCode)
   }
 }

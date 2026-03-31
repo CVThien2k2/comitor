@@ -58,6 +58,8 @@ const dedupeAttachments = (attachments: Attachment[]) =>
     )
   })
 
+const isDefinedAttachment = (attachment: Attachment | null): attachment is Attachment => attachment != null
+
 const normalizeZaloOAAttachment = (attachment: any): Attachment | null => {
   const payload = attachment?.payload ?? {}
   const url = toSafeString(payload?.url)
@@ -110,24 +112,39 @@ const normalizeMetaAttachment = (attachment: any): Attachment | null => {
 
 @Injectable()
 export class WebhookService {
-  mapZaloWebhook(payload: any): Message {
-    const msg = payload.message
+  mapZaloWebhook(payload: any): Message | null {
+    const eventName = toSafeString(payload?.event_name)
+    const msg = payload?.message
+    const senderId = toSafeString(payload?.sender?.id)
+    const recipientId = toSafeString(payload?.recipient?.id)
+    const messageId = toSafeString(msg?.msg_id)
+    const timestamp = toNumber(payload?.timestamp)
 
-    const isOutbound = payload.event_name.startsWith("oa_send")
-    const attachments = dedupeAttachments((msg.attachments ?? []).map(normalizeZaloOAAttachment).filter(Boolean))
+    if (!eventName || !msg || typeof msg !== "object") {
+      return null
+    }
+
+    if (!senderId || !recipientId || !messageId || timestamp == null) {
+      return null
+    }
+
+    const isOutbound = eventName.startsWith("oa_send")
+    const rawAttachments = Array.isArray(msg.attachments) ? msg.attachments : []
+    const attachments = dedupeAttachments(rawAttachments.map(normalizeZaloOAAttachment).filter(isDefinedAttachment))
+    const text = toSafeString(msg?.text)
 
     return {
       provider: "zalo_oa",
       eventName: isOutbound
         ? (EventMessage.OUTBOUND as unknown as EventMessage)
         : (EventMessage.INBOUND as unknown as EventMessage),
-      messageId: msg.msg_id,
-      conversationId: isOutbound ? payload.recipient.id : payload.sender.id,
-      senderId: payload.sender.id,
-      recipientId: payload.recipient.id,
-      timestamp: Number(payload.timestamp),
-      type: msg.text ? "text" : (attachments[0]?.type ?? "unknown"),
-      text: msg.text,
+      messageId,
+      conversationId: isOutbound ? recipientId : senderId,
+      senderId,
+      recipientId,
+      timestamp,
+      type: text ? "text" : (attachments[0]?.type ?? "unknown"),
+      text,
       attachments: attachments.length ? attachments : undefined,
       // raw: payload
     }
@@ -142,7 +159,9 @@ export class WebhookService {
 
     const hasIsEcho = Object.prototype.hasOwnProperty.call(msg.message, "is_echo")
     const isEcho = hasIsEcho && msg.message.is_echo === true
-    const attachments = dedupeAttachments((msg.message.attachments ?? []).map(normalizeMetaAttachment).filter(Boolean))
+    const attachments = dedupeAttachments(
+      (msg.message.attachments ?? []).map(normalizeMetaAttachment).filter(isDefinedAttachment)
+    )
 
     return {
       provider: "facebook",

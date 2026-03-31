@@ -20,25 +20,44 @@ export class WebhookController {
     private readonly queueService: QueueService
   ) {}
 
+  private async processZaloOAWebhook(payload: ZaloOAMessageWebhook) {
+    try {
+      const senderId = payload.sender?.id
+      const recipientId = payload.recipient?.id
+      const message = this.webhookService.mapZaloWebhook(payload)
+      const allowedParticipantId = ["2994357122857097520", "6503616889426404863"]
+
+      if (!message) {
+        this.logger.warn(
+          `Skipped unsupported Zalo OA webhook event_name=${payload.event_name ?? "unknown"} sender_id=${senderId ?? "unknown"} recipient_id=${recipientId ?? "unknown"}`
+        )
+        return
+      }
+
+      // if (!allowedParticipantId.includes(senderId) && !allowedParticipantId.includes(recipientId)) {
+      //   this.logger.warn(
+      //     `Ignored Zalo OA webhook with sender_id=${senderId ?? "unknown"} recipient_id=${recipientId ?? "unknown"}`
+      //   )
+      //   return
+      // }
+
+      await this.queueService.addIncomingMessage(message)
+    } catch (error) {
+      this.logger.error(
+        `Failed to process Zalo OA webhook event_name=${payload.event_name ?? "unknown"} sender_id=${payload.sender?.id ?? "unknown"} recipient_id=${payload.recipient?.id ?? "unknown"}`,
+        error instanceof Error ? error.stack : undefined
+      )
+    }
+  }
+
   @Public()
   @Post("zalo-oa")
   @HttpCode(200)
   @ApiOperation({ summary: "Nhận webhook từ Zalo OA" })
   @ApiBody({ type: ZaloOAWebhookDto })
-  async handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
+  handleZaloOAWebhook(@Body() payload: ZaloOAMessageWebhook, @Res() res: Response) {
     res.status(200).send("OK")
-    const allowedParticipantId = ["2994357122857097520", "6503616889426404863"]
-    const senderId = payload.sender?.id
-    const recipientId = payload.recipient?.id
-    // if (!allowedParticipantId.includes(senderId) && !allowedParticipantId.includes(recipientId)) {
-    //   this.logger.warn(
-    //     `Ignored Zalo OA webhook with sender_id=${senderId ?? "unknown"} recipient_id=${recipientId ?? "unknown"}`
-    //   )
-    //   return
-    // }
-
-    const message = this.webhookService.mapZaloWebhook(payload)
-    await this.queueService.addIncomingMessage(message)
+    void this.processZaloOAWebhook(payload)
   }
 
   @Public()

@@ -6,6 +6,25 @@ import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateGoldenProfileDto } from "./dto/update-golden-profile.dto"
 import { ProfileFetcherRegistry } from "../../platform/profile-fetchers/profile-fetcher.registry"
 
+const FALLBACK_CUSTOMER_NAME = "Khách hàng"
+
+function normalizeNullableText(value?: string | null) {
+  if (value === undefined) return undefined
+
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function normalizeNullableDate(value?: string | null) {
+  if (value === undefined) return undefined
+  return value ? new Date(value) : null
+}
+
+function normalizeNullableEnum<T extends string>(value?: T | null) {
+  if (value === undefined) return undefined
+  return value ? value : null
+}
+
 @Injectable()
 export class GoldenProfileService {
   private readonly logger = new Logger(GoldenProfileService.name)
@@ -51,16 +70,64 @@ export class GoldenProfileService {
     const profile = await this.prisma.client.goldenProfile.findUnique({ where: { id } })
     if (!profile) throw new NotFoundException("Hồ sơ khách hàng không tồn tại")
 
-    return this.prisma.client.goldenProfile.update({
-      where: { id },
-      data: {
-        ...dto,
-        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
-        gender: dto.gender as any,
-        memberTier: dto.memberTier as any,
-        customerType: dto.customerType as any,
-        journeyState: dto.journeyState as any,
-      },
+    const data = {
+      fullName: normalizeNullableText(dto.fullName),
+      gender: normalizeNullableEnum(dto.gender) as any,
+      dateOfBirth: normalizeNullableDate(dto.dateOfBirth),
+      primaryPhone: normalizeNullableText(dto.primaryPhone),
+      primaryEmail: normalizeNullableText(dto.primaryEmail),
+      address: normalizeNullableText(dto.address),
+      city: normalizeNullableText(dto.city),
+      memberTier: normalizeNullableEnum(dto.memberTier) as any,
+      loyaltyPoints: dto.loyaltyPoints,
+      customerType: dto.customerType ? (dto.customerType as any) : undefined,
+      elinesCustomerId: normalizeNullableText(dto.elinesCustomerId),
+      isBlacklisted: dto.isBlacklisted,
+      journeyState: normalizeNullableEnum(dto.journeyState) as any,
+      characteristics: normalizeNullableText(dto.characteristics),
+      staffNotes: normalizeNullableText(dto.staffNotes),
+    }
+
+    return this.prisma.client.$transaction(async (tx) => {
+      const updatedProfile = await tx.goldenProfile.update({
+        where: { id },
+        data,
+      })
+
+      if (Object.prototype.hasOwnProperty.call(dto, "fullName")) {
+        const nextFullName = data.fullName ?? null
+        const accountCustomers = await tx.accountCustomer.findMany({
+          where: { goldenProfileId: id },
+          select: { id: true },
+        })
+
+        await tx.accountCustomer.updateMany({
+          where: { goldenProfileId: id },
+          data: { name: nextFullName },
+        })
+
+        const accountCustomerIds = accountCustomers.map((accountCustomer) => accountCustomer.id)
+
+        if (accountCustomerIds.length > 0) {
+          const conversationNameConditions: Array<{ name: string | null }> = [{ name: null }, { name: "" }]
+
+          if (profile.fullName) {
+            conversationNameConditions.push({ name: profile.fullName })
+          } else {
+            conversationNameConditions.push({ name: FALLBACK_CUSTOMER_NAME })
+          }
+          await tx.conversation.updateMany({
+            where: {
+              type: "personal",
+              accountCustomerId: { in: accountCustomerIds },
+              OR: conversationNameConditions,
+            },
+            data: { name: nextFullName },
+          })
+        }
+      }
+
+      return updatedProfile
     })
   }
 

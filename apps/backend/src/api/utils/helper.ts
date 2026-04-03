@@ -101,7 +101,11 @@ export function mapProfileToGoldenProfile(response: ZaloOaProfileResponse, userI
 
   const id = readString(profile.id) ?? readString(profile.user_id) ?? userId
 
-  const fullName = readString(profile.display_name) ?? readString(profile.name)
+  const fullName = readString(
+    profile.display_name && typeof profile.display_name === "string" && profile.display_name.length > 0
+      ? profile.display_name
+      : profile.user_alias
+  )
 
   const gender = mapGender(profile.user_gender ?? profile.gender ?? profile.sex)
 

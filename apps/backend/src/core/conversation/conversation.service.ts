@@ -36,6 +36,14 @@ export class ConversationService {
         where,
         include: {
           linkedAccount: true,
+          accountCustomer: {
+            select: {
+              id: true,
+              goldenProfileId: true,
+              avatarUrl: true,
+              name: true,
+            },
+          },
           messages: {
             orderBy: { createdAt: "desc" },
             take: 1,
@@ -69,6 +77,14 @@ export class ConversationService {
           include: MESSAGE_INCLUDE,
         },
         _count: { select: { messages: { where: { isRead: false } } } },
+        accountCustomer: {
+          select: {
+            id: true,
+            goldenProfileId: true,
+            avatarUrl: true,
+            name: true,
+          },
+        },
       },
     })
 

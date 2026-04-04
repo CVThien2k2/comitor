@@ -1,6 +1,8 @@
 import { create } from "zustand"
 import type { Conversation, MessageItem } from "@workspace/shared"
 
+const DEFAULT_CUSTOMER_DISPLAY_NAME = "Khách hàng"
+
 /** Gộp theo id, sắp xếp tin mới nhất trước (`messages[0]` = mới nhất cho list). */
 function mergeMessagesNewestFirst(existing: MessageItem[] | undefined, incoming: MessageItem[]): MessageItem[] {
   const byId = new Map<string, MessageItem>()
@@ -14,6 +16,76 @@ function mergeMessagesNewestFirst(existing: MessageItem[] | undefined, incoming:
   })
 }
 
+function shouldSyncPersonalConversationName(currentName: string | null, previousFullName: string | null) {
+  if (currentName === null || currentName === "" || currentName === DEFAULT_CUSTOMER_DISPLAY_NAME) return true
+  if (!previousFullName) return false
+  return currentName === previousFullName
+}
+
+function patchConversationCustomerName(
+  conversation: Conversation,
+  accountCustomerId: string,
+  previousFullName: string | null,
+  nextFullName: string | null
+): Conversation {
+  const messages = conversation.messages?.map((message) =>
+    message.accountCustomerId === accountCustomerId && message.accountCustomer
+      ? {
+          ...message,
+          accountCustomer: {
+            ...message.accountCustomer,
+            name: nextFullName,
+          },
+        }
+      : message
+  )
+
+  const accountCustomer =
+    conversation.accountCustomer?.id === accountCustomerId
+      ? {
+          ...conversation.accountCustomer,
+          name: nextFullName,
+        }
+      : conversation.accountCustomer
+
+  const conversationCustomers = conversation.conversationCustomers?.map((member) =>
+    member.accountCustomer?.id === accountCustomerId
+      ? {
+          ...member,
+          accountCustomer: {
+            ...member.accountCustomer,
+            name: nextFullName,
+          },
+        }
+      : member
+  )
+
+  const name =
+    conversation.type === "personal" &&
+    conversation.accountCustomerId === accountCustomerId &&
+    shouldSyncPersonalConversationName(conversation.name, previousFullName)
+      ? nextFullName
+      : conversation.name
+
+  return {
+    ...conversation,
+    name,
+    accountCustomer,
+    conversationCustomers,
+    messages,
+  }
+}
+
+function mergeConversationData(current: Conversation, incoming: Conversation): Conversation {
+  const hasMessages = !!current.messages?.length || !!incoming.messages?.length
+
+  return {
+    ...current,
+    ...incoming,
+    messages: hasMessages ? mergeMessagesNewestFirst(current.messages, incoming.messages ?? []) : incoming.messages,
+  }
+}
+
 type ChatState = {
   conversations: Conversation[]
   selectedConversation: Conversation | null
@@ -22,6 +94,7 @@ type ChatState = {
 
 type ChatActions = {
   setSelectedConversation: (conversation: Conversation | null) => void
+  hydrateConversation: (conversation: Conversation) => void
   setConversations: (conversations: Conversation[]) => void
   /** Thêm các hội thoại mới (trang tiếp theo), bỏ qua id trùng */
   appendConversations: (incoming: Conversation[]) => void
@@ -40,6 +113,11 @@ type ChatActions = {
    * @returns `{ wasUnread, hasUnreadInState }` để caller quyết định decrement/un-sync server
    */
   markAsRead: (conversationId: string) => { wasUnread: boolean; hasUnreadInState: boolean }
+  syncAccountCustomerProfileName: (payload: {
+    accountCustomerId: string
+    previousFullName: string | null
+    nextFullName: string | null
+  }) => void
   setShowUserInfoPanel: (show: boolean) => void
   toggleUserInfoPanel: () => void
   reset: () => void
@@ -60,8 +138,27 @@ export const useChatStore = create<ChatState & ChatActions>()((set, get) => ({
   showUserInfoPanel: false,
 
   setSelectedConversation: (conversation) => set({ selectedConversation: conversation }),
+  hydrateConversation: (conversation) =>
+    set((state) => ({
+      selectedConversation:
+        state.selectedConversation?.id === conversation.id
+          ? mergeConversationData(state.selectedConversation, conversation)
+          : state.selectedConversation,
+      conversations: state.conversations.map((item) =>
+        item.id === conversation.id ? mergeConversationData(item, conversation) : item
+      ),
+    })),
   setShowUserInfoPanel: (show) => set({ showUserInfoPanel: show }),
   toggleUserInfoPanel: () => set((state) => ({ showUserInfoPanel: !state.showUserInfoPanel })),
+  syncAccountCustomerProfileName: ({ accountCustomerId, previousFullName, nextFullName }) =>
+    set((state) => ({
+      selectedConversation: state.selectedConversation
+        ? patchConversationCustomerName(state.selectedConversation, accountCustomerId, previousFullName, nextFullName)
+        : state.selectedConversation,
+      conversations: state.conversations.map((conversation) =>
+        patchConversationCustomerName(conversation, accountCustomerId, previousFullName, nextFullName)
+      ),
+    })),
 
   setConversations: (conversations) => set({ conversations: dedupeById(conversations) }),
 

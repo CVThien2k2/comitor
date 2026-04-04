@@ -1,6 +1,7 @@
 import type { User, LinkAccount, ChannelType } from "@workspace/database"
 
 export * from "./conversation"
+export * from "./golden-profile"
 
 export interface ApiResponse<T = unknown> {
   statusCode: number

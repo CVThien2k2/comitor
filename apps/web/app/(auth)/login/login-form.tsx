@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useForm, Controller } from "react-hook-form"
@@ -14,6 +14,7 @@ import { Checkbox } from "@workspace/ui/components/checkbox"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Field, FieldLabel, FieldError, FieldGroup } from "@workspace/ui/components/field"
 import { ROUTES } from "@/lib/routes"
+import { AUTH_POST_LOGOUT_TOAST_KEY } from "@/lib/constants/auth"
 import { useAuthStore } from "@/stores/auth-store"
 import { auth } from "@/api/auth"
 import { loginSchema, type LoginSchema } from "@/lib/schema/auth"
@@ -27,6 +28,14 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "" },
   })
+
+  useEffect(() => {
+    const logoutMessage = sessionStorage.getItem(AUTH_POST_LOGOUT_TOAST_KEY)
+    if (!logoutMessage) return
+
+    sessionStorage.removeItem(AUTH_POST_LOGOUT_TOAST_KEY)
+    toast.success(logoutMessage)
+  }, [])
 
   const loginMutation = useMutation({
     mutationFn: auth.login,

@@ -1,10 +1,20 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@workspace/ui/components/tooltip"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui/components/dropdown-menu"
+import { toast } from "@workspace/ui/components/sonner"
 import { cn } from "@workspace/ui/lib/utils"
+import { Icons } from "@/components/global/icons"
+import { useAppStore } from "@/stores/app-store"
 import { useAuthStore } from "@/stores/auth-store"
 
 function getInitials(name?: string | null) {
@@ -14,8 +24,32 @@ function getInitials(name?: string | null) {
   return initials || "U"
 }
 
+function getErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message
+
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message
+    }
+
+    if (Array.isArray(message) && message.length > 0) {
+      return message.join(", ")
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return "Không thể kết nối đến server. Vui lòng thử lại."
+}
+
 export function UserProfile({ collapsed }: { collapsed: boolean }) {
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const resetApp = useAppStore((s) => s.reset)
 
   const name = user?.name ?? "User"
   const isOnline = user?.isOnline ?? false
@@ -26,56 +60,81 @@ export function UserProfile({ collapsed }: { collapsed: boolean }) {
     isOnline ? "bg-success" : "bg-muted-foreground/40"
   )
 
-  if (collapsed) {
-    return (
-      <div className="mt-3 flex justify-center border-t border-sidebar-border pt-3">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="group relative" type="button">
-              <Avatar className="h-9 w-9 ring-2 ring-transparent transition-all hover:ring-primary/20">
-                <AvatarImage src={user?.avatarUrl ?? ""} />
-                <AvatarFallback className="bg-linear-to-br from-indigo-400 to-purple-500 text-xs font-medium text-white">
-                  {getInitials(name)}
-                </AvatarFallback>
-              </Avatar>
-              <span className={dotClassName} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="flex flex-col">
-            <span className="font-medium">{name}</span>
-            <span className="text-[11px] text-sidebar-accent-foreground/80 dark:text-sidebar-accent-foreground">
-              {email || "—"}
-            </span>
-          </TooltipContent>
-        </Tooltip>
+  const logoutMutation = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.clear()
+      resetApp()
+      router.replace("/login")
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error), { position: "bottom-right" })
+    },
+  })
+
+  const profileTrigger = collapsed ? (
+    <button
+      type="button"
+      disabled={logoutMutation.isPending}
+      className="group relative rounded-lg outline-hidden transition-all hover:ring-2 hover:ring-primary/20 focus-visible:ring-2 focus-visible:ring-primary/30 disabled:pointer-events-none disabled:opacity-70"
+    >
+      <Avatar className="h-9 w-9 ring-2 ring-transparent transition-all">
+        <AvatarImage src={user?.avatarUrl ?? ""} />
+        <AvatarFallback className="bg-linear-to-br from-indigo-400 to-purple-500 text-xs font-medium text-white">
+          {getInitials(name)}
+        </AvatarFallback>
+      </Avatar>
+      <span className={dotClassName} />
+    </button>
+  ) : (
+    <button
+      type="button"
+      disabled={logoutMutation.isPending}
+      className="group flex w-full cursor-pointer items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent/50 focus-visible:bg-sidebar-accent/50 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-70"
+    >
+      <div className="relative">
+        <Avatar className="h-9 w-9 ring-2 ring-transparent transition-all group-hover:ring-primary/20">
+          <AvatarImage src={user?.avatarUrl ?? ""} />
+          <AvatarFallback className="bg-linear-to-br from-indigo-400 to-purple-500 text-xs font-medium text-white">
+            {getInitials(name)}
+          </AvatarFallback>
+        </Avatar>
+        <span className={dotClassName} />
       </div>
-    )
-  }
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-sidebar-foreground">{name}</p>
+        <div className="flex items-center gap-1.5">
+          <Badge
+            variant="secondary"
+            className="h-4 max-w-[160px] truncate border-0 bg-linear-to-r from-indigo-400 to-purple-500 px-1.5 text-[10px] font-medium text-white shadow-xs hover:opacity-90"
+          >
+            {email || "—"}
+          </Badge>
+        </div>
+      </div>
+      <Icons.chevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </button>
+  )
 
   return (
-    <div className="mt-3 border-t border-sidebar-border pt-3">
-      <div className="group flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-sidebar-accent/50">
-        <div className="relative">
-          <Avatar className="h-9 w-9 ring-2 ring-transparent transition-all group-hover:ring-primary/20">
-            <AvatarImage src={user?.avatarUrl ?? ""} />
-            <AvatarFallback className="bg-linear-to-br from-indigo-400 to-purple-500 text-xs font-medium text-white">
-              {getInitials(name)}
-            </AvatarFallback>
-          </Avatar>
-          <span className={dotClassName} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-sidebar-foreground">{name}</p>
-          <div className="flex items-center gap-1.5">
-            <Badge
-              variant="secondary"
-              className="h-4 max-w-[160px] truncate border-0 bg-linear-to-r from-indigo-400 to-purple-500 px-1.5 text-[10px] font-medium text-white shadow-xs hover:opacity-90"
-            >
-              {email || "—"}
-            </Badge>
-          </div>
-        </div>
-      </div>
+    <div className={cn("mt-3 border-t border-sidebar-border pt-3", collapsed && "flex justify-center")}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>{profileTrigger}</DropdownMenuTrigger>
+        <DropdownMenuContent side={collapsed ? "right" : "top"} align={collapsed ? "center" : "end"}>
+          <DropdownMenuItem
+            variant="destructive"
+            disabled={logoutMutation.isPending}
+            onSelect={() => logoutMutation.mutate()}
+          >
+            {logoutMutation.isPending ? (
+              <Icons.spinner className="h-4 w-4 animate-spin" />
+            ) : (
+              <Icons.logOut className="h-4 w-4" />
+            )}
+            <span>Đăng xuất</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

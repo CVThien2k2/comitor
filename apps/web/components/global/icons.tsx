@@ -222,4 +222,5 @@ export const Icons = {
   chevronUp: ChevronUp,
   ellipsis: Ellipsis,
   slidersHorizontal: SlidersHorizontal,
+  loader2: Loader2
 }

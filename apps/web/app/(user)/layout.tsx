@@ -1,3 +1,5 @@
+"use client"
+
 import { AuthWrapper } from "@/components/providers/auth-wrapper"
 import { AppShell } from "@/components/sidebar/app-shell"
 

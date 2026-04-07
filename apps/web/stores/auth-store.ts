@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { UserProfile } from "@workspace/shared"
+import type { ApiResponse, UserProfile } from "@workspace/shared"
 
 type AuthState = {
   accessToken: string | null
@@ -11,21 +11,34 @@ type AuthState = {
 type AuthActions = {
   setAuth: (token: string, user: UserProfile) => void
   setUser: (user: UserProfile) => void
-  logout: () => void
+  clearAuth: () => void
+  logout: () => Promise<ApiResponse<null>>
+}
+
+const emptyAuthState: AuthState = {
+  accessToken: null,
+  user: null,
+  isAuthenticated: false,
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
     (set) => ({
-      accessToken: null,
-      user: null,
-      isAuthenticated: false,
+      ...emptyAuthState,
 
       setAuth: (token, user) => set({ accessToken: token, user, isAuthenticated: true }),
 
       setUser: (user) => set({ user, isAuthenticated: true }),
 
-      logout: () => set({ accessToken: null, user: null, isAuthenticated: false }),
+      clearAuth: () => set(emptyAuthState),
+
+      logout: async () => {
+        const { api } = await import("@/lib/axios")
+        const response = await api.post<ApiResponse<null>>("/auth/logout")
+
+        set(emptyAuthState)
+        return response
+      },
     }),
     {
       name: "auth-storage",

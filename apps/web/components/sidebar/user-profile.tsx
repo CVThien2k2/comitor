@@ -13,9 +13,7 @@ import {
 } from "@workspace/ui/components/dropdown-menu"
 import { toast } from "@workspace/ui/components/sonner"
 import { cn } from "@workspace/ui/lib/utils"
-import { auth } from "@/api/auth"
 import { Icons } from "@/components/global/icons"
-import { AUTH_POST_LOGOUT_TOAST_KEY } from "@/lib/constants/auth"
 import { useAppStore } from "@/stores/app-store"
 import { useAuthStore } from "@/stores/auth-store"
 
@@ -50,7 +48,7 @@ export function UserProfile({ collapsed }: { collapsed: boolean }) {
   const router = useRouter()
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
-  const clearAuth = useAuthStore((s) => s.logout)
+  const logout = useAuthStore((s) => s.logout)
   const resetApp = useAppStore((s) => s.reset)
 
   const name = user?.name ?? "User"
@@ -63,14 +61,9 @@ export function UserProfile({ collapsed }: { collapsed: boolean }) {
   )
 
   const logoutMutation = useMutation({
-    mutationFn: auth.logout,
-    onSuccess: (res) => {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem(AUTH_POST_LOGOUT_TOAST_KEY, res.message || "Đăng xuất thành công")
-      }
-
+    mutationFn: logout,
+    onSuccess: () => {
       queryClient.clear()
-      clearAuth()
       resetApp()
       router.replace("/login")
     },

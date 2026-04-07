@@ -27,7 +27,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : undefined
 
         if (statusCode === 401) {
-          useAuthStore.getState().logout()
+          useAuthStore.getState().clearAuth()
           useAppStore.getState().reset()
           throw new Error("Unauthorized")
         }

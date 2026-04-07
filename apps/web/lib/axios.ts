@@ -60,7 +60,7 @@ instance.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newToken}`
         return instance(originalRequest).then((res) => res)
       } catch {
-        useAuthStore.getState().logout()
+        useAuthStore.getState().clearAuth()
         if (typeof window !== "undefined") {
           window.location.href = "/login"
         }

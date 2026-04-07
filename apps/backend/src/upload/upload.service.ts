@@ -50,13 +50,14 @@ export class UploadService {
   buildObjectKey(params: { folder: string; filename: string; prefix?: string }) {
     const { folder, filename, prefix } = params
     const ext = filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : ""
+    const normalizedFolder = folder.replace(/^\/+|\/+$/g, "")
     const base = filename
       .replace(ext, "")
       .toLowerCase()
       .replace(/[^a-z0-9-_]+/g, "-")
       .replace(/^-+|-+$/g, "")
     const name = `${prefix ? `${prefix}-` : ""}${base}-${Date.now()}-${randomUUID()}${ext}`
-    return `${folder.replace(/\/$/, "")}/${name}`
+    return `${normalizedFolder}/${name}`
   }
 
   getPublicUrl(key: string) {

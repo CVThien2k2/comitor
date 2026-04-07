@@ -1,0 +1,8 @@
+model SuggestedMessage {
+  id        String   @id @default(uuid())
+  tag       String   @db.VarChar(100)
+  message   String
+  images    String[] @db.Text 
+  @@index([tag])
+  @@map("suggested_messages")
+}

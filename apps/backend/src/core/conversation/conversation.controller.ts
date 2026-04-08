@@ -85,7 +85,7 @@ export class ConversationController {
     return { message: "Xóa cuộc hội thoại thành công" }
   }
 
-  @ApiOperation({ summary: "Đánh dấu toàn bộ tin nhắn trong cuộc hội thoại đã đọc" })
+  @ApiOperation({ summary: "Đánh dấu tin nhắn mới nhất trong cuộc hội thoại là đã đọc" })
   @ApiOkResponse({ type: ApiResponseOf(Number) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_UPDATE)

@@ -8,27 +8,48 @@ import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.se
 
 @Injectable()
 export class ConversationService {
+  private readonly latestMessageOrder = [{ createdAt: "desc" as const }, { id: "desc" as const }]
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly zaloPersonalService: ZaloPersonalService
   ) {}
 
+  private async findUnreadConversationIdsByLatestMessage() {
+    const rows = await this.prisma.client.$queryRaw<Array<{ conversationId: string }>>`
+      SELECT latest."conversation_id" AS "conversationId"
+      FROM (
+        SELECT DISTINCT ON ("conversation_id") "conversation_id", "is_read"
+        FROM "messages"
+        ORDER BY "conversation_id", "created_at" DESC, "id" DESC
+      ) AS latest
+      WHERE latest."is_read" = false
+    `
+
+    return rows.map((row) => row.conversationId)
+  }
+
+  private getConversationUnreadCountFromLatestMessage(messages: Array<{ isRead: boolean }> | undefined) {
+    const latestMessage = messages?.[0]
+    return latestMessage && !latestMessage.isRead ? 1 : 0
+  }
+
   async countUnreadConversations() {
-    return this.prisma.client.conversation.count({
-      where: {
-        messages: {
-          some: { isRead: false },
-        },
-      },
-    })
+    const unreadConversationIds = await this.findUnreadConversationIdsByLatestMessage()
+    return unreadConversationIds.length
   }
 
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
+    const unreadConversationIds = query.unread ? await this.findUnreadConversationIdsByLatestMessage() : null
+
+    if (query.unread && unreadConversationIds && unreadConversationIds.length === 0) {
+      return paginatedResponse([], 0, page, limit)
+    }
 
     const where = {
       ...(query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}),
-      ...(query.unread ? { messages: { some: { isRead: false } } } : {}),
+      ...(query.unread ? { id: { in: unreadConversationIds ?? [] } } : {}),
     }
 
     const [items, total] = await Promise.all([
@@ -45,11 +66,10 @@ export class ConversationService {
             },
           },
           messages: {
-            orderBy: { createdAt: "desc" },
+            orderBy: this.latestMessageOrder,
             take: 1,
             include: MESSAGE_INCLUDE,
           },
-          _count: { select: { messages: { where: { isRead: false } } } },
         },
         orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
         skip,
@@ -58,9 +78,9 @@ export class ConversationService {
       this.prisma.client.conversation.count({ where }),
     ])
 
-    const mapped = items.map(({ _count, ...conv }) => ({
+    const mapped = items.map((conv) => ({
       ...conv,
-      unreadCount: _count.messages,
+      unreadCount: this.getConversationUnreadCountFromLatestMessage(conv.messages),
     }))
 
     return paginatedResponse(mapped, total, page, limit)
@@ -72,11 +92,10 @@ export class ConversationService {
       include: {
         linkedAccount: true,
         messages: {
-          orderBy: { createdAt: "desc" },
+          orderBy: this.latestMessageOrder,
           take: 1,
           include: MESSAGE_INCLUDE,
         },
-        _count: { select: { messages: { where: { isRead: false } } } },
         accountCustomer: {
           select: {
             id: true,
@@ -90,11 +109,7 @@ export class ConversationService {
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    const { _count, ...conv } = conversation
-    return {
-      ...conv,
-      unreadCount: _count.messages,
-    }
+    return { ...conversation, unreadCount: this.getConversationUnreadCountFromLatestMessage(conversation.messages) }
   }
 
   async update(id: string, dto: UpdateConversationDto) {
@@ -111,19 +126,14 @@ export class ConversationService {
       include: {
         linkedAccount: true,
         messages: {
-          orderBy: { createdAt: "desc" },
+          orderBy: this.latestMessageOrder,
           take: 1,
           include: MESSAGE_INCLUDE,
         },
-        _count: { select: { messages: { where: { isRead: false } } } },
       },
     })
 
-    const { _count, ...conv } = conversation
-    return {
-      ...conv,
-      unreadCount: _count.messages,
-    }
+    return { ...conversation, unreadCount: this.getConversationUnreadCountFromLatestMessage(conversation.messages) }
   }
 
   async markAsRead(conversationId: string) {
@@ -133,12 +143,22 @@ export class ConversationService {
     })
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    const { count } = await this.prisma.client.message.updateMany({
-      where: { conversationId, isRead: false },
+    const latestMessage = await this.prisma.client.message.findFirst({
+      where: { conversationId },
+      orderBy: this.latestMessageOrder,
+      select: { id: true, isRead: true },
+    })
+
+    if (!latestMessage || latestMessage.isRead) {
+      return { updatedMessages: 0 }
+    }
+
+    await this.prisma.client.message.update({
+      where: { id: latestMessage.id },
       data: { isRead: true },
     })
 
-    return { updatedMessages: count }
+    return { updatedMessages: 1 }
   }
 
   async getOrCreate(

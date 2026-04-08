@@ -6,36 +6,46 @@ import { useQuery } from "@tanstack/react-query"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@workspace/ui/components/resizable"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@workspace/ui/components/sheet"
 import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useLayoutEffect } from "react"
 import { UserInfoPanel } from "../_components/user-info-panel"
 import { ChatDetailMessages } from "./chat-detail-messages"
 import { ChatDetailNotFound } from "./chat-detail-not-found"
 import { ChatDetailSkeleton } from "./chat-detail-skeleton"
 
 export function ChatDetail({ id }: { id: string }) {
+  const listConversation = useChatStore((s) => s.conversations.find((conversation) => conversation.id === id) ?? null)
   const selectedConversation = useChatStore((s) => s.selectedConversation)
   const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
   const hydrateConversation = useChatStore((s) => s.hydrateConversation)
   const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
   const setShowUserInfo = useChatStore((s) => s.setShowUserInfoPanel)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
-  const activeConversation = selectedConversation?.id === id ? selectedConversation : null
 
-  const { data: conversation, isLoading: isLoadingConversation } = useQuery({
+  const { data: conversationResponse, isLoading: isLoadingConversation } = useQuery({
     queryKey: ["conversations", "detail", id],
     queryFn: () => conversationsApi.getById(id),
     enabled: !!id,
   })
 
+  const activeConversation =
+    selectedConversation?.id === id ? selectedConversation : listConversation ?? conversationResponse?.data ?? null
+
+  useLayoutEffect(() => {
+    if (!id || !listConversation) return
+    if (selectedConversation?.id === id) return
+
+    setSelectedConversation(listConversation)
+  }, [id, listConversation, selectedConversation?.id, setSelectedConversation])
+
   useEffect(() => {
-    if (!conversation?.data || isLoadingConversation) return
+    if (!conversationResponse?.data || isLoadingConversation) return
 
-    hydrateConversation(conversation.data)
+    hydrateConversation(conversationResponse.data)
 
-    if (selectedConversation?.id !== conversation.data.id) {
-      setSelectedConversation(conversation.data)
+    if (selectedConversation?.id !== conversationResponse.data.id) {
+      setSelectedConversation(conversationResponse.data)
     }
-  }, [conversation?.data, hydrateConversation, isLoadingConversation, selectedConversation?.id, setSelectedConversation])
+  }, [conversationResponse?.data, hydrateConversation, isLoadingConversation, selectedConversation?.id, setSelectedConversation])
 
   const handleCloseUserInfo = useCallback(() => setShowUserInfo(false), [setShowUserInfo])
 
@@ -45,7 +55,7 @@ export function ChatDetail({ id }: { id: string }) {
   if (!isDesktop) {
     return (
       <>
-        <ChatDetailMessages />
+        <ChatDetailMessages conversation={activeConversation} />
         <Sheet open={showUserInfo} onOpenChange={setShowUserInfo}>
           <SheetContent side="right" showCloseButton={false} className="w-80 p-0 sm:max-w-sm">
             <SheetHeader className="sr-only">
@@ -61,7 +71,7 @@ export function ChatDetail({ id }: { id: string }) {
   return (
     <ResizablePanelGroup orientation="horizontal">
       <ResizablePanel id="messages" minSize={50} className="min-w-0">
-        <ChatDetailMessages />
+        <ChatDetailMessages conversation={activeConversation} />
       </ResizablePanel>
 
       {showUserInfo && (

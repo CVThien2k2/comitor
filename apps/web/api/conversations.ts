@@ -35,4 +35,6 @@ export const messages = {
   create: (payload: CreateMessagePayload) => api.post<ApiResponse<MessageItem>>("/messages", payload),
 
   markAsRead: (id: string) => api.patch<ApiResponse<MessageItem>>(`/messages/${id}`, { isRead: true }),
+
+  markAsUnread: (id: string) => api.patch<ApiResponse<MessageItem>>(`/messages/${id}`, { isRead: false }),
 }

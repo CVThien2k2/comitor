@@ -13,12 +13,10 @@ import { useAuthStore } from "@/stores/auth-store"
 export function ConversationItem({ conversation }: { conversation: Conversation }) {
   const router = useRouter()
   const isSelected = useChatStore((s) => s.selectedConversation?.id === conversation.id)
-  const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
   const { markAsRead } = useConversations()
   const currentUserId = useAuthStore((s) => s.user?.id)
 
   const handleClick = () => {
-    setSelectedConversation(conversation)
     if (conversation.unreadCount) {
       markAsRead(conversation.id)
     }

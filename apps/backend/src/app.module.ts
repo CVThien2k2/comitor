@@ -25,6 +25,7 @@ import { PermissionsGuard } from "./common/guards/permissions.guard"
 import { ApiModule } from "./api/api.module"
 import { QueueModule } from "./queue/queue.module"
 import { PlatformModule } from "./platform/platform.module"
+import { SuggestedMessageModule } from "./core/suggested-message/suggested-message.module"
 import { AppController } from "./app.controller"
 import { AppService } from "./app.service"
 
@@ -59,6 +60,7 @@ import { AppService } from "./app.service"
     ApiModule,
     PlatformModule,
     QueueModule,
+    SuggestedMessageModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,10 +1,11 @@
 "use client"
 
-import { messages as messagesApi, type MessageItem } from "@/api/conversations"
+import { messages as messagesApi, type Conversation, type MessageItem } from "@/api/conversations"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
 import { useConversations } from "@/hooks/use-conversations"
 import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
+import { getConversationLatestMessage } from "@/lib/conversation-read-state"
 import {
   getConversationDisplayName,
   getConversationTagLabel,
@@ -18,7 +19,7 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { MessageImageRunGallery } from "../_components/message-image-run-gallery"
 import { MessageBubble } from "../_components/message-bubble"
 import { ChatComposer } from "./chat-composer"
@@ -135,13 +136,15 @@ const buildMessageRenderItems = (messages: MessageItem[]): MessageRenderItem[] =
   return items
 }
 
-export function ChatDetailMessages() {
+export function ChatDetailMessages({ conversation }: { conversation: Conversation }) {
   const router = useRouter()
   const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
   const toggleUserInfo = useChatStore((s) => s.toggleUserInfoPanel)
-  const conversation = useChatStore((s) => s.selectedConversation)
-  const conversationId = conversation?.id ?? ""
-  const { markAsRead } = useConversations()
+  const manualUnreadSession = useChatStore((s) => s.manualUnreadSession)
+  const beginManualUnreadSession = useChatStore((s) => s.beginManualUnreadSession)
+  const endManualUnreadSession = useChatStore((s) => s.endManualUnreadSession)
+  const conversationId = conversation.id
+  const { markAsRead, setMessageReadState } = useConversations()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevPageCountRef = useRef(0)
@@ -151,10 +154,11 @@ export function ChatDetailMessages() {
   const prevConversationIdRef = useRef("")
   const shouldScrollToBottomRef = useRef(false)
   const isNearBottomRef = useRef(true)
+  const [isTogglingReadState, setIsTogglingReadState] = useState(false)
 
   const id = conversationId
 
-  const seedMessages = useMemo(() => conversation?.messages ?? [], [conversation?.messages])
+  const seedMessages = useMemo(() => conversation.messages ?? [], [conversation.messages])
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["messages", "list", id, MESSAGES_PER_PAGE],
@@ -187,6 +191,13 @@ export function ChatDetailMessages() {
     [seedMessages, fetchedChronological]
   )
   const pageCount = data?.pages.length ?? 0
+  const latestSeedMessage = getConversationLatestMessage(conversation)
+  const latestFetchedMessage = messageList[messageList.length - 1] ?? null
+  const latestMessage = latestSeedMessage ?? latestFetchedMessage
+  const latestMessageId = latestMessage?.id ?? ""
+  const isLatestMessageUnread = latestMessage ? !latestMessage.isRead : false
+  const isManualUnreadSessionActive =
+    manualUnreadSession?.conversationId === id && manualUnreadSession.messageId === latestMessageId
 
   const messageGroups = useMemo(() => {
     const FLOW_GAP_MS = 30 * 60 * 1000
@@ -249,18 +260,28 @@ export function ChatDetailMessages() {
     prevMessageCountRef.current = messageList.length
   }, [id, messageList, pageCount, isLoading, seedMessages.length])
 
-  // Khi đang mở cuộc trò chuyện:
-  // - Nếu `selectedConversation` trong Zustand store còn unread (`unreadCount > 0`)
-  //   hoặc có message chưa đọc (`messages[].isRead === false`)
-  // thì tự động mark-as-read để UI + unread badge đồng bộ.
   useEffect(() => {
-    const unreadCount = conversation?.unreadCount ?? 0
-    const hasUnreadInStoreMessages = (conversation?.messages ?? []).some((m) => !m.isRead)
+    return () => {
+      endManualUnreadSession(id)
+    }
+  }, [endManualUnreadSession, id])
 
-    if (unreadCount > 0 || hasUnreadInStoreMessages) {
+  useEffect(() => {
+    if (!manualUnreadSession) return
+    if (manualUnreadSession.conversationId !== id) return
+    if (manualUnreadSession.messageId === latestMessageId) return
+
+    endManualUnreadSession(id, manualUnreadSession.messageId)
+  }, [endManualUnreadSession, id, latestMessageId, manualUnreadSession])
+
+  // Trạng thái unread/read của conversation được suy ra từ tin nhắn mới nhất.
+  useEffect(() => {
+    if (isManualUnreadSessionActive || !id) return
+
+    if ((conversation.unreadCount ?? 0) > 0 || isLatestMessageUnread) {
       markAsRead(id)
     }
-  }, [id, conversation?.unreadCount, conversation?.messages, markAsRead])
+  }, [conversation.unreadCount, id, isLatestMessageUnread, isManualUnreadSessionActive, markAsRead])
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
@@ -284,7 +305,35 @@ export function ChatDetailMessages() {
     router.push(ROUTES.conversations.path)
   }
 
-  if (!conversation) return null
+  const handleToggleReadState = useCallback(async () => {
+    if (!id || !latestMessage || isTogglingReadState) return
+
+    const currentMessageId = latestMessage.id
+    const previousIsRead = latestMessage.isRead
+    const nextIsRead = !latestMessage.isRead
+    if (nextIsRead) endManualUnreadSession(id, currentMessageId)
+    else beginManualUnreadSession(id, currentMessageId)
+
+    setIsTogglingReadState(true)
+
+    try {
+      const result = await setMessageReadState(id, currentMessageId, nextIsRead, previousIsRead)
+
+      if (!result.didUpdate) {
+        if (nextIsRead) beginManualUnreadSession(id, currentMessageId)
+        else endManualUnreadSession(id, currentMessageId)
+      }
+    } finally {
+      setIsTogglingReadState(false)
+    }
+  }, [
+    beginManualUnreadSession,
+    endManualUnreadSession,
+    id,
+    isTogglingReadState,
+    latestMessage,
+    setMessageReadState,
+  ])
 
   const displayName = getConversationDisplayName(conversation)
 
@@ -332,6 +381,25 @@ export function ChatDetailMessages() {
               className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9"
             >
               <Icons.video className="size-4 md:size-[18px]" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "size-8 hover:bg-primary/20 hover:text-primary md:size-9",
+                isLatestMessageUnread ? "bg-primary/20 text-primary" : "text-foreground"
+              )}
+              onClick={() => void handleToggleReadState()}
+              aria-label={isLatestMessageUnread ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
+              aria-pressed={isLatestMessageUnread}
+              title={isLatestMessageUnread ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
+              disabled={!latestMessageId || isTogglingReadState}
+            >
+              {isTogglingReadState ? (
+                <Icons.spinner className="size-4 animate-spin md:size-[18px]" />
+              ) : (
+                <Icons.mail className="size-4 md:size-[18px]" />
+              )}
             </Button>
             <Button
               variant="ghost"

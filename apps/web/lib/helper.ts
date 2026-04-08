@@ -112,14 +112,14 @@ export function getSenderName(msg: MessageItem) {
   return "Hệ thống"
 }
 
-/** Gộp tin từ cache Conversation (vd. tin cuối trong list) với danh sách đã fetch; API ghi đè bản trùng id. */
+/** Gộp tin từ cache Conversation với danh sách đã fetch; state local ưu tiên hơn để tránh bị dữ liệu fetch cũ ghi đè. */
 export function mergeConversationSeedWithFetchedMessages(
   seed: MessageItem[],
   fetchedChronological: MessageItem[]
 ): MessageItem[] {
   const byId = new Map<string, MessageItem>()
-  for (const m of seed) byId.set(m.id, m)
   for (const m of fetchedChronological) byId.set(m.id, m)
+  for (const m of seed) byId.set(m.id, m)
   return [...byId.values()].sort((a, b) => {
     const ta = new Date(a.timestamp).getTime()
     const tb = new Date(b.timestamp).getTime()

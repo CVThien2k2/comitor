@@ -2,6 +2,7 @@ import type { User, LinkAccount, ChannelType } from "@workspace/database"
 
 export * from "./conversation"
 export * from "./golden-profile"
+export * from "./suggested-message"
 
 export interface ApiResponse<T = unknown> {
   statusCode: number

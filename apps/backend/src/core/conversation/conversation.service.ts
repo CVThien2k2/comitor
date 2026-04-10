@@ -9,11 +9,34 @@ import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.se
 @Injectable()
 export class ConversationService {
   private readonly latestMessageOrder = [{ createdAt: "desc" as const }, { id: "desc" as const }]
+  private readonly conversationViewerSelect = { id: true, name: true, avatarUrl: true } as const
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly zaloPersonalService: ZaloPersonalService
   ) {}
+
+  private getConversationInclude() {
+    return {
+      linkedAccount: true,
+      lastViewedBy: {
+        select: this.conversationViewerSelect,
+      },
+      accountCustomer: {
+        select: {
+          id: true,
+          goldenProfileId: true,
+          avatarUrl: true,
+          name: true,
+        },
+      },
+      messages: {
+        orderBy: this.latestMessageOrder,
+        take: 1,
+        include: MESSAGE_INCLUDE,
+      },
+    } as const
+  }
 
   private async findUnreadConversationIdsByLatestMessage() {
     const rows = await this.prisma.client.$queryRaw<Array<{ conversationId: string }>>`
@@ -55,22 +78,7 @@ export class ConversationService {
     const [items, total] = await Promise.all([
       this.prisma.client.conversation.findMany({
         where,
-        include: {
-          linkedAccount: true,
-          accountCustomer: {
-            select: {
-              id: true,
-              goldenProfileId: true,
-              avatarUrl: true,
-              name: true,
-            },
-          },
-          messages: {
-            orderBy: this.latestMessageOrder,
-            take: 1,
-            include: MESSAGE_INCLUDE,
-          },
-        },
+        include: this.getConversationInclude(),
         orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
         skip,
         take,
@@ -89,22 +97,7 @@ export class ConversationService {
   async findById(id: string) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id },
-      include: {
-        linkedAccount: true,
-        messages: {
-          orderBy: this.latestMessageOrder,
-          take: 1,
-          include: MESSAGE_INCLUDE,
-        },
-        accountCustomer: {
-          select: {
-            id: true,
-            goldenProfileId: true,
-            avatarUrl: true,
-            name: true,
-          },
-        },
-      },
+      include: this.getConversationInclude(),
     })
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
@@ -123,17 +116,32 @@ export class ConversationService {
         tag: dto.tag as any,
         journeyState: dto.journeyState as any,
       },
-      include: {
-        linkedAccount: true,
-        messages: {
-          orderBy: this.latestMessageOrder,
-          take: 1,
-          include: MESSAGE_INCLUDE,
-        },
-      },
+      include: this.getConversationInclude(),
     })
 
     return { ...conversation, unreadCount: this.getConversationUnreadCountFromLatestMessage(conversation.messages) }
+  }
+
+  async markAsViewed(conversationId: string, userId: string) {
+    const conversation = await this.prisma.client.conversation.findUnique({
+      where: { id: conversationId },
+      select: { id: true },
+    })
+    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+
+    const updatedConversation = await this.prisma.client.conversation.update({
+      where: { id: conversationId },
+      data: {
+        lastViewedById: userId,
+        lastViewedAt: new Date(),
+      },
+      include: this.getConversationInclude(),
+    })
+
+    return {
+      ...updatedConversation,
+      unreadCount: this.getConversationUnreadCountFromLatestMessage(updatedConversation.messages),
+    }
   }
 
   async markAsRead(conversationId: string) {

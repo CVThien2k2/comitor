@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Patch, Query, Request } from "@nestjs/common"
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -10,7 +10,9 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
+import type { User } from "@workspace/database"
 import { P } from "@workspace/database"
+import type { Request as ExpressRequest } from "express"
 import { Permissions } from "../../common/decorators/permissions.decorator"
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import {
@@ -26,6 +28,10 @@ import {
 import { ConversationService } from "./conversation.service"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
 import { ConversationEntity } from "./entities/conversation.entity"
+
+interface RequestWithUser extends ExpressRequest {
+  user: User
+}
 
 @ApiTags("Conversations")
 @ApiBearerAuth()
@@ -62,6 +68,16 @@ export class ConversationController {
   async findById(@Param("id") id: string) {
     const conversation = await this.conversationService.findById(id)
     return { message: "Lấy thông tin cuộc hội thoại thành công", data: conversation }
+  }
+
+  @ApiOperation({ summary: "Ghi nhận agent truy cập cuộc hội thoại gần nhất" })
+  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
+  @ApiNotFoundResponse({ type: NotFoundEntity })
+  @Permissions(P.CONVERSATION_READ)
+  @Patch(":id/view")
+  async markAsViewed(@Param("id") id: string, @Request() req: RequestWithUser) {
+    const conversation = await this.conversationService.markAsViewed(id, req.user.id)
+    return { message: "Cập nhật lượt truy cập cuộc hội thoại thành công", data: conversation }
   }
 
   @ApiOperation({ summary: "Cập nhật cuộc hội thoại" })

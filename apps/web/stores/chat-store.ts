@@ -99,6 +99,33 @@ function patchConversationCustomerName(
   }
 }
 
+function pickLatestViewedState(current: Conversation, incoming: Conversation) {
+  const currentLastViewedAt = current.lastViewedAt ? new Date(current.lastViewedAt).getTime() : 0
+  const incomingLastViewedAt = incoming.lastViewedAt ? new Date(incoming.lastViewedAt).getTime() : 0
+
+  if (incomingLastViewedAt > currentLastViewedAt) {
+    return {
+      lastViewedById: incoming.lastViewedById,
+      lastViewedAt: incoming.lastViewedAt,
+      lastViewedBy: incoming.lastViewedBy ?? null,
+    }
+  }
+
+  if (currentLastViewedAt > incomingLastViewedAt) {
+    return {
+      lastViewedById: current.lastViewedById,
+      lastViewedAt: current.lastViewedAt,
+      lastViewedBy: current.lastViewedBy ?? null,
+    }
+  }
+
+  return {
+    lastViewedById: incoming.lastViewedById ?? current.lastViewedById,
+    lastViewedAt: incoming.lastViewedAt ?? current.lastViewedAt,
+    lastViewedBy: incoming.lastViewedBy ?? current.lastViewedBy ?? null,
+  }
+}
+
 function mergeConversationData(current: Conversation, incoming: Conversation): Conversation {
   const hasMessages = !!current.messages?.length || !!incoming.messages?.length
   const messages = hasMessages
@@ -109,11 +136,13 @@ function mergeConversationData(current: Conversation, incoming: Conversation): C
   const lastActivityAt =
     incomingLastActivityAt >= currentLastActivityAt ? incoming.lastActivityAt : current.lastActivityAt
   const fallbackUnreadCount = Math.max(current.unreadCount ?? 0, incoming.unreadCount ?? 0)
+  const latestViewedState = pickLatestViewedState(current, incoming)
 
   return {
     ...current,
     ...incoming,
     lastActivityAt,
+    ...latestViewedState,
     messages,
     unreadCount: getUnreadCountFromLatestMessage(messages, fallbackUnreadCount),
   }
@@ -135,6 +164,12 @@ type ChatState = {
 type ChatActions = {
   setSelectedConversation: (conversation: Conversation | null) => void
   hydrateConversation: (conversation: Conversation) => void
+  setConversationLastViewed: (payload: {
+    conversationId: string
+    lastViewedById: string | null
+    lastViewedAt: string | null
+    lastViewedBy: Conversation["lastViewedBy"] | null
+  }) => void
   setConversations: (conversations: Conversation[]) => void
   /** Thêm các hội thoại mới (trang tiếp theo), bỏ qua id trùng */
   appendConversations: (incoming: Conversation[]) => void
@@ -218,6 +253,29 @@ export const useChatStore = create<ChatState & ChatActions>()((set, get) => ({
           : item
       ),
     })),
+  setConversationLastViewed: ({ conversationId, lastViewedById, lastViewedAt, lastViewedBy }) =>
+    set((state) => {
+      const patch = (conversation: Conversation) =>
+        applyConversationReadOverride(
+          {
+            ...conversation,
+            lastViewedById,
+            lastViewedAt,
+            lastViewedBy,
+          },
+          state.pendingConversationReadOverrides
+        )
+
+      return {
+        selectedConversation:
+          state.selectedConversation?.id === conversationId
+            ? patch(state.selectedConversation)
+            : state.selectedConversation,
+        conversations: state.conversations.map((conversation) =>
+          conversation.id === conversationId ? patch(conversation) : conversation
+        ),
+      }
+    }),
   setShowUserInfoPanel: (show) => set({ showUserInfoPanel: show }),
   toggleUserInfoPanel: () => set((state) => ({ showUserInfoPanel: !state.showUserInfoPanel })),
   syncAccountCustomerProfileName: ({ accountCustomerId, previousFullName, nextFullName }) =>

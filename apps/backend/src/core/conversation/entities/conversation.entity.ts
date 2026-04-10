@@ -2,6 +2,17 @@ import { ApiProperty } from "@nestjs/swagger"
 import { LinkAccountEntity } from "../../link-account/entities/link-account.entity"
 import { MessageEntity } from "../../message/entities/message.entity"
 
+class ConversationViewerEntity {
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
+  id: string
+
+  @ApiProperty({ example: "Nguyễn Văn A" })
+  name: string
+
+  @ApiProperty({ example: null, nullable: true })
+  avatarUrl: string | null
+}
+
 class ConversationBase {
   @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
   id: string
@@ -28,6 +39,12 @@ class ConversationBase {
   lastActivityAt: Date | null
 
   @ApiProperty({ example: null, nullable: true })
+  lastViewedById: string | null
+
+  @ApiProperty({ example: null, nullable: true })
+  lastViewedAt: Date | null
+
+  @ApiProperty({ example: null, nullable: true })
   accountCustomerId: string | null
 
   @ApiProperty()
@@ -40,6 +57,9 @@ class ConversationBase {
 export class ConversationEntity extends ConversationBase {
   @ApiProperty({ type: () => LinkAccountEntity, description: "Chỉ có trường provider" })
   linkedAccount: LinkAccountEntity
+
+  @ApiProperty({ type: () => ConversationViewerEntity, nullable: true })
+  lastViewedBy: ConversationViewerEntity | null
 
   @ApiProperty({ type: MessageEntity, isArray: true })
   messages: MessageEntity[]

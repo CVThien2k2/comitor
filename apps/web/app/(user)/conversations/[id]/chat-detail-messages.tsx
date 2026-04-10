@@ -7,6 +7,7 @@ import { useConversations } from "@/hooks/use-conversations"
 import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
 import { getConversationLatestMessage } from "@/lib/conversation-read-state"
 import {
+  formatConversationLastViewedAt,
   getConversationDisplayName,
   getConversationTagLabel,
   getProviderLabel,
@@ -336,10 +337,25 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
   ])
 
   const displayName = getConversationDisplayName(conversation)
+  const hasLastViewedInfo = !!conversation.lastViewedBy?.name && !!conversation.lastViewedAt
+  const lastViewedLabel =
+    conversation.lastViewedBy?.name && conversation.lastViewedAt
+      ? `Agent truy cập lần cuối: ${conversation.lastViewedBy.name} - ${formatConversationLastViewedAt(conversation.lastViewedAt)}`
+      : "Chưa có agent truy cập cuộc trò chuyện này"
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="border-b border-border bg-muted/50 px-2 py-2 backdrop-blur-sm sm:px-3 sm:py-2.5 md:px-4 md:py-3">
+      <div className="flex flex-col gap-y-2 border-b border-border bg-muted/50 px-2 py-2 backdrop-blur-sm sm:px-3 sm:py-2.5 md:px-4 md:py-3">
+        <div
+          className={cn(
+            "max-w-full rounded-md px-2.5 py-1.5",
+            hasLastViewedInfo ? "border border-primary/20 bg-primary/10" : "border border-border bg-muted/60"
+          )}
+        >
+          <p className={cn("text-[13.2px] leading-[1.35] font-medium", hasLastViewedInfo ? "text-primary" : "text-muted-foreground")}>
+            {lastViewedLabel}
+          </p>
+        </div>
         <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 md:gap-3">
           <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={handleBack}>
             <Icons.chevronLeft className="h-5 w-5" />

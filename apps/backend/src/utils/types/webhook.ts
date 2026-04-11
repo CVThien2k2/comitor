@@ -1,5 +1,17 @@
+export type ZaloOAMessageEventName =
+  | "oa_send_text"
+  | "user_send_text"
+  | "user_send_image"
+  | "oa_send_image"
+  | "user_send_file"
+  | "oa_send_file"
+  | "user_send_sticker"
+  | "oa_send_sticker"
+  | "user_send_link"
+  | "oa_send_link"
+
 export interface ZaloOAMessageWebhook {
-  event_name: string
+  event_name: ZaloOAMessageEventName
   app_id: string
   sender: {
     id: string
@@ -66,3 +78,28 @@ export interface MetaMessageWebhook {
     }[]
   }[]
 }
+
+export interface ZaloOaWebhookUserClickFollowPayload {
+  app_id: string
+  oa_id: string
+  user_id_by_app: string
+  event_name: "follow"
+  timestamp: string
+  follower: {
+    id: string
+  }
+}
+
+export interface ZaloOaWebhookUserClickChatnowPayload {
+  app_id: string
+  oa_id: string
+  user_id_by_app: string
+  event_name: "user_click_chatnow"
+  timestamp: string
+  user_id: string
+}
+
+export type ZaloOAWebhookPayload =
+  | ZaloOAMessageWebhook
+  | ZaloOaWebhookUserClickFollowPayload
+  | ZaloOaWebhookUserClickChatnowPayload

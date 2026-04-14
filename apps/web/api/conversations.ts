@@ -21,6 +21,8 @@ export const conversations = {
 
   getById: (id: string) => api.get<ApiResponse<Conversation>>(`/conversations/${id}`),
 
+  markViewed: (id: string) => api.patch<ApiResponse<Conversation>>(`/conversations/${id}/view`),
+
   markAsRead: (id: string) => api.patch<ApiResponse<number>>(`/conversations/${id}/mark-read`),
 }
 

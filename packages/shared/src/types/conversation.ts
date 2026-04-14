@@ -53,6 +53,12 @@ export interface LinkAccount {
   status: "active" | "inactive"
 }
 
+export interface ConversationViewer {
+  id: string
+  name: string
+  avatarUrl: string | null
+}
+
 export interface Conversation {
   id: string
   linkedAccountId: string
@@ -63,10 +69,13 @@ export interface Conversation {
   tag: "other" | "business"
   journeyState: string | null
   lastActivityAt: string | null
+  lastViewedById: string | null
+  lastViewedAt: string | null
   accountCustomerId: string | null
   createdAt: string
   updatedAt: string
   linkedAccount?: LinkAccount
+  lastViewedBy?: ConversationViewer | null
   accountCustomer?: {
     id: string
     goldenProfileId: string | null

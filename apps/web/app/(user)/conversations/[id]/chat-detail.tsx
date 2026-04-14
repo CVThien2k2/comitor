@@ -1,12 +1,13 @@
 "use client"
 
 import { conversations as conversationsApi } from "@/api/conversations"
+import { useConversations } from "@/hooks/use-conversations"
 import { useChatStore } from "@/stores/chat-store"
 import { useQuery } from "@tanstack/react-query"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@workspace/ui/components/resizable"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@workspace/ui/components/sheet"
 import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
-import { useCallback, useEffect, useLayoutEffect } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
 import { UserInfoPanel } from "../_components/user-info-panel"
 import { ChatDetailMessages } from "./chat-detail-messages"
 import { ChatDetailNotFound } from "./chat-detail-not-found"
@@ -19,7 +20,9 @@ export function ChatDetail({ id }: { id: string }) {
   const hydrateConversation = useChatStore((s) => s.hydrateConversation)
   const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
   const setShowUserInfo = useChatStore((s) => s.setShowUserInfoPanel)
+  const { markAsViewed } = useConversations()
   const isDesktop = useMediaQuery("(min-width: 1280px)")
+  const viewedConversationRef = useRef<string | null>(null)
 
   const { data: conversationResponse, isLoading: isLoadingConversation } = useQuery({
     queryKey: ["conversations", "detail", id],
@@ -46,6 +49,16 @@ export function ChatDetail({ id }: { id: string }) {
       setSelectedConversation(conversationResponse.data)
     }
   }, [conversationResponse?.data, hydrateConversation, isLoadingConversation, selectedConversation?.id, setSelectedConversation])
+
+  useEffect(() => {
+    if (!conversationResponse?.data?.id) return
+    if (viewedConversationRef.current === conversationResponse.data.id) return
+
+    viewedConversationRef.current = conversationResponse.data.id
+    void markAsViewed(conversationResponse.data.id).catch(() => {
+      viewedConversationRef.current = null
+    })
+  }, [conversationResponse?.data, markAsViewed])
 
   const handleCloseUserInfo = useCallback(() => setShowUserInfo(false), [setShowUserInfo])
 

@@ -15,6 +15,7 @@ model User {
 
   role          Role?          @relation(fields: [roleId], references: [id], onDelete: SetNull)
   linkAccounts  LinkAccount[]
+  viewedConversations Conversation[] @relation("ConversationLastViewedBy")
   sentMessages  Message[]      @relation("MessageUser")
   refreshTokens RefreshToken[]
 

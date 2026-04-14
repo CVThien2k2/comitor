@@ -172,20 +172,26 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
   }
 
   private async restoreActiveSessions() {
-    const linkedAccounts = await this.prisma.client.linkAccount.findMany({
-      where: {
-        provider: "zalo_personal",
-        accountId: {
-          not: null,
+    let linkedAccounts: any[] = []
+
+    try {
+      linkedAccounts = await this.prisma.client.linkAccount.findMany({
+        where: {
+          provider: "zalo_personal",
+          accountId: {
+            not: null,
+          },
         },
-      },
-      include: {
-        providerCredentials: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    })
+        include: {
+          providerCredentials: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      })
+    } catch {
+      return
+    }
 
     if (linkedAccounts.length === 0) {
       this.logger.log("Khong tim thay tai khoan Zalo Personal nao can khoi phuc listener")

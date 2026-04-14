@@ -5,7 +5,15 @@
 **/coverage
 **/.git
 **/.env
+**/.env.*
 **/.env.local
 **/.env.*.local
-**/Dockerfile
 **/*.log
+**/*.tsbuildinfo
+**/.DS_Store
+**/.cache
+**/.pnpm-store
+**/tmp
+**/.idea
+.cursor
+.vscode

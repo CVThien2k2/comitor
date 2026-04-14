@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq"
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { Logger } from "@nestjs/common"
 import { Job } from "bullmq"
 import { EventMessage, type Message } from "src/utils/types"
@@ -35,5 +35,10 @@ export class MessageProcessor extends WorkerHost {
       }
       throw error
     }
+  }
+
+  @OnWorkerEvent("error")
+  onWorkerError(error: Error) {
+    this.logger.error(`Queue Redis connection error! ${error.message}`)
   }
 }

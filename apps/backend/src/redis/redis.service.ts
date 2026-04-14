@@ -14,7 +14,7 @@ export class RedisService implements OnModuleInit {
     })
 
     this.redis.on("error", (error: Error) => {
-      this.logger.error(`Redis connection error!`)
+      this.logger.error(`Redis connection error! ${error.message}`)
     })
 
     this.redis.on("close", () => {
@@ -79,6 +79,16 @@ export class RedisService implements OnModuleInit {
     } catch (error) {
       this.logger.error(`Redis TTL "${key}" failed: ${(error as Error).message}`)
       return -1
+    }
+  }
+
+  async ping(): Promise<boolean> {
+    try {
+      const pong = await this.redis.ping()
+      return pong === "PONG"
+    } catch (error) {
+      this.logger.error(`Redis PING failed: ${(error as Error).message}`)
+      return false
     }
   }
 }

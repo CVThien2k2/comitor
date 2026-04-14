@@ -55,10 +55,9 @@ async function bootstrap() {
   logger.log(`Swagger: http://localhost:${port}/docs`)
   logger.log(`Swagger JSON: http://localhost:${port}/docs/json`)
   logger.log(`Swagger YAML: http://localhost:${port}/docs/yaml`)
-  logger.log(`WebSocket: ws://localhost:${port}/ws`)
+  logger.log(`WebSocket: ws://localhost:${port}/websocket`)
   logger.log(`Environment: ${env}`)
 }
-bootstrap().catch((error: unknown) => {
-  console.error(error)
+bootstrap().catch(() => {
   process.exit(1)
 })

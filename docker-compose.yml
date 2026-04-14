@@ -1,52 +1,49 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: comitor-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: comitor
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d comitor"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
+      target: backend-runner
     container_name: comitor-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - apps/backend/.env
     environment:
       NODE_ENV: production
       PORT: 8000
-      FRONTEND_URL: http://localhost:3000
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/comitor?schema=public&sslmode=disable
+      REDIS_USERNAME: default
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-comitor_redis_password}
+      REDIS_URL: redis://default:${REDIS_PASSWORD:-comitor_redis_password}@redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
+      - redis
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      target: web-runner
     container_name: comitor-web
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - apps/web/.env
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://backend:8000
     depends_on:
       - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: comitor-redis
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-comitor_redis_password}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-comitor_redis_password}"]
+    ports:
+      - "6379:6379"
 
 volumes:
   postgres_data:

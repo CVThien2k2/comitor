@@ -10,6 +10,7 @@ import { RedisService } from "./redis.service"
       useFactory: (configService: ConfigService) => ({
         type: "single" as const,
         url: configService.get<string>("REDIS_URL", "redis://localhost:6379"),
+        db: 0,
         options: {
           maxRetriesPerRequest: 3,
           retryStrategy(times: number) {

@@ -12,7 +12,7 @@ import { SocketGateway } from "./socket.gateway"
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>("JWT_SECRET"),
+        secret: configService.get<string>("JWT_SECRET"),
       }),
     }),
   ],

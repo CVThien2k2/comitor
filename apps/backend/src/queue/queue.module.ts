@@ -17,6 +17,11 @@ import { ZaloPersonalModule } from "../platform/zalo_personal/zalo_personal.modu
       useFactory: (configService: ConfigService) => ({
         connection: {
           url: configService.get<string>("REDIS_URL", "redis://localhost:6379"),
+          db: 1,
+          retryStrategy(times: number) {
+            if (times > 5) return 10_000
+            return Math.min(times * 1000, 5000) // delay tăng dần, tối đa 5s
+          },
         },
       }),
       inject: [ConfigService],

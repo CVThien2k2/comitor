@@ -2,8 +2,16 @@ import { Logger, UseFilters } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { JwtService } from "@nestjs/jwt"
-import { OnGatewayConnection, OnGatewayDisconnect, WebSocketGateway, WebSocketServer } from "@nestjs/websockets"
+import {
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  WebSocketGateway,
+  WebSocketServer,
+} from "@nestjs/websockets"
+import { createAdapter } from "@socket.io/redis-adapter"
 import { EVENTS, type SocketEvent } from "@workspace/shared"
+import Redis from "ioredis"
 import { Namespace, Socket } from "socket.io"
 import { WsExceptionFilter } from "../common/filters/ws-exception.filter"
 import { RoleService } from "../core/role/role.service"
@@ -13,11 +21,13 @@ import { RoleService } from "../core/role/role.service"
   cors: { origin: "*", credentials: true },
   namespace: "websocket",
 })
-export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Namespace
 
   private readonly logger = new Logger(SocketGateway.name)
+  private redisPubClient: Redis | null = null
+  private redisSubClient: Redis | null = null
 
   constructor(
     private readonly jwtService: JwtService,
@@ -25,6 +35,42 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly eventEmitter: EventEmitter2,
     private readonly roleService: RoleService
   ) {}
+
+  async afterInit(server: Namespace) {
+    const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379")
+
+    if (!redisUrl) {
+      this.logger.warn("REDIS_URL chưa được cấu hình, Socket.IO sẽ chạy với memory adapter")
+      return
+    }
+
+    try {
+      this.redisPubClient = new Redis(redisUrl, {
+        lazyConnect: true,
+        db: 2,
+        enableOfflineQueue: false,
+        maxRetriesPerRequest: null,
+        retryStrategy(times: number) {
+          if (times > 5) return 10_000
+          return Math.min(times * 1000, 5000)
+        },
+      })
+      this.redisSubClient = this.redisPubClient.duplicate()
+
+      this.redisPubClient.on("error", (error: Error) => {
+        this.logger.error(`Socket Redis pub error: ${error.message}`)
+      })
+      this.redisSubClient.on("error", (error: Error) => {
+        this.logger.error(`Socket Redis sub error: ${error.message}`)
+      })
+
+      await Promise.all([this.redisPubClient.connect(), this.redisSubClient.connect()])
+      server.server.adapter(createAdapter(this.redisPubClient, this.redisSubClient))
+      this.logger.log("Socket.IO Redis adapter đã được bật")
+    } catch (error) {
+      this.logger.error(`Không thể bật Socket.IO Redis adapter: ${(error as Error).message}`)
+    }
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -108,7 +154,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       return sent
     } catch (error) {
-      this.logger.error(`Error in sendToUser: ${error}`)
+      this.logger.error(`Error in sendToUser ${(error as Error).message}`)
       return false
     }
   }
@@ -127,12 +173,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /** Gửi event đến 1 role, trừ user chỉ định */
   sendToRoleExcept(roleName: string, excludeUserIds: string[], event: SocketEvent, data?: unknown): void {
     const excludeRooms = excludeUserIds.map((id) => `user:${id}`)
-    this.server.to(`role:${roleName}`).except(excludeRooms).emit(event, data || {})
+    this.server
+      .to(`role:${roleName}`)
+      .except(excludeRooms)
+      .emit(event, data || {})
   }
 
   /** Broadcast đến tất cả */
   broadcast(event: SocketEvent, data?: unknown): void {
     this.server.emit(event, data || {})
   }
-
 }

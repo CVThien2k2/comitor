@@ -14,8 +14,15 @@ jobs:
         include:
           - image_name: comitor-backend
             dockerfile: ./apps/backend/Dockerfile
+            build_args: ""
           - image_name: comitor-web
             dockerfile: ./apps/web/Dockerfile
+            build_args: |
+              NEXT_PUBLIC_ENV=${{ vars.NEXT_PUBLIC_ENV }}
+              NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+              NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL=${{ vars.NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL }}
+              NEXT_PUBLIC_META_REDIRECT_URI=${{ vars.NEXT_PUBLIC_META_REDIRECT_URI }}
+              NEXT_PUBLIC_META_APP_ID=${{ vars.NEXT_PUBLIC_META_APP_ID }}
 
     steps:
       - name: Checkout code
@@ -48,7 +55,21 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build_args }}
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    runs-on: [self-hosted, linux, x64]
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy locally on self-hosted runner
+        run: |
+          set -e
+          cd "${{ secrets.DEPLOY_PATH }}"
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker compose pull
+          docker compose up -d --remove-orphans

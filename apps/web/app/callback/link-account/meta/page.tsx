@@ -24,9 +24,9 @@ const META_OAUTH_SCOPE =
 function getMetaRedirectUri(): string {
   const env = process.env.NEXT_PUBLIC_ENV
   if (env === "production") {
-    return process.env.NEXT_PUBLIC_META_REDIRECT_URI_PRODUCTION ?? ""
+    return process.env.NEXT_PUBLIC_META_REDIRECT_URI ?? ""
   }
-  return process.env.NEXT_PUBLIC_META_REDIRECT_URI_DEV ?? ""
+  return process.env.NEXT_PUBLIC_META_REDIRECT_URI ?? ""
 }
 
 function buildMetaOAuthUrl(): string {

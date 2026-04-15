@@ -1,17 +1,17 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { Icons } from "@/components/global/icons"
-import { useAuthStore } from "@/stores/auth-store"
-import { useStoreHydration } from "@/hooks/use-store-hydration"
 import { app } from "@/api"
+import { useStoreHydration } from "@/hooks/use-store-hydration"
 import { useAppStore } from "@/stores/app-store"
+import { useAuthStore } from "@/stores/auth-store"
+import { useQuery } from "@tanstack/react-query"
+import LoadingUI from "../global/loading-ui"
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useStoreHydration()
   const accessToken = useAuthStore((s) => s.accessToken)
 
-  const { isLoading } = useQuery({
+  const { isLoading, isFetched } = useQuery({
     queryKey: ["app", "init"],
     queryFn: async () => {
       try {
@@ -22,8 +22,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (error: unknown) {
         const statusCode =
           typeof error === "object" && error !== null
-            ? (error as { statusCode?: number; status?: number }).statusCode ??
-              (error as { statusCode?: number; status?: number }).status
+            ? ((error as { statusCode?: number; status?: number }).statusCode ??
+              (error as { statusCode?: number; status?: number }).status)
             : undefined
 
         if (statusCode === 401) {
@@ -37,14 +37,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     enabled: hydrated && !!accessToken,
     retry: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   })
 
-  if (!hydrated || (accessToken && isLoading)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Icons.spinner className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    )
+  // Only block UI during the very first init request.
+  // If init fails (e.g. CORS/network), keep rendering app to avoid spinner loop.
+  if (!hydrated || (accessToken && !isFetched && isLoading)) {
+    return <LoadingUI />
   }
 
   return <>{children}</>

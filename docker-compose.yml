@@ -42,6 +42,12 @@ services:
     build:
       context: .
       dockerfile: ./apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_ENV: ${NEXT_PUBLIC_ENV}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL: ${NEXT_PUBLIC_ZALO_OA_REQUEST_PERMISSION_APP_URL}
+        NEXT_PUBLIC_META_REDIRECT_URI: ${NEXT_PUBLIC_META_REDIRECT_URI}
+        NEXT_PUBLIC_META_APP_ID: ${NEXT_PUBLIC_META_APP_ID}
     container_name: comitor-web
     restart: unless-stopped
     logging:

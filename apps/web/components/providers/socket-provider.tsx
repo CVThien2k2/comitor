@@ -7,10 +7,10 @@ import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket"
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   useEffect(() => {
-    if (accessToken) {
+    if (isAuthenticated) {
       connectSocket()
 
       const socket = getSocket()
@@ -28,7 +28,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       disconnectSocket()
       return
     }
-  }, [accessToken, queryClient])
+  }, [isAuthenticated, queryClient])
 
   return <>{children}</>
 }

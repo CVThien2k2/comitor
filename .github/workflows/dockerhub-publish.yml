@@ -56,6 +56,8 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.build_args }}
+          cache-from: type=gha,scope=${{ matrix.image_name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image_name }}
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

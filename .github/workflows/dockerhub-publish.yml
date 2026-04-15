@@ -8,6 +8,7 @@ on:
 
 jobs:
   docker:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'DEPLOY_DOCKER')
     runs-on: [self-hosted, linux, x64]
     strategy:
       matrix:
@@ -66,12 +67,27 @@ jobs:
   deploy:
     runs-on: [self-hosted, linux, x64]
     needs: docker
-    if: github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'DEPLOY_DOCKER')) && github.ref == 'refs/heads/main'
     steps:
       - name: Deploy locally on self-hosted runner
         run: |
           set -e
           cd "${{ secrets.DEPLOY_PATH }}"
+          pm2 stop all
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
           docker compose pull
           docker compose up -d --remove-orphans
+
+  deploy-pm2:
+    runs-on: [self-hosted, linux, x64]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'DEPLOY_PM2')
+    steps:
+      - name: Deploy app with PM2
+        run: |
+          set -e
+          docker stop comitor-grafana comitor-promtail comitor-loki comitor-web comitor-backend
+          cd "${{ secrets.DEPLOY_PATH_PM2 }}"
+          git pull
+          pnpm install --frozen-lockfile
+          pnpm build
+          pm2 restart all

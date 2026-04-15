@@ -69,7 +69,6 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
 
     const session = await this.ensureActiveSession(linkedAccountId)
     const response = await session.api.getGroupInfo(normalizedGroupId)
-    console.log("response", JSON.stringify(response, null, 2))
     const groupInfoMap = response?.gridInfoMap ?? {}
     const groupInfo = groupInfoMap[normalizedGroupId] ?? Object.values(groupInfoMap)[0]
 

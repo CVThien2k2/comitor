@@ -134,8 +134,6 @@ export class GoldenProfileService {
   async getOrCreateFromProfile(profileData: Partial<GoldenProfile>, tx?: TransactionClient) {
     try {
       const db = tx ?? this.prisma.client
-      const { id: _externalId, ...createData } = profileData
-
       // Nếu có email hoặc phone, tìm hồ sơ khách hàng theo email hoặc phone để merge profile
       if (profileData.primaryEmail || profileData.primaryPhone) {
         const conditions: { primaryEmail?: string; primaryPhone?: string }[] = []
@@ -150,9 +148,7 @@ export class GoldenProfileService {
       }
 
       // Nếu không tìm thấy hồ sơ khách hàng, tạo mới
-      return await db.goldenProfile.create({
-        data: createData,
-      })
+      return await db.goldenProfile.create({ data: profileData })
     } catch (error) {
       throw new Error(`Lỗi tạo hồ sơ khách hàng: ${(error as Error).message}`)
     }

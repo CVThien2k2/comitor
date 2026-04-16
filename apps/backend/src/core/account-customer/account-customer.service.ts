@@ -1,73 +1,19 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import type { LinkAccount } from "@workspace/database"
-import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
-import { paginate, paginatedResponse } from "../../utils/paginate"
-import { UpdateAccountCustomerDto } from "./dto/update-account-customer.dto"
-import { GoldenProfileService } from "../golden-profile/golden-profile.service"
+import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import { ProfileFetcherRegistry } from "../../platform/profile-fetchers/profile-fetcher.registry"
-import type { ProfileResult } from "src/platform/profile-fetchers/profile-fetcher.interface"
-
-const FALLBACK_CUSTOMER_NAME = "Khách hàng"
+import { paginate, paginatedResponse } from "../../utils/paginate"
+import { GoldenProfileService } from "../golden-profile/golden-profile.service"
+import { UpdateAccountCustomerDto } from "./dto/update-account-customer.dto"
 
 @Injectable()
 export class AccountCustomerService {
-  private readonly logger = new Logger(AccountCustomerService.name)
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly goldenProfileService: GoldenProfileService,
     private readonly profileFetcherRegistry: ProfileFetcherRegistry
   ) {}
-
-  private async fetchProfile(data: { accountId: string; linkedAccount: LinkAccount }): Promise<ProfileResult> {
-    const fetcher = this.profileFetcherRegistry.get(data.linkedAccount.provider)
-    if (!fetcher) throw new NotFoundException(`Không hỗ trợ provider: ${data.linkedAccount.provider}`)
-
-    try {
-      return await fetcher.getProfile(data.accountId, data.linkedAccount)
-    } catch (error) {
-      throw new Error(
-        `Lỗi lấy dữ liệu người dùng từ ${data.linkedAccount.provider} (userId=${data.accountId}): ${(error as Error).message}`
-      )
-    }
-  }
-
-  private async createAccountCustomerFromProfile(
-    data: { accountId: string; linkedAccount: LinkAccount },
-    profileResult: ProfileResult,
-    tx?: TransactionClient
-  ) {
-    const db = tx ?? this.prisma.client
-    const { profile: profileData, avatarUrl } = profileResult
-    const goldenProfile = await this.goldenProfileService.getOrCreateFromProfile(profileData, tx)
-    const updateData = {
-      ...(profileData.fullName ? { name: profileData.fullName } : {}),
-      ...(avatarUrl ? { avatarUrl } : {}),
-      goldenProfileId: goldenProfile.id,
-    }
-
-    try {
-      return await db.accountCustomer.upsert({
-        where: {
-          unique_account_customer: {
-            accountId: data.accountId,
-            linkedAccountId: data.linkedAccount.id,
-          },
-        },
-        create: {
-          accountId: data.accountId,
-          linkedAccountId: data.linkedAccount.id,
-          goldenProfileId: goldenProfile.id,
-          name: profileData.fullName,
-          avatarUrl,
-        },
-        update: updateData,
-      })
-    } catch (error) {
-      throw new Error(`Lỗi tạo tài khoản khách hàng: ${(error as Error).message}`)
-    }
-  }
 
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
@@ -126,104 +72,40 @@ export class AccountCustomerService {
 
   async getOrCreate(data: { accountId: string; linkedAccount: LinkAccount }, tx?: TransactionClient) {
     const db = tx ?? this.prisma.client
-
+    //Nếu tài khoản khách hàng đã tồn tại, trả về tài khoản khách hàng đó
     const existing = await db.accountCustomer.findFirst({
       where: { accountId: data.accountId, linkedAccountId: data.linkedAccount.id },
     })
-
     if (existing) return existing
 
-    const profileResult = await this.fetchProfile(data)
-    return this.createAccountCustomerFromProfile(data, profileResult, tx)
-  }
+    //Lấy thông tin người dùng để tạo hoặc cập nhật hồ sơ khách hàng
+    const fetcher = this.profileFetcherRegistry.get(data.linkedAccount.provider)
+    if (!fetcher) throw new NotFoundException(`Không hỗ trợ provider: ${data.linkedAccount.provider}`)
 
-  async getOrCreateAndSyncProfile(data: { accountId: string; linkedAccount: LinkAccount }, tx?: TransactionClient) {
-    const db = tx ?? this.prisma.client
-    const existing = await db.accountCustomer.findFirst({
-      where: { accountId: data.accountId, linkedAccountId: data.linkedAccount.id },
-      include: {
-        goldenProfile: {
-          select: {
-            id: true,
-            fullName: true,
-          },
-        },
-      },
-    })
+    const { profile, avatarUrl } = await fetcher.getProfile(data.accountId, data.linkedAccount)
+    if (!profile) throw new NotFoundException("Không tìm thấy thông tin người dùng")
 
-    const profileResult = await this.fetchProfile(data)
-    const { profile: profileData, avatarUrl } = profileResult
+    const goldenProfile = await this.goldenProfileService.getOrCreateFromProfile(profile, tx)
+    if (!goldenProfile) throw new NotFoundException("Không tìm thấy hồ sơ khách hàng")
 
-    if (!existing) {
-      return this.createAccountCustomerFromProfile(data, profileResult, tx)
-    }
+    if (!profile.fullName)
+      throw new NotFoundException(
+        "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
+      )
 
-    const goldenProfileUpdateData = {
-      ...(profileData.fullName ? { fullName: profileData.fullName } : {}),
-      ...(profileData.gender ? { gender: profileData.gender } : {}),
-      ...(profileData.dateOfBirth ? { dateOfBirth: profileData.dateOfBirth } : {}),
-      ...(profileData.primaryPhone ? { primaryPhone: profileData.primaryPhone } : {}),
-      ...(profileData.primaryEmail ? { primaryEmail: profileData.primaryEmail } : {}),
-      ...(profileData.address ? { address: profileData.address } : {}),
-      ...(profileData.city ? { city: profileData.city } : {}),
-    }
-
-    if (Object.keys(goldenProfileUpdateData).length > 0) {
-      await db.goldenProfile.update({
-        where: { id: existing.goldenProfile.id },
-        data: goldenProfileUpdateData,
-      })
-    }
-
-    const accountCustomerUpdateData = {
-      ...(profileData.fullName ? { name: profileData.fullName } : {}),
-      ...(avatarUrl ? { avatarUrl } : {}),
-    }
-
-    const accountCustomer =
-      Object.keys(accountCustomerUpdateData).length > 0
-        ? await db.accountCustomer.update({
-            where: { id: existing.id },
-            data: accountCustomerUpdateData,
-          })
-        : existing
-
-    if (avatarUrl) {
-      await db.conversation.updateMany({
-        where: {
-          type: "personal",
-          accountCustomerId: existing.id,
-        },
+    try {
+      return db.accountCustomer.create({
         data: {
+          accountId: data.accountId,
+          linkedAccountId: data.linkedAccount.id,
+          name: profile.fullName,
+          goldenProfileId: goldenProfile.id,
           avatarUrl,
         },
       })
+    } catch (error: any) {
+      throw new Error(`Lỗi tạo tài khoản khách hàng: ${error?.message}`)
     }
-
-    if (profileData.fullName) {
-      const previousNames = new Set<string>([FALLBACK_CUSTOMER_NAME])
-
-      if (existing.name?.trim()) {
-        previousNames.add(existing.name.trim())
-      }
-
-      if (existing.goldenProfile.fullName?.trim()) {
-        previousNames.add(existing.goldenProfile.fullName.trim())
-      }
-
-      await db.conversation.updateMany({
-        where: {
-          type: "personal",
-          accountCustomerId: existing.id,
-          OR: [{ name: null }, { name: "" }, ...[...previousNames].map((name) => ({ name }))],
-        },
-        data: {
-          name: profileData.fullName,
-        },
-      })
-    }
-
-    return accountCustomer
   }
 
   async delete(id: string) {

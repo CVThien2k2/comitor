@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import dotenv from "dotenv"
 import { UploadService } from "src/upload/upload.service"
 import { streamToBlob } from "src/utils/helper/file"
 import {
@@ -20,8 +19,6 @@ import { mapProfileToGoldenProfile } from "./utils/helper"
 import { RedisService } from "src/redis"
 import { PrismaService } from "src/database/prisma.service"
 import { MessageSenderResponse } from "src/platform/message-senders/message-sender.interface"
-
-dotenv.config()
 
 export type ZaloOaSendMessageResponse = {
   data: {
@@ -190,11 +187,11 @@ export class ZaloOaService {
     const token = await this.getCachedToken(params.senderId)
     const accessToken = token?.access_token ?? ""
 
-    const headers = new Headers(params.init.headers as any)
+    const headers = new Headers(params.init.headers)
     headers.set("access_token", accessToken)
 
     const res = await fetch(`${base}${params.path}`, { ...params.init, headers })
-    const json = (await res.json()) as any
+    const json = await res.json()
 
     if (retryOnExpired && this.isTokenExpiredResponse(json)) {
       const refreshed = await this.refreshAndPersistToken(params.senderId, token?.refresh_token)
@@ -214,7 +211,6 @@ export class ZaloOaService {
       path: `/v3.0/oa/user/detail?data={"user_id":${userId}}`,
       init: { method: "GET" },
     })
-
     return mapProfileToGoldenProfile(profile, userId)
   }
 
@@ -315,7 +311,7 @@ export class ZaloOaService {
       return this.sendImageGridMessage(payload, files)
     }
 
-    let lastResponses: MessageSenderResponse[] = []
+    const lastResponses: MessageSenderResponse[] = []
 
     await Promise.all(
       files.map(async (file) => {
@@ -526,7 +522,7 @@ export class ZaloOaService {
       const response = await this.sendAttachments(payload)
 
       if (payload.text) {
-        const textResponse = (await this.fetchZaloJson({
+        const textResponse = await this.fetchZaloJson<ZaloOaSendMessageResponse>({
           senderId: payload.senderId,
           path: `/v3.0/oa/message/cs`,
           init: {
@@ -539,7 +535,7 @@ export class ZaloOaService {
               },
             }),
           },
-        })) as ZaloOaSendMessageResponse
+        })
         response.push({
           messageId: textResponse.data.message_id,
           conversationId: payload.conversationId,
@@ -549,7 +545,7 @@ export class ZaloOaService {
 
       return response
     } else if (!payload.text && payload.attachments && payload.attachments.length > 0) {
-      const response = (await this.sendAttachments(payload)) as any
+      const response = await this.sendAttachments(payload)
 
       return response
     }

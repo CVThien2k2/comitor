@@ -29,14 +29,13 @@ export class MessageHandler {
       isGroupMessage,
     } = message
 
-    // Check tin nhắn đã xử lý chưa
     const existingMessage = await this.prisma.client.message.findFirst({
       where: { externalId: externalMessageId },
     })
 
     if (existingMessage) {
       this.logger.warn(`Tin nhắn đã được xử lý từ trước: ${externalMessageId}`)
-      return existingMessage
+      return
     }
 
     const linkedAccount = await this.prisma.client.linkAccount.findFirst({
@@ -45,11 +44,15 @@ export class MessageHandler {
 
     if (!linkedAccount)
       throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${recipientId}`)
-    if (linkedAccount.status === "inactive")
+
+    if (linkedAccount.status === "inactive") {
       this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
+      return
+    }
 
     const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {
       const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
+
       return this.messageService.createInbound(
         {
           externalConversationId,
@@ -86,7 +89,7 @@ export class MessageHandler {
 
     if (existingMessage) {
       this.logger.warn(`Tin nhắn đã được xử lý từ trước: ${externalMessageId}`)
-      return existingMessage
+      return
     }
 
     // Outbound: senderId = linked account, recipientId = customer
@@ -96,9 +99,10 @@ export class MessageHandler {
 
     if (!linkedAccount)
       throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${senderId}`)
+
     if (linkedAccount.status === "inactive") {
       this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
-      return null
+      return
     }
 
     const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {

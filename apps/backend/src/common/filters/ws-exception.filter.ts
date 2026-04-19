@@ -8,10 +8,7 @@ export class WsExceptionFilter extends BaseWsExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const client = host.switchToWs().getClient()
 
-    const error =
-      exception instanceof WsException
-        ? exception.getError()
-        : { message: "Lỗi máy chủ nội bộ" }
+    const error = exception instanceof WsException ? exception.getError() : { message: "Lỗi máy chủ nội bộ" }
 
     this.logger.error(`WebSocket error: ${JSON.stringify(error)}`)
 

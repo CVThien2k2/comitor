@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, UserProfile } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse, UserProfile } from "@/lib/types"
 
 export type UsersQuery = {
   page?: number

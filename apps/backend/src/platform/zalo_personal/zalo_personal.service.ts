@@ -6,7 +6,7 @@ import { ZaloPersonalSessionService } from "./zalo_personal-session.service"
 export class ZaloPersonalService {
   constructor(
     private readonly authService: ZaloPersonalAuthService,
-    private readonly sessionService: ZaloPersonalSessionService,
+    private readonly sessionService: ZaloPersonalSessionService
   ) {}
 
   async getLinkedStatus(userId: string) {

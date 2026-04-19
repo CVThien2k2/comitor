@@ -42,10 +42,7 @@ export class MessageController {
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_READ)
   @Get("conversation/:conversationId")
-  async findByConversationId(
-    @Param("conversationId") conversationId: string,
-    @Query() query: PaginationQueryDto
-  ) {
+  async findByConversationId(@Param("conversationId") conversationId: string, @Query() query: PaginationQueryDto) {
     const data = await this.messageService.findByConversationId(conversationId, query)
     return { message: "Lấy danh sách tin nhắn thành công", data }
   }

@@ -56,7 +56,10 @@ class ZaloOAMessageContentDto {
 }
 
 export class ZaloOAWebhookDto {
-  @ApiProperty({ example: "user_send_text", description: "Loại sự kiện: user_send_text, user_send_image, user_send_file, oa_send_text, ..." })
+  @ApiProperty({
+    example: "user_send_text",
+    description: "Loại sự kiện: user_send_text, user_send_image, user_send_file, oa_send_text, ...",
+  })
   event_name: string
 
   @ApiProperty({ example: "1234567890" })
@@ -68,7 +71,10 @@ export class ZaloOAWebhookDto {
   @ApiProperty({ type: ZaloOARecipientDto })
   recipient: ZaloOARecipientDto
 
-  @ApiPropertyOptional({ type: ZaloOAMessageContentDto, description: "Một số event Zalo OA không gửi kèm message payload" })
+  @ApiPropertyOptional({
+    type: ZaloOAMessageContentDto,
+    description: "Một số event Zalo OA không gửi kèm message payload",
+  })
   message?: ZaloOAMessageContentDto
 
   @ApiProperty({ example: "1710000000000" })

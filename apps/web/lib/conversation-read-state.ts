@@ -1,4 +1,4 @@
-import type { Conversation, MessageItem } from "@workspace/shared"
+import type { Conversation, MessageItem } from "@/lib/types"
 
 export type ConversationReadOverride = {
   messageId: string

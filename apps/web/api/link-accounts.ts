@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, LinkAccountItem, LinkAccountDetail } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse, LinkAccountItem, LinkAccountDetail } from "@/lib/types"
 
 export interface LinkAccountQuery {
   page?: number

@@ -23,7 +23,11 @@ import {
   NotFoundEntity,
   UnauthorizedEntity,
 } from "../../common/entities/api-response.entity"
-import { AccountCustomerEntity, AccountCustomerListEntity, AccountCustomerDetailEntity } from "./entities/account-customer.entity"
+import {
+  AccountCustomerEntity,
+  AccountCustomerListEntity,
+  AccountCustomerDetailEntity,
+} from "./entities/account-customer.entity"
 import { AccountCustomerService } from "./account-customer.service"
 import { UpdateAccountCustomerDto } from "./dto/update-account-customer.dto"
 

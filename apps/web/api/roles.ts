@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse } from "@/lib/types"
 
 export type RolesQuery = {
   page?: number

@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, UserProfile } from "@workspace/shared"
+import type { ApiResponse, UserProfile } from "@/lib/types"
 
 export type AppData = {
   badges: {

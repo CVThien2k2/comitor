@@ -13,7 +13,7 @@ import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { toast } from "@workspace/ui/components/sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
-import type { UserProfile } from "@workspace/shared"
+import type { UserProfile } from "@/lib/types"
 import { AccountFormDialog } from "./account-form-dialog"
 
 type FormDialogState = {

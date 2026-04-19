@@ -1,7 +1,7 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, Conversation, MessageItem, CreateMessagePayload } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse, Conversation, MessageItem, CreateMessagePayload } from "@/lib/types"
 
-export type { Conversation, MessageItem, MessageAttachment, CreateMessagePayload } from "@workspace/shared"
+export type { Conversation, MessageItem, MessageAttachment, CreateMessagePayload } from "@/lib/types"
 
 // ─── Query Types ────────────────────────────────────────
 

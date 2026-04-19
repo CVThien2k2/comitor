@@ -3,7 +3,7 @@ import { JwtService } from "@nestjs/jwt"
 import { ConfigService } from "@nestjs/config"
 import * as crypto from "crypto"
 import { PrismaService } from "../database/prisma.service"
-import { parseDurationToMs } from "@workspace/shared"
+import { parseDurationToMs } from "../utils/helper/date-time"
 import type { JwtPayload } from "../common/strategies/jwt.strategy"
 
 const MAX_SESSIONS = 5

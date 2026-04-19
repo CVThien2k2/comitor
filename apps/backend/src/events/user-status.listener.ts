@@ -2,7 +2,8 @@ import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
 import { UsersService } from "../core/users/users.service"
 import { SocketGateway } from "../websocket/socket.gateway"
-import { type UserStatusEvent, type SocketEvent, EVENTS } from "@workspace/shared"
+import { EVENTS } from "../websocket/socket-events"
+import type { UserStatusEvent } from "../websocket/socket-event-payloads"
 
 @Injectable()
 export class UserStatusListener {

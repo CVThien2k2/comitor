@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ApiResponse, UserProfile } from "@workspace/shared"
+import type { ApiResponse, UserProfile } from "@/lib/types"
 
 type AuthState = {
   accessToken: string | null

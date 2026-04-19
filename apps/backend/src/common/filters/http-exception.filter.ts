@@ -1,11 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from "@nestjs/common"
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from "@nestjs/common"
 import { HttpAdapterHost } from "@nestjs/core"
 
 @Catch()
@@ -21,24 +14,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest()
     const response = ctx.getResponse()
 
-    const statusCode =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR
+    const statusCode = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
 
-    const exceptionResponse =
-      exception instanceof HttpException ? exception.getResponse() : null
+    const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : null
 
     let message = "Lỗi máy chủ nội bộ"
     let errors: string[] | undefined
 
     if (typeof exceptionResponse === "string") {
       message = exceptionResponse
-    } else if (
-      exceptionResponse &&
-      typeof exceptionResponse === "object" &&
-      "message" in exceptionResponse
-    ) {
+    } else if (exceptionResponse && typeof exceptionResponse === "object" && "message" in exceptionResponse) {
       const msg = (exceptionResponse as { message: string | string[] }).message
       if (Array.isArray(msg)) {
         message = msg[0]

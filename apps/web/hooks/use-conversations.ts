@@ -5,7 +5,7 @@ import { useAppStore } from "@/stores/app-store"
 import { useAuthStore } from "@/stores/auth-store"
 import { conversations as conversationsApi, messages as messagesApi, type Conversation, type MessageItem } from "@/api/conversations"
 import { patchConversationLatestMessageReadState } from "@/lib/conversation-read-state"
-import type { ApiResponse, PaginatedResponse } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse } from "@/lib/types"
 
 type ConversationLastViewedData = {
   lastViewedById: string | null

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { EVENTS, type MessageCreatedEvent } from "@workspace/shared"
+import { EVENTS } from "../../websocket/socket-events"
+import type { MessageCreatedEvent } from "../../websocket/socket-event-payloads"
 import type { Attachment } from "src/utils/types"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
@@ -10,7 +11,7 @@ import { CreateMessageDto } from "./dto/create-message.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
 import { MessageSender } from "@workspace/database"
-import { MessageStatus } from "node_modules/@workspace/database/dist/generated/enums"
+import { MessageStatus } from "@workspace/database"
 import { MESSAGE_INCLUDE } from "./message.include"
 
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -151,7 +152,7 @@ export class MessageService {
 
   async findManyByIds(ids: string[]) {
     return this.prisma.client.message.findMany({
-      where: { id: { in: ids as string[] } },
+      where: { id: { in: ids } },
       include: MESSAGE_INCLUDE,
     })
   }
@@ -210,16 +211,16 @@ export class MessageService {
         await tx.messageAttachment.createMany({
           data: attachmentMessages.map((message, index) => ({
             messageId: message.id,
-            fileName: attachments[index]!.fileName,
-            fileType: attachments[index]!.fileType,
-            fileUrl: attachments[index]!.fileUrl,
+            fileName: attachments[index].fileName,
+            fileType: attachments[index].fileType,
+            fileUrl: attachments[index].fileUrl,
             fileMimeType: getAttachmentMimeType({
-              mimeType: attachments[index]!.fileMimeType,
-              fileType: attachments[index]!.fileType,
-              fileName: attachments[index]!.fileName,
-              fileUrl: attachments[index]!.fileUrl,
+              mimeType: attachments[index].fileMimeType,
+              fileType: attachments[index].fileType,
+              fileName: attachments[index].fileName,
+              fileUrl: attachments[index].fileUrl,
             }),
-            key: attachments[index]!.key,
+            key: attachments[index].key,
           })),
         })
 

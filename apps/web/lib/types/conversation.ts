@@ -39,7 +39,7 @@ export interface MessageItem {
 
 // ─── Conversation ───────────────────────────────────────
 
-/** Tài khoản liên kết đầy đủ khi API include (khớp LinkAccount + chuỗi ISO) */
+/** Bản serialize API (chuỗi ISO) — khác model Prisma cùng tên. */
 export interface LinkAccount {
   id: string
   provider: ChannelType
@@ -99,8 +99,6 @@ export interface Conversation {
   messages?: MessageItem[]
   unreadCount?: number
 }
-
-// ─── Payloads ───────────────────────────────────────────
 
 export interface CreateMessagePayload {
   conversationId: string

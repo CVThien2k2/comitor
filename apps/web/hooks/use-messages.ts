@@ -4,7 +4,7 @@ import { messages as messagesApi } from "@/api/conversations"
 import { uploadManyImages } from "@/lib/upload"
 import { useAuthStore } from "@/stores/auth-store"
 import { useChatStore } from "@/stores/chat-store"
-import type { MessageAttachment, MessageItem } from "@workspace/shared"
+import type { MessageAttachment, MessageItem } from "@/lib/types"
 import { useCallback } from "react"
 import { toast } from "@workspace/ui/components/sonner"
 

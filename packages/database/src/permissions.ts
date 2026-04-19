@@ -70,6 +70,6 @@ export const PERMISSION = {
 export type PermissionKey = keyof typeof PERMISSION
 export type PermissionCode = (typeof PERMISSION)[PermissionKey]["code"]
 
-export const P = Object.fromEntries(
-  Object.entries(PERMISSION).map(([key, val]) => [key, val.code])
-) as { [K in PermissionKey]: (typeof PERMISSION)[K]["code"] }
+export const P = Object.fromEntries(Object.entries(PERMISSION).map(([key, val]) => [key, val.code])) as {
+  [K in PermissionKey]: (typeof PERMISSION)[K]["code"]
+}

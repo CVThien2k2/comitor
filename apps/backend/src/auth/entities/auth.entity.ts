@@ -22,4 +22,3 @@ export class RefreshEntity {
   @ApiProperty({ type: UserEntity })
   user: UserEntity
 }
-

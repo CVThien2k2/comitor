@@ -4,9 +4,9 @@ import type {
   GoldenProfileDetail,
   GoldenProfileRecord,
   UpdateGoldenProfilePayload,
-} from "@workspace/shared"
+} from "@/lib/types"
 
-export type { GoldenProfileDetail, GoldenProfileRecord, UpdateGoldenProfilePayload } from "@workspace/shared"
+export type { GoldenProfileDetail, GoldenProfileRecord, UpdateGoldenProfilePayload } from "@/lib/types"
 
 export const goldenProfiles = {
   getById: (id: string) => api.get<ApiResponse<GoldenProfileDetail>>(`/golden-profiles/${id}`),

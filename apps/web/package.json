@@ -18,7 +18,6 @@
     "@tanstack/react-query-devtools": "^5.91.3",
     "@tanstack/react-table": "^8.21.3",
     "@workspace/database": "workspace:*",
-    "@workspace/shared": "workspace:*",
     "@workspace/ui": "workspace:*",
     "axios": "^1.13.6",
     "lucide-react": "^0.577.0",

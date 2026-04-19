@@ -1,7 +1,7 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, SuggestedMessageItem } from "@workspace/shared"
+import type { ApiResponse, PaginatedResponse, SuggestedMessageItem } from "@/lib/types"
 
-export type { SuggestedMessageItem } from "@workspace/shared"
+export type { SuggestedMessageItem } from "@/lib/types"
 
 export interface SuggestedMessagesPaginationQuery {
   page?: number

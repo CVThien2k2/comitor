@@ -2,7 +2,7 @@
 
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { getSenderName } from "@/lib/helper"
-import type { MessageItem } from "@workspace/shared"
+import type { MessageItem } from "@/lib/types"
 import { cn } from "@workspace/ui/lib/utils"
 import { ImageGallery } from "./image-gallery"
 import { MessageActions } from "./message-actions"

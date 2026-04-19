@@ -1,4 +1,4 @@
-import type { PresignedData } from "@workspace/shared"
+import type { PresignedData } from "@/lib/types"
 import { uploadApi } from "@/api/upload"
 
 export type UploadProgress = {

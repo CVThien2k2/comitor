@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios"
 import { LoginSchema } from "@/lib/schema"
-import type { ApiResponse, AuthResponse } from "@workspace/shared"
+import type { ApiResponse, AuthResponse } from "@/lib/types"
 import type { ForgotPasswordSchema } from "@/lib/schema/auth"
 
 export const auth = {

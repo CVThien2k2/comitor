@@ -15,7 +15,7 @@ import {
 import { Icons } from "@/components/global/icons"
 import { uploadOneImageWithProgress } from "@/lib/upload"
 import { type AccountFormSchema, createAccountSchema, updateAccountSchema } from "@/lib/schema"
-import type { PresignedData, UserProfile } from "@workspace/shared"
+import type { PresignedData, UserProfile } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"

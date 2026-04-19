@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
-import { EVENTS, type MessageCreatedEvent, type MessageDeliveryEvent } from "@workspace/shared"
+import { EVENTS } from "../websocket/socket-events"
+import type { MessageCreatedEvent, MessageDeliveryEvent } from "../websocket/socket-event-payloads"
 import { MessageService } from "../core/message/message.service"
 import { MessageSenderRegistry } from "../platform/message-senders/message-sender.registry"
 import { SocketGateway } from "../websocket/socket.gateway"

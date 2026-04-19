@@ -78,7 +78,7 @@ export class ZaloPersonalMessageService {
     private readonly zaloPersonalSessionService: ZaloPersonalSessionService
   ) {}
 
-   async sendText(api: any, threadId: string, threadType: number, text: string) {
+  async sendText(api: any, threadId: string, threadType: number, text: string) {
     const payload: ZaloPersonalMessagePayload = {
       msg: text,
     }
@@ -103,34 +103,31 @@ export class ZaloPersonalMessageService {
     await api.sendMessage(payload, threadId, threadType)
   }
 
-  async sendAttachments(
-  api: any,
-  threadId: string,
-  threadType: number,
-  attachments: ZaloPersonalAttachmentInput[]
-) {
-  try {
-    const attachmentSources = await this.buildAttachmentSources(attachments)
+  async sendAttachments(api: any, threadId: string, threadType: number, attachments: ZaloPersonalAttachmentInput[]) {
+    try {
+      const attachmentSources = await this.buildAttachmentSources(attachments)
 
-    const payload: ZaloPersonalMessagePayload = {
-      msg: "",
-      attachments: attachmentSources,
+      const payload: ZaloPersonalMessagePayload = {
+        msg: "",
+        attachments: attachmentSources,
+      }
+
+      this.logger.log(`Gửi tin nhắn với ${attachmentSources.length} attachments`, {
+        threadId,
+        threadType,
+        attachmentFileNames: attachmentSources.map((a) => a.filename),
+      })
+
+      return await api.sendMessage(payload, threadId, threadType)
+    } catch (error) {
+      this.logger.error("Gửi tin nhắn với attachment thất bại", stringifyUnknownError(error))
+      throw error
     }
-
-    this.logger.log(`Gửi tin nhắn với ${attachmentSources.length} attachments`, {
-      threadId,
-      threadType,
-      attachmentFileNames: attachmentSources.map((a) => a.filename),
-    })
-
-    return await api.sendMessage(payload, threadId, threadType)
-  } catch (error) {
-    this.logger.error("Gửi tin nhắn với attachment thất bại", stringifyUnknownError(error))
-    throw error
   }
-}
 
-  private async buildAttachmentSources(attachments: ZaloPersonalAttachmentInput[]): Promise<ZaloPersonalAttachmentSource[]> {
+  private async buildAttachmentSources(
+    attachments: ZaloPersonalAttachmentInput[]
+  ): Promise<ZaloPersonalAttachmentSource[]> {
     return Promise.all(attachments.map((attachment) => this.buildAttachmentSource(attachment)))
   }
 

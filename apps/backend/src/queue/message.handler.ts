@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common"
-import { EVENTS } from "@workspace/shared"
+import { EVENTS } from "../websocket/socket-events"
 import { AccountCustomerService } from "src/core/account-customer/account-customer.service"
 import { ConversationService } from "src/core/conversation/conversation.service"
 import { MessageService } from "src/core/message/message.service"

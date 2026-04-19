@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import type { Conversation, MessageItem } from "@workspace/shared"
+import type { Conversation, MessageItem } from "@/lib/types"
 import {
   applyConversationReadOverride,
   getConversationLatestMessage,

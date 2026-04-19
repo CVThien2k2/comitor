@@ -6,7 +6,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/shared/package.json ./packages/shared/
 COPY packages/database/package.json ./packages/database/
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter web...
 
@@ -28,11 +27,9 @@ ENV NEXT_PUBLIC_META_APP_ID=$NEXT_PUBLIC_META_APP_ID
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
 COPY . .
 RUN pnpm --filter @workspace/database build \
-  && pnpm --filter @workspace/shared build \
   && pnpm --filter @workspace/ui build \
   && pnpm --filter web build
 

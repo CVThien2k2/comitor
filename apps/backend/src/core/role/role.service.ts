@@ -198,10 +198,7 @@ export class RoleService {
 
     if (users.length > 0) {
       await this.redisService.del(
-        ...users.flatMap((u) => [
-          `${PERMISSIONS_CACHE_PREFIX}${u.id}`,
-          `${ROLE_NAME_CACHE_PREFIX}${u.id}`,
-        ])
+        ...users.flatMap((u) => [`${PERMISSIONS_CACHE_PREFIX}${u.id}`, `${ROLE_NAME_CACHE_PREFIX}${u.id}`])
       )
     }
   }

@@ -10,7 +10,7 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets"
 import { createAdapter } from "@socket.io/redis-adapter"
-import { EVENTS, type SocketEvent } from "@workspace/shared"
+import { EVENTS, type SocketEvent } from "./socket-events"
 import Redis from "ioredis"
 import { Namespace, Socket } from "socket.io"
 import { WsExceptionFilter } from "../common/filters/ws-exception.filter"

@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { Button } from "@workspace/ui/components/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
-import type { ApiResponse } from "@workspace/shared"
+import type { ApiResponse } from "@/lib/types"
 import { Icons } from "@/components/global/icons"
 import { api } from "@/lib/axios"
 import { useCallback, useState, useEffect } from "react"

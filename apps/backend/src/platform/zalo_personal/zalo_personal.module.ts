@@ -15,7 +15,7 @@ import { ZaloPersonalMessageService } from "./zalo_personal-message.service"
     ZaloPersonalSessionService,
     ZaloPersonalListenerService,
     ZaloPersonalClientFactory,
-    ZaloPersonalMessageService
+    ZaloPersonalMessageService,
   ],
   exports: [ZaloPersonalService, ZaloPersonalSessionService, ZaloPersonalMessageService],
 })

@@ -1,6 +1,6 @@
-import { EVENTS } from "@workspace/shared/socket-events"
+import { EVENTS } from "@/lib/socket-events"
 import type { Socket } from "socket.io-client"
-import type { Conversation } from "@workspace/shared"
+import type { Conversation } from "@/lib/types"
 import { useChatStore } from "@/stores/chat-store"
 import { useAppStore } from "@/stores/app-store"
 

@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PresignedData } from "@workspace/shared"
+import type { ApiResponse, PresignedData } from "@/lib/types"
 
 export type PresignOnePayload = {
   folder: string

@@ -2,7 +2,6 @@ import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } fro
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import { Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import type { PresignedData } from "@workspace/shared"
 import { randomUUID } from "crypto"
 import { Readable } from "stream"
 
@@ -85,7 +84,7 @@ export class UploadService {
     }
   }
 
-  async getPresignedPutUrl(params: { folder: string; filename: string; contentType: string }): Promise<PresignedData> {
+  async getPresignedPutUrl(params: { folder: string; filename: string; contentType: string }) {
     const key = this.buildObjectKey({
       folder: params.folder,
       filename: params.filename,
@@ -99,10 +98,7 @@ export class UploadService {
     return { key, uploadUrl, url: this.getPublicUrl(key) }
   }
 
-  async getPresignedPutUrlsBatch(params: {
-    folder: string
-    files: Array<{ filename: string; contentType: string }>
-  }): Promise<PresignedData[]> {
+  async getPresignedPutUrlsBatch(params: { folder: string; files: Array<{ filename: string; contentType: string }> }) {
     return Promise.all(
       params.files.map(async (file) => {
         const key = this.buildObjectKey({

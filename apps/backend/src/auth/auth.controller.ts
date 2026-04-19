@@ -8,7 +8,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
-import { parseDurationToMs } from "@workspace/shared"
+import { parseDurationToMs } from "../utils/helper/date-time"
 import type { Request as ExpressRequest, Response } from "express"
 import {
   ApiResponseOf,

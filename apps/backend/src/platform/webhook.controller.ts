@@ -55,10 +55,11 @@ export class WebhookController {
   @HttpCode(200)
   @ApiOperation({ summary: "Nhận webhook từ Meta (Facebook)" })
   async handleWebhook(@Body() body: MetaMessageWebhook) {
+    console.log(JSON.stringify(body, null, 2))
     const message = this.webhookService.mapMetaWebhook(body)
     if (!message) return "EVENT_RECEIVED"
 
-    await this.queueService.addIncomingMessage(message)
+    // await this.queueService.addIncomingMessage(message)
     return "EVENT_RECEIVED"
   }
 }

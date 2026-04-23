@@ -125,8 +125,13 @@ try {
 }
 ```
 
-### 4.4. Idempotency (Tính Lũy đẳng)
-- **Quy tắc**: Các API quan trọng (đặc biệt là API nhận Webhook hoặc API thao tác tài chính/gửi tin nhắn bên thứ 3) phải là **Idempotent**. Nghĩa là việc gọi hàm 1 lần hay 100 lần với cùng 1 payload đều chỉ sinh ra **duy nhất 1 kết quả/tác động**.
-- **Áp dụng**: 
-  - Lưu lại `external_message_id` từ Zalo vào DB và đánh index unique.
-  - Khi nhận Webhook, check `external_message_id`. Nếu đã tồn tại, lập tức return HTTP 200 OK và bỏ qua việc xử lý. Hạn chế tối đa side-effect (gửi trùng thông báo Notification hoặc gửi trùng tin nhắn).
+### 4.4. Ngăn chặn Double-Click / Spam Request (Frontend)
+- **Hoàn cảnh**: Người dùng mất kiên nhẫn bấm nút "Gửi tin nhắn" hoặc "Tạo mới" 5 lần liên tiếp trong lúc API chưa kịp trả về, dẫn đến việc Frontend bắn ra 5 request giống hệt nhau lên Backend.
+- **Áp dụng (Quy chuẩn code FE)**:
+  - **Luôn Disable Button đang Submit**: Khi dùng React Query `useMutation`, bắt buộc truyền cờ `isPending` (hoặc `isLoading`) vào thuộc tính `disabled` của Button.
+    ```tsx
+    const { mutate, isPending } = useCreateNote();
+    return <Button disabled={isPending} onClick={() => mutate(data)}>Gửi</Button>;
+    ```
+  - **Debounce cho Search/Input**: Với các thao tác người dùng gõ liên tục (như thanh tìm kiếm), **cấm** gọi API sau mỗi lần gõ phím. Bắt buộc dùng hook `useDebounce` (từ thư viện `use-debounce`) để gom nhóm thao tác (chỉ gọi API sau khi người dùng ngừng gõ khoảng 300ms - 500ms).
+  - **React Query Deduplication**: Lợi dụng tính năng tự động loại bỏ request trùng lặp (Deduplication) của React Query đối với các lệnh `useQuery` gọi liên tiếp trong một khoảng thời gian ngắn để giảm tải BE.

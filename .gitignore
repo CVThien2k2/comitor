@@ -39,3 +39,6 @@ npm-debug.log*
 *.pem
 
 .vscode/*
+
+# Docker
+docker-compose.yml

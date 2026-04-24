@@ -48,6 +48,7 @@ COPY --from=prod-deps /app/packages/database/node_modules ./packages/database/no
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/package.json ./packages/database/package.json
 COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/apps/backend/public ./apps/backend/public
 
 RUN mkdir -p /app/node_modules/@workspace \
     && ln -sfn /app/packages/database /app/node_modules/@workspace/database \

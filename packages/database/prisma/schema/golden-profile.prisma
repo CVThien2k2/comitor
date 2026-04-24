@@ -1,24 +1,28 @@
 model GoldenProfile {
-  id                String        @id @default(uuid())
-  fullName          String?       @map("full_name")
-  gender            Gender?
-  dateOfBirth       DateTime?     @map("date_of_birth") @db.Date
-  primaryPhone      String?       @map("primary_phone") @db.VarChar(20)
-  primaryEmail      String?       @map("primary_email") @db.VarChar(100)
-  address           String?
-  city              String?       @db.VarChar(100)
-  memberTier        MemberTier?   @map("member_tier")
-  loyaltyPoints     Int           @default(0) @map("loyalty_points")
-  customerType      CustomerType  @default(individual) @map("customer_type")
-  elinesCustomerId  String?       @map("elines_customer_id") @db.VarChar(50)
-  isBlacklisted     Boolean       @default(false) @map("is_blacklisted")
-  journeyState      JourneyState? @map("journey_state")
-  characteristics   String?
-  staffNotes        String?       @map("staff_notes")
-  createdAt         DateTime?     @default(now()) @map("created_at")
-  updatedAt         DateTime?     @updatedAt @map("updated_at")
+  id               String        @id @default(uuid())
+  linkedAccountId  String        @map("linked_account_id")
+  fullName         String?       @map("full_name")
+  gender           Gender?
+  dateOfBirth      DateTime?     @map("date_of_birth") @db.Date
+  primaryPhone     String?       @map("primary_phone") @db.VarChar(20)
+  primaryEmail     String?       @map("primary_email") @db.VarChar(100)
+  address          String?
+  city             String?       @db.VarChar(100)
+  memberTier       MemberTier?   @map("member_tier")
+  loyaltyPoints    Int           @default(0) @map("loyalty_points")
+  customerType     CustomerType  @default(individual) @map("customer_type")
+  elinesCustomerId String?       @map("elines_customer_id") @db.VarChar(50)
+  isBlacklisted    Boolean       @default(false) @map("is_blacklisted")
+  journeyState     JourneyState? @map("journey_state")
+  characteristics  String?
+  staffNotes       String?       @map("staff_notes")
 
-  accountCustomers  AccountCustomer[]
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  linkedAccount    LinkAccount       @relation(fields: [linkedAccountId], references: [id])
+  accountCustomers AccountCustomer[]
 
   @@unique([fullName, primaryPhone, primaryEmail], name: "unique_golden_profile")
   @@map("golden_profiles")

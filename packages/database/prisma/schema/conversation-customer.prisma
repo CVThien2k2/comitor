@@ -1,13 +1,11 @@
 model ConversationCustomer {
-  id                String   @id @default(uuid())
-  conversationId    String   @map("conversation_id")
-  accountCustomerId String   @map("account_customer_id")
-  isAdmin           Boolean  @default(false) @map("is_admin")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  conversationId    String  @map("conversation_id")
+  accountCustomerId String  @map("account_customer_id")
+  isAdmin           Boolean @default(false) @map("is_admin")
 
-  conversation    Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  accountCustomer AccountCustomer @relation(fields: [accountCustomerId], references: [id], onDelete: Cascade)
+  conversation    Conversation    @relation(fields: [conversationId], references: [id])
+  accountCustomer AccountCustomer @relation(fields: [accountCustomerId], references: [id])
 
+  @@unique([conversationId, accountCustomerId], name: "unique_conversation_customer")
   @@map("conversation_customers")
 }

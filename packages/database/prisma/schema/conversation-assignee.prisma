@@ -1,0 +1,42 @@
+model ProcessingSession {
+  id             String    @id @default(uuid()) //ID session xử lý
+  conversationId String    @map("conversation_id") //ID cuộc hội thoại
+  startedAt      DateTime? @default(now()) @map("started_at") //Thời gian bắt đầu xử lý
+  endedAt        DateTime? @map("ended_at") //Thời gian kết thúc xử lý
+  title          String?   @map("title") //Tiêu đề
+  note           String?   @map("note") //Ghi chú
+  rating         Int?      @map("rating") //Đánh giá chất lượng (1-5)
+
+  status ProcessingSessionStatus @default(pending) @map("status") //Trạng thái xử lý
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id])
+  assignees    SessionAssignee[]
+
+  @@index([conversationId], name: "idx_processing_session_conversation")
+  @@map("conversation_processing_sessions")
+}
+
+model SessionAssignee {
+  id        String  @id @default(uuid())
+  sessionId String  @map("session_id") //ID session xử lý
+  userId    String  @map("user_id") //ID người dùng xử lý
+  assignBy  String? @map("assign_by_user_id") //ID người dùng gán nếu có
+
+  startedAt DateTime  @map("received_at") //Thời gian bắt đầu xử lý
+  endedAt   DateTime? @map("ended_at") //Thời gian kết thúc xử lý
+
+  status SessionAssigneeStatus @default(processing) @map("status") //Trạng thái xử lý
+
+  note String? @map("note") //Ghi chú của người dùng xử lý
+
+  session      ProcessingSession @relation(fields: [sessionId], references: [id])
+  user         User              @relation("ProcessingSessionAssignee", fields: [userId], references: [id])
+  assignByUser User?             @relation("ProcessingSessionAssignBy", fields: [assignBy], references: [id])
+
+  @@unique([sessionId, userId], name: "unique_session_assignee")
+  @@index([userId], name: "idx_session_assignee_user")
+  @@map("conversation_session_assignees")
+}

@@ -1,10 +1,14 @@
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 
+  createdBy String   @map("created_by_id")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  createdByUser   User             @relation("RoleCreatedBy", fields: [createdBy], references: [id])
   users           User[]
   rolePermissions RolePermission[]
 
@@ -12,25 +16,27 @@ model Role {
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  code        String   @unique // format: "resource:action" e.g. "user:create"
+  id          String  @id @default(uuid())
+  code        String  @unique
   description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
 
+  createdBy String   @map("created_by_id")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  createdByUser   User             @relation("PermissionCreatedBy", fields: [createdBy], references: [id])
   rolePermissions RolePermission[]
 
   @@map("permissions")
 }
 
 model RolePermission {
-  id           String   @id @default(uuid())
-  roleId       String   @map("role_id")
-  permissionId String   @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
 
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
 
   @@unique([roleId, permissionId], name: "unique_role_permission")
   @@map("role_permissions")

@@ -1,11 +1,10 @@
 import { Body, Controller, Get, HttpCode, Logger, Post, Query, Res } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
-import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger"
+import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Response } from "express"
 import { QueueService } from "src/queue/queue.service"
 import { MetaMessageWebhook, ZaloOAWebhookPayload } from "src/utils/types/webhook"
 import { Public } from "../common/decorators/public.decorator"
-import { ZaloOAWebhookDto } from "./dto/zalo-oa-webhook.dto"
 import { WebhookService } from "./webhook.service"
 
 @ApiTags("Webhook")
@@ -24,7 +23,6 @@ export class WebhookController {
   @Post("zalo-oa")
   @HttpCode(200)
   @ApiOperation({ summary: "Nhận webhook từ Zalo OA" })
-  @ApiBody({ type: ZaloOAWebhookDto })
   async handleZaloOAWebhook(@Body() payload: ZaloOAWebhookPayload, @Res() res: Response) {
     res.status(200).send("OK")
     const message = this.webhookService.mapZaloWebhook(payload)
@@ -59,7 +57,7 @@ export class WebhookController {
     const message = this.webhookService.mapMetaWebhook(body)
     if (!message) return "EVENT_RECEIVED"
 
-    // await this.queueService.addIncomingMessage(message)
+    await this.queueService.addIncomingMessage(message)
     return "EVENT_RECEIVED"
   }
 }

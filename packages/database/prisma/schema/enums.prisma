@@ -11,6 +11,7 @@ enum JourneyState {
   holding
   ticketed
   cancelled
+  completed
 }
 
 enum MessageSender {
@@ -54,12 +55,25 @@ enum ConversationTag {
   business
 }
 
-enum CredentialType {
-  oauth2
-  browser_session
-}
-
 enum LinkAccountStatus {
   active
   inactive
+}
+
+enum ConversationStatus {
+  pending
+  processing
+  closed
+}
+
+enum ProcessingSessionStatus {
+  pending
+  processing
+  completed
+}
+
+enum SessionAssigneeStatus {
+  processing
+  completed
+  cancelled
 }

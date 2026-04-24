@@ -1,19 +1,21 @@
 model LinkAccount {
-  id                    String            @id @default(uuid())
-  provider              ChannelType       @map("provider")
-  linkedByUserId        String            @map("linked_by_user_id")
-  providerCredentialsId String?           @map("provider_credentials_id")
-  displayName           String?           @map("display_name")
-  accountId             String?           @map("account_id")
-  avatarUrl             String?           @map("avatar_url")
-  createdAt             DateTime          @default(now()) @map("created_at")
-  updatedAt             DateTime          @updatedAt @map("updated_at")
-  status                LinkAccountStatus @default(active) @map("status")
+  id          String            @id @default(uuid())
+  provider    ChannelType       @map("provider")
+  displayName String?           @map("display_name")
+  accountId   String?           @map("account_id")
+  avatarUrl   String?           @map("avatar_url")
+  status      LinkAccountStatus @default(active) @map("status")
+  credentials Json              @map("credentials") @db.Json
 
-  linkedByUser        User                 @relation(fields: [linkedByUserId], references: [id], onDelete: Cascade)
-  conversations       Conversation[]
-  accountCustomers    AccountCustomer[]
-  providerCredentials ProviderCredentials?
+  createdBy String   @map("created_by_id")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  createdByUser    User              @relation(fields: [createdBy], references: [id])
+  conversations    Conversation[]
+  accountCustomers AccountCustomer[]
+  goldenProfiles   GoldenProfile[]
 
   @@unique([accountId, provider], name: "unique_account_link")
   @@map("link_accounts")

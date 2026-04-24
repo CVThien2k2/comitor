@@ -1,8 +1,16 @@
 model SuggestedMessage {
-  id        String   @id @default(uuid())
-  tag       String   @db.VarChar(100)
-  message   String
-  images    String[] @db.Text 
+  id      String   @id @default(uuid())
+  tag     String   @db.VarChar(100)
+  message String
+  images  String[] @db.Text
+
+  createdBy String   @map("created_by_id")
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  createdByUser User @relation("SuggestedMessageCreatedBy", fields: [createdBy], references: [id])
+
   @@index([tag])
   @@map("suggested_messages")
 }

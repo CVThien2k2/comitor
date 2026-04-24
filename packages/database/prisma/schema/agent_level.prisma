@@ -1,0 +1,17 @@
+model AgentLevel {
+    id                         String @id @default(uuid())
+    code                       String @unique
+    description                String @map("description")
+    yearsOfExperience          Int    @map("years_of_experience") //Số năm kinh nghiệm
+    maxConcurrentConversations Int    @map("max_concurrent_conversations") //Số lượng cuộc hội thoại tối đa
+
+    createdBy String   @map("created_by_id") //ID người dùng tạo
+    isDeleted Boolean  @default(false) @map("is_deleted")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    createdByUser User   @relation("AgentLevelCreatedBy", fields: [createdBy], references: [id])
+    users         User[]
+
+    @@map("agent_levels")
+}

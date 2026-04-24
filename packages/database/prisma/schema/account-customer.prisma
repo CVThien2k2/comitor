@@ -1,20 +1,21 @@
 model AccountCustomer {
-  id              String    @id @default(uuid())
-  accountId       String    @map("account_id")
-  linkedAccountId String    @map("linked_account_id")
-  name            String?   @map("name")
-  goldenProfileId String    @map("golden_profile_id")
-  avatarUrl       String?   @map("avatar_url")
-  isOnline        Boolean   @default(false) @map("is_online")
-  isActive        Boolean   @default(true) @map("is_active")
-  createdAt       DateTime? @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  accountId       String   @map("account_id")
+  linkedAccountId String   @map("linked_account_id")
+  name            String   @map("name")
+  goldenProfileId String   @map("golden_profile_id")
+  avatarUrl       String?  @map("avatar_url")
+  isActive        Boolean  @default(true) @map("is_active")
+  lastActivityAt  DateTime @map("last_activity_at")
 
-  linkedAccount         LinkAccount            @relation(fields: [linkedAccountId], references: [id], onDelete: Cascade)
-  goldenProfile         GoldenProfile          @relation(fields: [goldenProfileId], references: [id], onDelete: Cascade)
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  linkedAccount         LinkAccount            @relation(fields: [linkedAccountId], references: [id])
+  goldenProfile         GoldenProfile          @relation(fields: [goldenProfileId], references: [id])
   conversationCustomers ConversationCustomer[]
-  messages              Message[]              @relation("MessageAccountCustomer")
-  createdConversations  Conversation[]         @relation("ConversationCreator")
+  messages              Message[]
 
   @@unique([accountId, linkedAccountId], name: "unique_account_customer")
   @@map("account_customer")

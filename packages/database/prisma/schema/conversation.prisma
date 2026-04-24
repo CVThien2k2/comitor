@@ -1,29 +1,31 @@
 model Conversation {
   id              String           @id @default(uuid())
   linkedAccountId String           @map("linked_account_id")
-  name            String?
+  name            String           @map("name")
   avatarUrl       String?          @map("avatar_url")
   externalId      String?          @map("external_id")
   type            ConversationType @default(personal)
   tag             ConversationTag  @default(other)
   journeyState    JourneyState?    @map("journey_state")
-  lastViewedById  String?          @map("last_viewed_by")
 
-  lastActivityAt    DateTime? @map("last_activity_at")
-  lastViewedAt      DateTime? @map("last_viewed_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  accountCustomerId String?   @map("account_customer_id")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  status              ConversationStatus @default(pending) @map("status") //Trạng thái cuộc hội thoại
+  countUnreadMessages Int                @default(0) @map("count_unread_messages") //Số lượng tin nhắn chưa đọc
+  isUnread            Boolean            @default(false) @map("is_unread") //Cuộc hội thoại có tin nhắn chưa đọc hay không
 
-  linkedAccount         LinkAccount            @relation(fields: [linkedAccountId], references: [id], onDelete: Cascade)
-  accountCustomer       AccountCustomer?       @relation("ConversationCreator", fields: [accountCustomerId], references: [id], onDelete: Cascade)
-  lastViewedBy          User?                  @relation("ConversationLastViewedBy", fields: [lastViewedById], references: [id], onDelete: SetNull)
+  lastActivityAt DateTime  @map("last_activity_at")
+  lastViewedAt   DateTime? @map("last_viewed_at")
+
+  isDeleted Boolean  @default(false) @map("is_deleted")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  linkedAccount         LinkAccount            @relation(fields: [linkedAccountId], references: [id])
   conversationCustomers ConversationCustomer[]
+  processingSessions    ProcessingSession[]
   messages              Message[]
 
   @@index([lastActivityAt(sort: Desc)], name: "last_activity_at")
   @@index([linkedAccountId], name: "linked_account_id")
-  @@index([lastViewedById], name: "last_viewed_by")
   @@index([lastViewedAt(sort: Desc)], name: "last_viewed_at")
   @@map("conversations")
 }

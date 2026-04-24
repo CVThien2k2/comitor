@@ -79,14 +79,14 @@ export class LinkAccountService {
   private async upsertProviderCredentials(tx: TransactionClient, params: UpsertProviderCredentialsParams) {
     const { linkAccountId, ...credentialData } = params
 
-    return tx.providerCredentials.upsert({
-      where: { linkAccountId },
-      update: credentialData,
-      create: {
-        linkAccountId,
-        ...credentialData,
-      },
-    })
+    // return tx.providerCredentials.upsert({
+    //   where: { linkAccountId },
+    //   update: credentialData,
+    //   create: {
+    //     linkAccountId,
+    //     ...credentialData,
+    //   },
+    // })
   }
 
   async findAll(query: PaginationQueryDto) {
@@ -101,29 +101,27 @@ export class LinkAccountService {
         }
       : {}
 
-    const [items, total] = await Promise.all([
-      this.prisma.client.linkAccount.findMany({
-        where,
-        include: { linkedByUser: { select: { id: true, name: true } } },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take,
-      }),
-      this.prisma.client.linkAccount.count({ where }),
-    ])
+    // const [items, total] = await Promise.all([
+    //   this.prisma.client.linkAccount.findMany({
+    //     where,
+    //     include: { linkedByUser: { select: { id: true, name: true } } },
+    //     orderBy: { createdAt: "desc" },
+    //     skip,
+    //     take,
+    //   }),
+    //   this.prisma.client.linkAccount.count({ where }),
+    // ])
 
-    return paginatedResponse(items, total, page, limit)
+    // return paginatedResponse(items, total, page, limit)
   }
 
   async findById(id: string) {
-    const account = await this.prisma.client.linkAccount.findUnique({
-      where: { id },
-      include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
-    })
-
-    if (!account) throw new NotFoundException("Liên kết kênh không tồn tại")
-
-    return account
+    // const account = await this.prisma.client.linkAccount.findUnique({
+    //   where: { id },
+    //   include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
+    // })
+    // if (!account) throw new NotFoundException("Liên kết kênh không tồn tại")
+    // return account
   }
 
   async update(id: string, dto: UpdateLinkAccountDto) {
@@ -144,13 +142,13 @@ export class LinkAccountService {
       this.zaloPersonalSessionService.disconnectSession(account.id)
     }
 
-    await this.prisma.client.$transaction(async (tx) => {
-      await tx.providerCredentials.deleteMany({
-        where: { linkAccountId: account.id },
-      })
+    // await this.prisma.client.$transaction(async (tx) => {
+    //   await tx.providerCredentials.deleteMany({
+    //     where: { linkAccountId: account.id },
+    //   })
 
-      await tx.linkAccount.delete({ where: { id } })
-    })
+    //   await tx.linkAccount.delete({ where: { id } })
+    // })
 
     if (account.accountId) {
       if (account.provider === ChannelType.zalo_oa) {
@@ -215,50 +213,50 @@ export class LinkAccountService {
     const accessTokenExpiresAt = new Date(Date.now() + accessTokenLifetimeSeconds * 1000)
     const refreshTokenExpiresAt = new Date(Date.now() + ZALO_OA_REFRESH_TOKEN_TTL_SECONDS * 1000)
 
-    const linkAccount = await this.prisma.client.$transaction(async (tx) => {
-      const linkAccount = await tx.linkAccount.upsert({
-        where: {
-          unique_account_link: {
-            accountId: oaInfo.data?.oa_id || "unknown",
-            provider: ChannelType.zalo_oa,
-          },
-        },
-        update: {
-          displayName: oaInfo.data?.name,
-          avatarUrl: oaInfo.data?.avatar,
-          linkedByUserId: userId,
-        },
-        create: {
-          provider: ChannelType.zalo_oa,
-          accountId: oaInfo.data?.oa_id || "unknown",
-          displayName: oaInfo.data?.name,
-          avatarUrl: oaInfo.data?.avatar,
-          linkedByUserId: userId,
-        },
-      })
+    // const linkAccount = await this.prisma.client.$transaction(async (tx) => {
+    //   const linkAccount = await tx.linkAccount.upsert({
+    //     where: {
+    //       unique_account_link: {
+    //         accountId: oaInfo.data?.oa_id || "unknown",
+    //         provider: ChannelType.zalo_oa,
+    //       },
+    //     },
+    //     update: {
+    //       displayName: oaInfo.data?.name,
+    //       avatarUrl: oaInfo.data?.avatar,
+    //       linkedByUserId: userId,
+    //     },
+    //     create: {
+    //       provider: ChannelType.zalo_oa,
+    //       accountId: oaInfo.data?.oa_id || "unknown",
+    //       displayName: oaInfo.data?.name,
+    //       avatarUrl: oaInfo.data?.avatar,
+    //       linkedByUserId: userId,
+    //     },
+    //   })
 
-      await this.upsertProviderCredentials(tx, {
-        linkAccountId: linkAccount.id,
-        credentialType: "oauth2",
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        accessTokenExpiresAt,
-        refreshTokenExpiresAt,
-      })
+    //   await this.upsertProviderCredentials(tx, {
+    //     linkAccountId: linkAccount.id,
+    //     credentialType: "oauth2",
+    //     accessToken: tokenResponse.access_token,
+    //     refreshToken: tokenResponse.refresh_token,
+    //     accessTokenExpiresAt,
+    //     refreshTokenExpiresAt,
+    //   })
 
-      return tx.linkAccount.findUniqueOrThrow({
-        where: { id: linkAccount.id },
-        include: {
-          linkedByUser: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-        },
-      })
-    })
+    //   return tx.linkAccount.findUniqueOrThrow({
+    //     where: { id: linkAccount.id },
+    //     include: {
+    //       linkedByUser: {
+    //         select: {
+    //           id: true,
+    //           name: true,
+    //           avatarUrl: true,
+    //         },
+    //       },
+    //     },
+    //   })
+    // })
 
     await Promise.all([
       this.redisService.set(
@@ -273,7 +271,7 @@ export class LinkAccountService {
       ),
     ])
 
-    return linkAccount
+    // return linkAccount
   }
 
   // ─── Meta / Facebook OAuth ──────────────────────────────
@@ -339,56 +337,56 @@ export class LinkAccountService {
         /* avatar is optional */
       }
 
-      const linkAccount = await this.prisma.client.$transaction(async (tx) => {
-        const linkAccount = await tx.linkAccount.upsert({
-          where: {
-            unique_account_link: {
-              accountId: page.id,
-              provider: ChannelType.facebook,
-            },
-          },
-          update: {
-            displayName: page.name,
-            avatarUrl,
-            linkedByUserId: userId,
-          },
-          create: {
-            provider: ChannelType.facebook,
-            accountId: page.id,
-            displayName: page.name,
-            avatarUrl,
-            linkedByUserId: userId,
-          },
-        })
+      // const linkAccount = await this.prisma.client.$transaction(async (tx) => {
+      //   const linkAccount = await tx.linkAccount.upsert({
+      //     where: {
+      //       unique_account_link: {
+      //         accountId: page.id,
+      //         provider: ChannelType.facebook,
+      //       },
+      //     },
+      //     update: {
+      //       displayName: page.name,
+      //       avatarUrl,
+      //       linkedByUserId: userId,
+      //     },
+      //     create: {
+      //       provider: ChannelType.facebook,
+      //       accountId: page.id,
+      //       displayName: page.name,
+      //       avatarUrl,
+      //       linkedByUserId: userId,
+      //     },
+      //   })
 
-        await this.upsertProviderCredentials(tx, {
-          linkAccountId: linkAccount.id,
-          credentialType: "oauth2",
-          accessToken: page.access_token,
-          accessTokenExpiresAt,
-          credentialPayload: {
-            userAccessToken: accessToken,
-            tokenType: longLivedToken.token_type || shortLivedToken.token_type,
-            pageId: page.id,
-            pageName: page.name,
-          },
-        })
+      //   await this.upsertProviderCredentials(tx, {
+      //     linkAccountId: linkAccount.id,
+      //     credentialType: "oauth2",
+      //     accessToken: page.access_token,
+      //     accessTokenExpiresAt,
+      //     credentialPayload: {
+      //       userAccessToken: accessToken,
+      //       tokenType: longLivedToken.token_type || shortLivedToken.token_type,
+      //       pageId: page.id,
+      //       pageName: page.name,
+      //     },
+      //   })
 
-        return tx.linkAccount.findUniqueOrThrow({
-          where: { id: linkAccount.id },
-          include: {
-            linkedByUser: {
-              select: {
-                id: true,
-                name: true,
-                avatarUrl: true,
-              },
-            },
-          },
-        })
-      })
+      //   return tx.linkAccount.findUniqueOrThrow({
+      //     where: { id: linkAccount.id },
+      //     include: {
+      //       linkedByUser: {
+      //         select: {
+      //           id: true,
+      //           name: true,
+      //           avatarUrl: true,
+      //         },
+      //       },
+      //     },
+      //   })
+      // })
 
-      results.push(linkAccount)
+      // results.push(linkAccount)
     }
 
     return results

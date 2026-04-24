@@ -101,10 +101,10 @@ export class GoldenProfileService {
           select: { id: true },
         })
 
-        await tx.accountCustomer.updateMany({
-          where: { goldenProfileId: id },
-          data: { name: nextFullName },
-        })
+        // await tx.accountCustomer.updateMany({
+        //   where: { goldenProfileId: id },
+        //   data: { name: nextFullName },
+        // })
 
         const accountCustomerIds = accountCustomers.map((accountCustomer) => accountCustomer.id)
 
@@ -116,14 +116,14 @@ export class GoldenProfileService {
           } else {
             conversationNameConditions.push({ name: FALLBACK_CUSTOMER_NAME })
           }
-          await tx.conversation.updateMany({
-            where: {
-              type: "personal",
-              accountCustomerId: { in: accountCustomerIds },
-              OR: conversationNameConditions,
-            },
-            data: { name: nextFullName },
-          })
+          // await tx.conversation.updateMany({
+          //   where: {
+          //     type: "personal",
+          //     accountCustomerId: { in: accountCustomerIds },
+          //     OR: conversationNameConditions,
+          //   },
+          //   data: { name: nextFullName },
+          // })
         }
       }
 
@@ -148,7 +148,7 @@ export class GoldenProfileService {
       }
 
       // Nếu không tìm thấy hồ sơ khách hàng, tạo mới
-      return await db.goldenProfile.create({ data: profileData })
+      // return await db.goldenProfile.create({ data: profileData })
     } catch (error) {
       throw new Error(`Lỗi tạo hồ sơ khách hàng: ${(error as Error).message}`)
     }

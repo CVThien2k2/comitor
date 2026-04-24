@@ -28,11 +28,11 @@ export class MessageListener {
       this.logger.warn(`Tài khoản ${linkedAccount.provider}:${linkedAccount.id} đang ở trạng thái inactive`)
       return
     }
-    if (fullMessage.userId) {
-      this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_CREATED, fullMessage)
-    } else {
-      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
-    }
+    // if (fullMessage.userId) {
+    //   this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_CREATED, fullMessage)
+    // } else {
+    //   this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, fullMessage)
+    // }
     const sender = this.senderRegistry.get(linkedAccount.provider)
     if (!sender) {
       this.logger.warn(`Không tìm thấy sender cho provider: ${linkedAccount.provider}`)
@@ -61,14 +61,14 @@ export class MessageListener {
         status: "failed",
       }
 
-      if (fullMessage.userId) {
-        this.socketGateway.sendToUser([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, {
-          ...payload,
-          errorMessage,
-        })
-        this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, payload)
-        return
-      }
+      // if (fullMessage.userId) {
+      //   this.socketGateway.sendToUser([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, {
+      //     ...payload,
+      //     errorMessage,
+      //   })
+      //   this.socketGateway.broadcastExcept([fullMessage.userId], EVENTS.MESSAGE_DELIVERY_FAILED, payload)
+      //   return
+      // }
 
       this.socketGateway.broadcast(EVENTS.MESSAGE_DELIVERY_FAILED, {
         ...payload,

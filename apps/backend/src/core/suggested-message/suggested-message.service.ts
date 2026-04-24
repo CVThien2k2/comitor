@@ -45,13 +45,13 @@ export class SuggestedMessageService {
   }
 
   async create(dto: CreateSuggestedMessageDto) {
-    return this.prisma.client.suggestedMessage.create({
-      data: {
-        tag: dto.tag.trim(),
-        message: dto.message.trim(),
-        images: dto.images ?? [],
-      },
-    })
+    // return this.prisma.client.suggestedMessage.create({
+    //   data: {
+    //     tag: dto.tag.trim(),
+    //     message: dto.message.trim(),
+    //     images: dto.images ?? [],
+    //   },
+    // })
   }
 
   async update(id: string, dto: UpdateSuggestedMessageDto) {

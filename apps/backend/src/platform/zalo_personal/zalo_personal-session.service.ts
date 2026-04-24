@@ -25,7 +25,7 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
   ) {}
 
   async onModuleInit() {
-    await this.restoreActiveSessions()
+    // await this.restoreActiveSessions()
   }
 
   onModuleDestroy() {
@@ -109,55 +109,56 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
   }
 
   async ensureActiveSession(linkedAccountId: string): Promise<ActiveZaloPersonalSession> {
-    const activeSession = this.activeSessions.get(linkedAccountId)
+    return null as unknown as ActiveZaloPersonalSession
+    // const activeSession = this.activeSessions.get(linkedAccountId)
 
-    if (activeSession?.api) {
-      return activeSession
-    }
+    // if (activeSession?.api) {
+    //   return activeSession
+    // }
 
-    const linkedAccount = await this.prisma.client.linkAccount.findUnique({
-      where: { id: linkedAccountId },
-      include: {
-        providerCredentials: true,
-      },
-    })
+    // const linkedAccount = await this.prisma.client.linkAccount.findUnique({
+    //   where: { id: linkedAccountId },
+    //   include: {
+    //     providerCredentials: true,
+    //   },
+    // })
 
-    if (!linkedAccount || linkedAccount.provider !== "zalo_personal") {
-      throw new NotFoundException("Không tìm thấy tài khoản Zalo Personal đã liên kết")
-    }
+    // if (!linkedAccount || linkedAccount.provider !== "zalo_personal") {
+    //   throw new NotFoundException("Không tìm thấy tài khoản Zalo Personal đã liên kết")
+    // }
 
-    if (!linkedAccount.providerCredentials?.credentialPayload) {
-      throw new NotFoundException("Tài khoản Zalo Personal chưa có credentials để khôi phục phiên")
-    }
+    // if (!linkedAccount.providerCredentials?.credentialPayload) {
+    //   throw new NotFoundException("Tài khoản Zalo Personal chưa có credentials để khôi phục phiên")
+    // }
 
-    const credentials = parseZaloPersonalCredentials(linkedAccount.providerCredentials.credentialPayload)
+    // const credentials = parseZaloPersonalCredentials(linkedAccount.providerCredentials.credentialPayload)
 
-    if (!credentials) {
-      throw new BadRequestException("Credentials Zalo Personal không hợp lệ")
-    }
+    // if (!credentials) {
+    //   throw new BadRequestException("Credentials Zalo Personal không hợp lệ")
+    // }
 
-    try {
-      const api = await this.clientFactory.loginWithCredentials(credentials)
-      const accountId = api.getOwnId?.() ?? linkedAccount.accountId
+    // try {
+    //   const api = await this.clientFactory.loginWithCredentials(credentials)
+    //   const accountId = api.getOwnId?.() ?? linkedAccount.accountId
 
-      this.activateSession({
-        sessionKey: linkedAccount.id,
-        api,
-        accountId,
-        displayName: linkedAccount.displayName,
-        source: "restore",
-      })
-    } catch (error) {
-      throw new BadRequestException(`Không thể khôi phục phiên Zalo Personal: ${stringifyUnknownError(error)}`)
-    }
+    //   this.activateSession({
+    //     sessionKey: linkedAccount.id,
+    //     api,
+    //     accountId,
+    //     displayName: linkedAccount.displayName,
+    //     source: "restore",
+    //   })
+    // } catch (error) {
+    //   throw new BadRequestException(`Không thể khôi phục phiên Zalo Personal: ${stringifyUnknownError(error)}`)
+    // }
 
-    const restoredSession = this.activeSessions.get(linkedAccountId)
+    // const restoredSession = this.activeSessions.get(linkedAccountId)
 
-    if (!restoredSession?.api) {
-      throw new NotFoundException("Không thể khởi tạo phiên Zalo Personal đang hoạt động")
-    }
+    // if (!restoredSession?.api) {
+    //   throw new NotFoundException("Không thể khởi tạo phiên Zalo Personal đang hoạt động")
+    // }
 
-    return restoredSession
+    // return restoredSession
   }
 
   private normalizeAttachmentFilename(fileName?: string): `${string}.${string}` {
@@ -173,27 +174,26 @@ export class ZaloPersonalSessionService implements OnModuleInit, OnModuleDestroy
   private async restoreActiveSessions() {
     let linkedAccounts: any[] = []
 
-    try {
-      linkedAccounts = await this.prisma.client.linkAccount.findMany({
-        where: {
-          provider: "zalo_personal",
-          accountId: {
-            not: null,
-          },
-        },
-        include: {
-          providerCredentials: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      })
-    } catch {
-      return
-    }
+    // try {
+    //   linkedAccounts = await this.prisma.client.linkAccount.findMany({
+    //     where: {
+    //       provider: "zalo_personal",
+    //       accountId: {
+    //         not: null,
+    //       },
+    //     },
+    //     include: {
+    //       providerCredentials: true,
+    //     },
+    //     orderBy: {
+    //       createdAt: "asc",
+    //     },
+    //   })
+    // } catch {
+    //   return
+    // }
 
     if (linkedAccounts.length === 0) {
-      this.logger.log("Khong tim thay tai khoan Zalo Personal nao can khoi phuc listener")
       return
     }
 

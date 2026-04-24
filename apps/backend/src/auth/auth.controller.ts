@@ -64,12 +64,12 @@ export class AuthController {
     const oldToken = req.cookies?.[REFRESH_TOKEN_COOKIE]
     if (!oldToken) throw new UnauthorizedException("Không tìm thấy refresh token")
 
-    const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.refresh(oldToken)
-    this.setRefreshCookie(res, refreshToken)
-    return {
-      message: "Làm mới token thành công",
-      data: { accessToken, accessExpiresAt, user },
-    }
+    // const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.refresh(oldToken)
+    // this.setRefreshCookie(res, refreshToken)
+    // return {
+    //   message: "Làm mới token thành công",
+    //   data: { accessToken, accessExpiresAt, user },
+    // }
   }
 
   @ApiOperation({ summary: "Đăng xuất" })

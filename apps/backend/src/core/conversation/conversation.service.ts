@@ -129,19 +129,19 @@ export class ConversationService {
     })
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    const updatedConversation = await this.prisma.client.conversation.update({
-      where: { id: conversationId },
-      data: {
-        lastViewedById: userId,
-        lastViewedAt: new Date(),
-      },
-      include: this.getConversationInclude(),
-    })
+    // const updatedConversation = await this.prisma.client.conversation.update({
+    //   where: { id: conversationId },
+    //   data: {
+    //     lastViewedById: userId,
+    //     lastViewedAt: new Date(),
+    //   },
+    //   include: this.getConversationInclude(),
+    // })
 
-    return {
-      ...updatedConversation,
-      unreadCount: this.getConversationUnreadCountFromLatestMessage(updatedConversation.messages),
-    }
+    // return {
+    //   ...updatedConversation,
+    //   unreadCount: this.getConversationUnreadCountFromLatestMessage(updatedConversation.messages),
+    // }
   }
 
   async markAsRead(conversationId: string) {
@@ -221,25 +221,25 @@ export class ConversationService {
         conversationName = name
         conversationAvatarUrl = avatarUrl
       }
-      const conversation = await db.conversation.create({
-        data: {
-          externalId: data.externalId,
-          linkedAccountId: data.linkedAccountId,
-          accountCustomerId: data.accountCustomerId,
-          name: conversationName || "Nhóm hội thoại",
-          type: data.isGroupMessage ? "group" : "personal",
-          avatarUrl: conversationAvatarUrl,
-        },
-      })
+      // const conversation = await db.conversation.create({
+      //   data: {
+      //     externalId: data.externalId,
+      //     linkedAccountId: data.linkedAccountId,
+      //     accountCustomerId: data.accountCustomerId,
+      //     name: conversationName || "Nhóm hội thoại",
+      //     type: data.isGroupMessage ? "group" : "personal",
+      //     avatarUrl: conversationAvatarUrl,
+      //   },
+      // })
 
-      await db.conversationCustomer.create({
-        data: {
-          conversationId: conversation.id,
-          accountCustomerId: data.accountCustomerId,
-        },
-      })
+      // await db.conversationCustomer.create({
+      //   data: {
+      //     conversationId: conversation.id,
+      //     accountCustomerId: data.accountCustomerId,
+      //   },
+      // })
 
-      return { conversation, isNew: true }
+      // return { conversation, isNew: true }
     } catch (error) {
       throw new Error(`Lỗi tạo cuộc hội thoại: ${(error as Error).message}`)
     }

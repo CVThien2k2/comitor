@@ -93,19 +93,19 @@ export class AccountCustomerService {
         "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
       )
 
-    try {
-      return db.accountCustomer.create({
-        data: {
-          accountId: data.accountId,
-          linkedAccountId: data.linkedAccount.id,
-          name: profile.fullName,
-          goldenProfileId: goldenProfile.id,
-          avatarUrl,
-        },
-      })
-    } catch (error: any) {
-      throw new Error(`Lỗi tạo tài khoản khách hàng: ${error?.message}`)
-    }
+    // try {
+    //   return db.accountCustomer.create({
+    //     data: {
+    //       accountId: data.accountId,
+    //       linkedAccountId: data.linkedAccount.id,
+    //       name: profile.fullName,
+    //       goldenProfileId: goldenProfile.id,
+    //       avatarUrl,
+    //     },
+    //   })
+    // } catch (error: any) {
+    //   throw new Error(`Lỗi tạo tài khoản khách hàng: ${error?.message}`)
+    // }
   }
 
   async delete(id: string) {

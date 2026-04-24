@@ -177,20 +177,20 @@ export class MessageService {
     const messages = await this.prisma.client.$transaction(async (tx) => {
       const createdMessageIds: string[] = []
       // 1. Nếu có text → tạo 1 message text
-      if (hasContent) {
-        const textMessage = await tx.message.create({
-          data: {
-            conversationId: dto.conversationId,
-            senderType: "agent",
-            userId,
-            isRead: true,
-            timestamp: new Date(),
-            content: dto.content!.trim(),
-            status: "processing",
-          },
-        })
-        createdMessageIds.push(textMessage.id)
-      }
+      // if (hasContent) {
+      //   const textMessage = await tx.message.create({
+      //     data: {
+      //       conversationId: dto.conversationId,
+      //       senderType: "agent",
+      //       userId,
+      //       isRead: true,
+      //       timestamp: new Date(),
+      //       content: dto.content!.trim(),
+      //       status: "processing",
+      //     },
+      //   })
+      //   createdMessageIds.push(textMessage.id)
+      // }
 
       // 2. Nếu có attachments → mỗi attachment = 1 message
       if (hasAttachments) {
@@ -284,55 +284,55 @@ export class MessageService {
   ) {
     const db = tx ?? this.prisma.client
 
-    const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
-      {
-        externalId: data.externalConversationId,
-        linkedAccountId: data.linkedAccountId,
-        accountCustomerId: data.accountCustomerId,
-        isGroupMessage: data.isGroupMessage,
-      },
-      tx
-    )
-    try {
-      const message = await db.message.create({
-        data: {
-          conversationId: conversation.id,
-          senderType: "customer",
-          accountCustomerId: data.accountCustomerId,
-          externalId: data.externalId,
-          timestamp: new Date(data.timestamp),
-          content: data.content,
-          status: "success",
-          attachments: data.attachments?.length
-            ? {
-                createMany: {
-                  data: data.attachments.map((a) => ({
-                    fileName: a.name,
-                    fileType: a.type,
-                    fileUrl: a.url,
-                    thumbnailUrl: a.thumbnail,
-                    fileMimeType: getAttachmentMimeType({
-                      mimeType: a.mimeType,
-                      fileType: a.type,
-                      fileName: a.name,
-                      fileUrl: a.url,
-                      type: a.type,
-                    }),
-                  })),
-                },
-              }
-            : undefined,
-        },
-      })
+    // const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
+    //   {
+    //     externalId: data.externalConversationId,
+    //     linkedAccountId: data.linkedAccountId,
+    //     accountCustomerId: data.accountCustomerId,
+    //     isGroupMessage: data.isGroupMessage,
+    //   },
+    //   tx
+    // )
+    // try {
+    //   const message = await db.message.create({
+    //     data: {
+    //       conversationId: conversation.id,
+    //       senderType: "customer",
+    //       accountCustomerId: data.accountCustomerId,
+    //       externalId: data.externalId,
+    //       timestamp: new Date(data.timestamp),
+    //       content: data.content,
+    //       status: "success",
+    //       attachments: data.attachments?.length
+    //         ? {
+    //             createMany: {
+    //               data: data.attachments.map((a) => ({
+    //                 fileName: a.name,
+    //                 fileType: a.type,
+    //                 fileUrl: a.url,
+    //                 thumbnailUrl: a.thumbnail,
+    //                 fileMimeType: getAttachmentMimeType({
+    //                   mimeType: a.mimeType,
+    //                   fileType: a.type,
+    //                   fileName: a.name,
+    //                   fileUrl: a.url,
+    //                   type: a.type,
+    //                 }),
+    //               })),
+    //             },
+    //           }
+    //         : undefined,
+    //     },
+    //   })
 
-      await db.conversation.update({
-        where: { id: conversation.id },
-        data: { lastActivityAt: new Date() },
-      })
-      return { message, isNewConversation }
-    } catch (error) {
-      throw new Error(`Lỗi tạo tin nhắn: ${(error as Error).message}`)
-    }
+    //   await db.conversation.update({
+    //     where: { id: conversation.id },
+    //     data: { lastActivityAt: new Date() },
+    //   })
+    //   return { message, isNewConversation }
+    // } catch (error) {
+    //   throw new Error(`Lỗi tạo tin nhắn: ${(error as Error).message}`)
+    // }
   }
 
   async createOutbound(
@@ -350,56 +350,56 @@ export class MessageService {
   ) {
     const db = tx ?? this.prisma.client
 
-    const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
-      {
-        externalId: data.externalConversationId,
-        linkedAccountId: data.linkedAccountId,
-        accountCustomerId: data.accountCustomerId,
-        isGroupMessage: data.isGroupMessage,
-      },
-      tx
-    )
+    // const { conversation, isNew: isNewConversation } = await this.conversationService.getOrCreate(
+    //   {
+    //     externalId: data.externalConversationId,
+    //     linkedAccountId: data.linkedAccountId,
+    //     accountCustomerId: data.accountCustomerId,
+    //     isGroupMessage: data.isGroupMessage,
+    //   },
+    //   tx
+    // )
 
-    try {
-      const message = await db.message.create({
-        data: {
-          conversationId: conversation.id,
-          senderType: "agent",
-          externalId: data.externalId,
-          timestamp: new Date(data.timestamp),
-          content: data.content,
-          status: "success",
-          attachments: data.attachments?.length
-            ? {
-                createMany: {
-                  data: data.attachments.map((a) => ({
-                    fileName: a.name,
-                    fileType: a.type,
-                    fileUrl: a.url,
-                    thumbnailUrl: a.thumbnail,
-                    fileMimeType: getAttachmentMimeType({
-                      mimeType: a.mimeType,
-                      fileType: a.type,
-                      fileName: a.name,
-                      fileUrl: a.url,
-                      type: a.type,
-                    }),
-                  })),
-                },
-              }
-            : undefined,
-        },
-      })
+    // try {
+    //   const message = await db.message.create({
+    //     data: {
+    //       conversationId: conversation.id,
+    //       senderType: "agent",
+    //       externalId: data.externalId,
+    //       timestamp: new Date(data.timestamp),
+    //       content: data.content,
+    //       status: "success",
+    //       attachments: data.attachments?.length
+    //         ? {
+    //             createMany: {
+    //               data: data.attachments.map((a) => ({
+    //                 fileName: a.name,
+    //                 fileType: a.type,
+    //                 fileUrl: a.url,
+    //                 thumbnailUrl: a.thumbnail,
+    //                 fileMimeType: getAttachmentMimeType({
+    //                   mimeType: a.mimeType,
+    //                   fileType: a.type,
+    //                   fileName: a.name,
+    //                   fileUrl: a.url,
+    //                   type: a.type,
+    //                 }),
+    //               })),
+    //             },
+    //           }
+    //         : undefined,
+    //     },
+    //   })
 
-      await db.conversation.update({
-        where: { id: conversation.id },
-        data: { lastActivityAt: new Date() },
-      })
+    //   await db.conversation.update({
+    //     where: { id: conversation.id },
+    //     data: { lastActivityAt: new Date() },
+    //   })
 
-      return { message, isNewConversation }
-    } catch (error) {
-      throw new Error(`Lỗi tạo tin nhắn outbound: ${(error as Error).message}`)
-    }
+    //   return { message, isNewConversation }
+    // } catch (error) {
+    //   throw new Error(`Lỗi tạo tin nhắn outbound: ${(error as Error).message}`)
+    // }
   }
 
   async updateStatus(

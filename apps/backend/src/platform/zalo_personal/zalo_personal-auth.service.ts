@@ -55,143 +55,143 @@ export class ZaloPersonalAuthService {
     return await new Promise<PublicZaloPersonalLoginSession>((resolve, reject) => {
       let hasResolvedQr = false
 
-      zalo
-        .loginQR({}, (event: any) => {
-          if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeGenerated) {
-            session.qrImage = `data:image/png;base64,${event.data.image}`
-            session.status = "qr_ready"
-            this.logger.log(`Da tao ma QR Zalo Personal (sessionId=${session.id}, userId=${session.userId})`)
+      // zalo
+      //   .loginQR({}, (event: any) => {
+      //     if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeGenerated) {
+      //       session.qrImage = `data:image/png;base64,${event.data.image}`
+      //       session.status = "qr_ready"
+      //       this.logger.log(`Da tao ma QR Zalo Personal (sessionId=${session.id}, userId=${session.userId})`)
 
-            if (!hasResolvedQr) {
-              hasResolvedQr = true
-              resolve(this.serializeSession(session))
-            }
-          }
+      //       if (!hasResolvedQr) {
+      //         hasResolvedQr = true
+      //         resolve(this.serializeSession(session))
+      //       }
+      //     }
 
-          if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeScanned) {
-            session.status = "scanned"
-            session.displayName = event.data.display_name
-            this.logger.log(
-              `Ma QR Zalo Personal da duoc quet (sessionId=${session.id}, userId=${session.userId}, displayName=${session.displayName ?? "unknown"})`
-            )
-          }
+      //     if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeScanned) {
+      //       session.status = "scanned"
+      //       session.displayName = event.data.display_name
+      //       this.logger.log(
+      //         `Ma QR Zalo Personal da duoc quet (sessionId=${session.id}, userId=${session.userId}, displayName=${session.displayName ?? "unknown"})`
+      //       )
+      //     }
 
-          if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeExpired) {
-            session.status = "failed"
-            session.error = "Mã QR đã hết hạn"
-            this.logger.warn(
-              `Ma QR dang nhap Zalo Personal da het han (sessionId=${session.id}, userId=${session.userId})`
-            )
-          }
+      //     if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeExpired) {
+      //       session.status = "failed"
+      //       session.error = "Mã QR đã hết hạn"
+      //       this.logger.warn(
+      //         `Ma QR dang nhap Zalo Personal da het han (sessionId=${session.id}, userId=${session.userId})`
+      //       )
+      //     }
 
-          if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeDeclined) {
-            session.status = "failed"
-            session.error = "Mã QR đã bị từ chối"
-            this.logger.warn(
-              `Dang nhap Zalo Personal bi tu choi (sessionId=${session.id}, userId=${session.userId}, displayName=${session.displayName ?? "unknown"})`
-            )
-          }
-        })
-        .then(async (api: any) => {
-          session.ownId = api.getOwnId()
+      //     if (event.type === zcaJs.LoginQRCallbackEventType.QRCodeDeclined) {
+      //       session.status = "failed"
+      //       session.error = "Mã QR đã bị từ chối"
+      //       this.logger.warn(
+      //         `Dang nhap Zalo Personal bi tu choi (sessionId=${session.id}, userId=${session.userId}, displayName=${session.displayName ?? "unknown"})`
+      //       )
+      //     }
+      //   })
+      //   .then(async (api: any) => {
+      //     session.ownId = api.getOwnId()
 
-          await this.prisma.client.$transaction(async (tx) => {
-            if (!session.ownId) {
-              throw new BadRequestException("Không lấy được ID tài khoản Zalo cá nhân")
-            }
+      //     await this.prisma.client.$transaction(async (tx) => {
+      //       if (!session.ownId) {
+      //         throw new BadRequestException("Không lấy được ID tài khoản Zalo cá nhân")
+      //       }
 
-            const existingByAccount = await tx.linkAccount.findFirst({
-              where: {
-                provider: "zalo_personal",
-                accountId: session.ownId,
-              },
-            })
+      //       const existingByAccount = await tx.linkAccount.findFirst({
+      //         where: {
+      //           provider: "zalo_personal",
+      //           accountId: session.ownId,
+      //         },
+      //       })
 
-            if (existingByAccount && existingByAccount.linkedByUserId !== userId) {
-              throw new ConflictException("Tài khoản Zalo cá nhân này đã được liên kết bởi người dùng khác")
-            }
+      //       if (existingByAccount && existingByAccount.linkedByUserId !== userId) {
+      //         throw new ConflictException("Tài khoản Zalo cá nhân này đã được liên kết bởi người dùng khác")
+      //       }
 
-            const existingByUser = await tx.linkAccount.findFirst({
-              where: {
-                provider: "zalo_personal",
-                linkedByUserId: userId,
-              },
-              orderBy: { createdAt: "desc" },
-            })
+      //       const existingByUser = await tx.linkAccount.findFirst({
+      //         where: {
+      //           provider: "zalo_personal",
+      //           linkedByUserId: userId,
+      //         },
+      //         orderBy: { createdAt: "desc" },
+      //       })
 
-            const linkedAccount = existingByUser
-              ? await tx.linkAccount.update({
-                  where: { id: existingByUser.id },
-                  data: {
-                    accountId: session.ownId,
-                    displayName: session.displayName ?? null,
-                  },
-                })
-              : await tx.linkAccount.create({
-                  data: {
-                    provider: "zalo_personal",
-                    linkedByUserId: userId,
-                    accountId: session.ownId,
-                    displayName: session.displayName ?? null,
-                    providerCredentialsId: session.ownId,
-                  },
-                })
+      //       const linkedAccount = existingByUser
+      //         ? await tx.linkAccount.update({
+      //             where: { id: existingByUser.id },
+      //             data: {
+      //               accountId: session.ownId,
+      //               displayName: session.displayName ?? null,
+      //             },
+      //           })
+      //         : await tx.linkAccount.create({
+      //             data: {
+      //               provider: "zalo_personal",
+      //               linkedByUserId: userId,
+      //               accountId: session.ownId,
+      //               displayName: session.displayName ?? null,
+      //               providerCredentialsId: session.ownId,
+      //             },
+      //           })
 
-            session.linkedAccount = {
-              id: linkedAccount.id,
-              provider: "zalo_personal",
-              displayName: linkedAccount.displayName,
-              accountId: linkedAccount.accountId,
-              avatarUrl: linkedAccount.avatarUrl,
-            }
+      //       session.linkedAccount = {
+      //         id: linkedAccount.id,
+      //         provider: "zalo_personal",
+      //         displayName: linkedAccount.displayName,
+      //         accountId: linkedAccount.accountId,
+      //         avatarUrl: linkedAccount.avatarUrl,
+      //       }
 
-            await tx.providerCredentials.upsert({
-              where: {
-                linkAccountId: linkedAccount.id,
-              },
-              create: {
-                credentialType: "browser_session",
-                credentialPayload: buildZaloPersonalCredentialsPayload(api),
-                linkAccountId: linkedAccount.id,
-              },
-              update: {
-                credentialPayload: buildZaloPersonalCredentialsPayload(api),
-              },
-            })
-          })
+      //       await tx.providerCredentials.upsert({
+      //         where: {
+      //           linkAccountId: linkedAccount.id,
+      //         },
+      //         create: {
+      //           credentialType: "browser_session",
+      //           credentialPayload: buildZaloPersonalCredentialsPayload(api),
+      //           linkAccountId: linkedAccount.id,
+      //         },
+      //         update: {
+      //           credentialPayload: buildZaloPersonalCredentialsPayload(api),
+      //         },
+      //       })
+      //     })
 
-          session.status = "authenticated"
-          this.logger.log(
-            `Dang nhap Zalo Personal thanh cong (sessionId=${session.id}, userId=${session.userId}, ownId=${session.ownId ?? "unknown"}, displayName=${session.displayName ?? "unknown"})`
-          )
+      //     session.status = "authenticated"
+      //     this.logger.log(
+      //       `Dang nhap Zalo Personal thanh cong (sessionId=${session.id}, userId=${session.userId}, ownId=${session.ownId ?? "unknown"}, displayName=${session.displayName ?? "unknown"})`
+      //     )
 
-          if (!session.linkedAccount || !session.ownId) {
-            throw new BadRequestException("Không thể khởi tạo listener cho Zalo cá nhân")
-          }
+      //     if (!session.linkedAccount || !session.ownId) {
+      //       throw new BadRequestException("Không thể khởi tạo listener cho Zalo cá nhân")
+      //     }
 
-          this.sessionService.activateSession({
-            sessionKey: session.linkedAccount.id,
-            api,
-            accountId: session.ownId,
-            displayName: session.displayName ?? session.linkedAccount.displayName ?? null,
-            source: "qr_login",
-          })
-        })
-        .catch((error: unknown) => {
-          const message = error instanceof Error ? error.message : "Đăng nhập bằng mã QR thất bại"
+      //     this.sessionService.activateSession({
+      //       sessionKey: session.linkedAccount.id,
+      //       api,
+      //       accountId: session.ownId,
+      //       displayName: session.displayName ?? session.linkedAccount.displayName ?? null,
+      //       source: "qr_login",
+      //     })
+      //   })
+      //   .catch((error: unknown) => {
+      //     const message = error instanceof Error ? error.message : "Đăng nhập bằng mã QR thất bại"
 
-          session.status = "failed"
-          session.error = message
+      //     session.status = "failed"
+      //     session.error = message
 
-          this.logger.error(
-            formatZaloPersonalLoginError(error, session),
-            error instanceof Error ? error.stack : undefined
-          )
+      //     this.logger.error(
+      //       formatZaloPersonalLoginError(error, session),
+      //       error instanceof Error ? error.stack : undefined
+      //     )
 
-          if (!hasResolvedQr) {
-            reject(new Error(message))
-          }
-        })
+      //     if (!hasResolvedQr) {
+      //       reject(new Error(message))
+      //     }
+      //   })
     })
   }
 
@@ -222,24 +222,24 @@ export class ZaloPersonalAuthService {
   }
 
   private async findLinkedAccountByUserId(userId: string): Promise<ZaloPersonalAccountLinked | null> {
-    const linkedAccount = await this.prisma.client.linkAccount.findFirst({
-      where: {
-        linkedByUserId: userId,
-        provider: "zalo_personal",
-      },
-      orderBy: { createdAt: "desc" },
-    })
+    // const linkedAccount = await this.prisma.client.linkAccount.findFirst({
+    //   where: {
+    //     linkedByUserId: userId,
+    //     provider: "zalo_personal",
+    //   },
+    //   orderBy: { createdAt: "desc" },
+    // })
 
-    if (!linkedAccount) {
-      return null
-    }
+    // if (!linkedAccount) {
+    return null
+    // }
 
-    return {
-      id: linkedAccount.id,
-      provider: "zalo_personal",
-      displayName: linkedAccount.displayName,
-      accountId: linkedAccount.accountId,
-      avatarUrl: linkedAccount.avatarUrl,
-    }
+    // return {
+    //   id: linkedAccount.id,
+    //   provider: "zalo_personal",
+    //   displayName: linkedAccount.displayName,
+    //   accountId: linkedAccount.accountId,
+    //   avatarUrl: linkedAccount.avatarUrl,
+    // }
   }
 }

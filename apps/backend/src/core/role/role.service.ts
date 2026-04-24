@@ -71,28 +71,28 @@ export class RoleService {
     })
     if (existing) throw new ConflictException("Role đã tồn tại")
 
-    const role = await this.prisma.client.role.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        rolePermissions: dto.permissionIds?.length
-          ? {
-              createMany: {
-                data: dto.permissionIds.map((permissionId) => ({ permissionId })),
-              },
-            }
-          : undefined,
-      },
-      include: {
-        rolePermissions: { include: { permission: true } },
-      },
-    })
+    // const role = await this.prisma.client.role.create({
+    //   data: {
+    //     name: dto.name,
+    //     description: dto.description,
+    //     rolePermissions: dto.permissionIds?.length
+    //       ? {
+    //           createMany: {
+    //             data: dto.permissionIds.map((permissionId) => ({ permissionId })),
+    //           },
+    //         }
+    //       : undefined,
+    //   },
+    //   include: {
+    //     rolePermissions: { include: { permission: true } },
+    //   },
+    // })
 
-    return {
-      ...role,
-      rolePermissions: undefined,
-      permissions: role.rolePermissions.map((rp) => rp.permission),
-    }
+    // return {
+    //   ...role,
+    //   rolePermissions: undefined,
+    //   permissions: role.rolePermissions.map((rp) => rp.permission),
+    // }
   }
 
   async update(id: string, dto: UpdateRoleDto) {

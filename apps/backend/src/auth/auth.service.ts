@@ -38,14 +38,12 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string) {
-    const payload = await this.tokenService.verifyRefreshToken(refreshToken)
-    await this.tokenService.revokeRefreshToken(refreshToken)
-
-    const user = await this.usersService.findById(payload.userId)
-    if (!user) throw new UnauthorizedException()
-
-    const tokens = await this.tokenService.generateTokens(user.id, user.email)
-    return { ...tokens, user }
+    // const payload = await this.tokenService.verifyRefreshToken(refreshToken)
+    // await this.tokenService.revokeRefreshToken(refreshToken)
+    // const user = await this.usersService.findById(payload.userId)
+    // if (!user) throw new UnauthorizedException()
+    // const tokens = await this.tokenService.generateTokens(user.id, user.email)
+    // return { ...tokens, user }
   }
 
   async logout(refreshToken: string) {

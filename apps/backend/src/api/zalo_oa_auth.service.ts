@@ -17,26 +17,23 @@ export class ZaloOaAuthService {
     private readonly prisma: PrismaService
   ) {}
 
-  async getAccessToken(accountId: string): Promise<string> {
-    const cachedAccessToken = await this.redis.get<string>(getZaloOaAccessTokenRedisKey(accountId))
-    if (cachedAccessToken) return cachedAccessToken
-
-    const linked = await this.prisma.client.linkAccount.findFirst({
-      where: { provider: "zalo_oa", accountId },
-      include: { providerCredentials: true },
-    })
-    const accessToken = linked?.providerCredentials?.accessToken ?? undefined
-    const refreshToken = linked?.providerCredentials?.refreshToken ?? undefined
-    if (!accessToken) throw new Error("Missing ZALO_OA_ACCESS_TOKEN")
-
-    await Promise.all([
-      this.redis.set(getZaloOaAccessTokenRedisKey(accountId), accessToken, ZALO_OA_ACCESS_TOKEN_TTL_SECONDS),
-      refreshToken
-        ? this.redis.set(getZaloOaRefreshTokenRedisKey(accountId), refreshToken, ZALO_OA_REFRESH_TOKEN_TTL_SECONDS)
-        : Promise.resolve(),
-    ])
-
-    return accessToken
+  async getAccessToken(accountId: string) {
+    // const cachedAccessToken = await this.redis.get<string>(getZaloOaAccessTokenRedisKey(accountId))
+    // if (cachedAccessToken) return cachedAccessToken
+    // const linked = await this.prisma.client.linkAccount.findFirst({
+    //   where: { provider: "zalo_oa", accountId },
+    //   include: { providerCredentials: true },
+    // })
+    // const accessToken = linked?.providerCredentials?.accessToken ?? undefined
+    // const refreshToken = linked?.providerCredentials?.refreshToken ?? undefined
+    // if (!accessToken) throw new Error("Missing ZALO_OA_ACCESS_TOKEN")
+    // await Promise.all([
+    //   this.redis.set(getZaloOaAccessTokenRedisKey(accountId), accessToken, ZALO_OA_ACCESS_TOKEN_TTL_SECONDS),
+    //   refreshToken
+    //     ? this.redis.set(getZaloOaRefreshTokenRedisKey(accountId), refreshToken, ZALO_OA_REFRESH_TOKEN_TTL_SECONDS)
+    //     : Promise.resolve(),
+    // ])
+    // return accessToken
   }
 
   async refreshToken(params?: {

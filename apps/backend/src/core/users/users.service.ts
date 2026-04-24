@@ -103,17 +103,17 @@ export class UsersService {
 
     const hashed = await bcrypt.hash(dto.password, 10)
 
-    return this.prisma.client.user.create({
-      data: {
-        name: dto.name,
-        email: dto.email,
-        username: dto.username,
-        password: hashed,
-        phone: dto.phone,
-        roleId: dto.roleId,
-      },
-      omit: { password: true },
-    })
+    // return this.prisma.client.user.create({
+    //   data: {
+    //     name: dto.name,
+    //     email: dto.email,
+    //     username: dto.username,
+    //     password: hashed,
+    //     phone: dto.phone,
+    //     roleId: dto.roleId,
+    //   },
+    //   omit: { password: true },
+    // })
   }
 
   async update(id: string, dto: UpdateUserDto) {

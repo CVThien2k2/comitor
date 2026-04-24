@@ -7,8 +7,8 @@ model User {
   emailVerified Boolean @default(false) @map("email_verified")
   avatarUrl     String? @map("avatar_url")
   phone         String? @unique @map("phone")
-  roleId        String  @map("role_id") //ID role của người dùng
-  agentLevelId  String  @map("agent_level_id") //ID agent level của người dùng
+  roleId        String? @map("role_id") //ID role của người dùng
+  agentLevelId  String? @map("agent_level_id") //ID agent level của người dùng
   isActive      Boolean @default(true) @map("is_active")
   isOnline      Boolean @default(false) @map("is_online")
 
@@ -20,7 +20,7 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  role                      Role               @relation(fields: [roleId], references: [id])
+  role                      Role?              @relation(fields: [roleId], references: [id])
   createdByUser             User               @relation("UserCreatedBy", fields: [createdBy], references: [id]) //Tạo bởi
   linkAccounts              LinkAccount[]
   sentMessages              Message[]
@@ -31,7 +31,7 @@ model User {
   suggestedMessages         SuggestedMessage[] @relation("SuggestedMessageCreatedBy") //Danh sách suggested messages đã tạo
   sessionAssignees          SessionAssignee[]  @relation("ProcessingSessionAssignBy") //Danh sách session assignees đã tạo
   processedSessionAssignees SessionAssignee[]  @relation("ProcessingSessionAssignee") //Danh sách session assignees đã xử lý
-  agentLevel                AgentLevel         @relation(fields: [agentLevelId], references: [id])
+  agentLevel                AgentLevel?        @relation(fields: [agentLevelId], references: [id])
   agentLevelCreated         AgentLevel[]       @relation("AgentLevelCreatedBy") //Danh sách agent levels đã tạo
 
   @@map("user")

@@ -19,7 +19,17 @@ export const PERMISSION = {
 
   // Permission
   PERMISSION_FULL: { code: "permission:*", description: "Full access to permission management" },
+  PERMISSION_CREATE: { code: "permission:create", description: "Create new permissions" },
   PERMISSION_READ: { code: "permission:read", description: "View permission details" },
+  PERMISSION_UPDATE: { code: "permission:update", description: "Update permission information" },
+  PERMISSION_DELETE: { code: "permission:delete", description: "Delete permissions" },
+
+  // Role Permission
+  ROLE_PERMISSION_FULL: { code: "role-permission:*", description: "Full access to role-permission management" },
+  ROLE_PERMISSION_CREATE: { code: "role-permission:create", description: "Assign permissions to roles" },
+  ROLE_PERMISSION_READ: { code: "role-permission:read", description: "View role-permission mappings" },
+  ROLE_PERMISSION_UPDATE: { code: "role-permission:update", description: "Update role-permission mappings" },
+  ROLE_PERMISSION_DELETE: { code: "role-permission:delete", description: "Remove permissions from roles" },
 
   // Conversation
   CONVERSATION_FULL: { code: "conversation:*", description: "Full access to conversation management" },
@@ -28,12 +38,34 @@ export const PERMISSION = {
   CONVERSATION_UPDATE: { code: "conversation:update", description: "Update conversation details" },
   CONVERSATION_DELETE: { code: "conversation:delete", description: "Delete conversations" },
 
+ 
+  // Processing Session
+  PROCESSING_SESSION_FULL: { code: "processing-session:*", description: "Full access to processing-session management" },
+  PROCESSING_SESSION_CREATE: { code: "processing-session:create", description: "Create processing sessions" },
+  PROCESSING_SESSION_READ: { code: "processing-session:read", description: "View processing sessions" },
+  PROCESSING_SESSION_UPDATE: { code: "processing-session:update", description: "Update processing sessions" },
+  PROCESSING_SESSION_DELETE: { code: "processing-session:delete", description: "Delete processing sessions" },
+
+  // Session Assignee
+  SESSION_ASSIGNEE_FULL: { code: "session-assignee:*", description: "Full access to session-assignee management" },
+  SESSION_ASSIGNEE_CREATE: { code: "session-assignee:create", description: "Assign users to processing sessions" },
+  SESSION_ASSIGNEE_READ: { code: "session-assignee:read", description: "View session assignees" },
+  SESSION_ASSIGNEE_UPDATE: { code: "session-assignee:update", description: "Update session assignees" },
+  SESSION_ASSIGNEE_DELETE: { code: "session-assignee:delete", description: "Remove users from processing sessions" },
+
   // Message
   MESSAGE_FULL: { code: "message:*", description: "Full access to message management" },
   MESSAGE_CREATE: { code: "message:create", description: "Send messages" },
   MESSAGE_READ: { code: "message:read", description: "View messages" },
   MESSAGE_UPDATE: { code: "message:update", description: "Edit messages" },
   MESSAGE_DELETE: { code: "message:delete", description: "Delete messages" },
+
+  // Suggested Message
+  SUGGESTED_MESSAGE_FULL: { code: "suggested-message:*", description: "Full access to suggested-message management" },
+  SUGGESTED_MESSAGE_CREATE: { code: "suggested-message:create", description: "Create suggested messages" },
+  SUGGESTED_MESSAGE_READ: { code: "suggested-message:read", description: "View suggested messages" },
+  SUGGESTED_MESSAGE_UPDATE: { code: "suggested-message:update", description: "Update suggested messages" },
+  SUGGESTED_MESSAGE_DELETE: { code: "suggested-message:delete", description: "Delete suggested messages" },
 
   // Customer
   CUSTOMER_FULL: { code: "customer:*", description: "Full access to customer management" },
@@ -59,6 +91,14 @@ export const PERMISSION = {
   LINK_ACCOUNT_READ: { code: "link-account:read", description: "Xem liên kết kênh" },
   LINK_ACCOUNT_UPDATE: { code: "link-account:update", description: "Cập nhật liên kết kênh" },
   LINK_ACCOUNT_DELETE: { code: "link-account:delete", description: "Xóa liên kết kênh" },
+
+  // Agent Level
+  AGENT_LEVEL_FULL: { code: "agent-level:*", description: "Full access to agent-level management" },
+  AGENT_LEVEL_CREATE: { code: "agent-level:create", description: "Create agent levels" },
+  AGENT_LEVEL_READ: { code: "agent-level:read", description: "View agent levels" },
+  AGENT_LEVEL_UPDATE: { code: "agent-level:update", description: "Update agent levels" },
+  AGENT_LEVEL_DELETE: { code: "agent-level:delete", description: "Delete agent levels" },
+
 
   // Upload
   UPLOAD_FULL: { code: "upload:*", description: "Full access to file management" },

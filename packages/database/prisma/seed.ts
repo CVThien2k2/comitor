@@ -2,123 +2,116 @@ import "dotenv/config"
 import { PrismaClient } from "../src/generated/client"
 import { hashSync } from "bcryptjs"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { randomUUID } from "node:crypto"
 import { PERMISSION } from "../src/permissions"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
 const DEFAULT_PASSWORD = hashSync("123456", 10)
-
+const SYSTEM_ADMIN = {
+  id: randomUUID(),
+  name: "System Admin",
+  email: "systemadmin@comitor.io",
+  username: "systemadmin",
+  password: DEFAULT_PASSWORD,
+}
+const SYSTEM_ROLE = {
+  name: "system",
+  description: "Hệ thống – toàn quyền",
+}
 const DEFAULT_PERMISSIONS: { code: string; description: string }[] = Object.values(PERMISSION)
+
+const TABLES_TO_TRUNCATE = [
+  "conversation_session_assignees",
+  "conversation_processing_sessions",
+  "message_attachments",
+  "messages",
+  "conversation_customers",
+  "conversations",
+  "account_customer",
+  "link_accounts",
+  "refresh_tokens",
+  "role_permissions",
+  "permissions",
+  "roles",
+  "agent_levels",
+  "suggested_messages",
+  "golden_profiles",
+  "user",
+]
+
+async function truncateTableIfExists(tableName: string) {
+  await prisma.$executeRawUnsafe(
+    `DO $$
+     BEGIN
+       IF to_regclass('public.${tableName}') IS NOT NULL THEN
+         EXECUTE 'TRUNCATE TABLE "${tableName}" RESTART IDENTITY CASCADE';
+       END IF;
+     END
+     $$;`,
+  )
+}
 
 async function main() {
   // ─── Clean all data ────────────────────────────────────
-  await prisma.messageAttachment.deleteMany()
-  await prisma.message.deleteMany()
-  await prisma.conversationCustomer.deleteMany()
-  await prisma.refreshToken.deleteMany()
-  await prisma.rolePermission.deleteMany()
-  await prisma.conversation.deleteMany()
-  await prisma.accountCustomer.deleteMany()
-  await prisma.linkAccount.deleteMany()
-  await prisma.user.deleteMany()
-  await prisma.role.deleteMany()
-  await prisma.permission.deleteMany()
-  await prisma.goldenProfile.deleteMany()
+  for (const tableName of TABLES_TO_TRUNCATE) {
+    await truncateTableIfExists(tableName)
+  }
   console.log("Cleaned all data")
 
-  // ─── Permissions ────────────────────────────────────────
-  for (const perm of DEFAULT_PERMISSIONS) {
-    await prisma.permission.upsert({
-      where: { code: perm.code },
-      update: { description: perm.description },
-      create: { code: perm.code, description: perm.description },
+  // ─── 1) Create one system admin user ───────────────────
+  // createdBy is required, so the bootstrap user self-references by id.
+  await prisma.user.createMany({
+    data: [
+      {
+        id: SYSTEM_ADMIN.id,
+        name: SYSTEM_ADMIN.name,
+        email: SYSTEM_ADMIN.email,
+        username: SYSTEM_ADMIN.username,
+        password: SYSTEM_ADMIN.password,
+        createdBy: SYSTEM_ADMIN.id,
+      },
+    ],
+  })
+  const systemAdmin = await prisma.user.findUniqueOrThrow({ where: { id: SYSTEM_ADMIN.id } })
+  console.log("Created systemadmin user")
+
+  // ─── 2) Create system role ─────────────────────────────
+  const systemRole = await prisma.role.create({
+    data: {
+      name: SYSTEM_ROLE.name,
+      description: SYSTEM_ROLE.description,
+      createdBy: systemAdmin.id,
+    },
+  })
+  console.log("Created system role")
+
+  // ─── 3) Create all permissions ─────────────────────────
+  for (const permission of DEFAULT_PERMISSIONS) {
+    await prisma.permission.create({
+      data: {
+        code: permission.code,
+        description: permission.description,
+        createdBy: systemAdmin.id,
+      },
     })
   }
-  console.log(`Seeded ${DEFAULT_PERMISSIONS.length} permissions`)
+  const fullPermission = await prisma.permission.findUniqueOrThrow({ where: { code: "*" } })
+  console.log(`Created ${DEFAULT_PERMISSIONS.length} permissions`)
 
-  // ─── Roles ─────────────────────────────────────────────
-  const rolesData = [
-    { name: "system", description: "Hệ thống – toàn quyền" },
-    { name: "admin", description: "Quản trị viên" },
-    { name: "user", description: "Người dùng" },
-  ]
-
-  for (const role of rolesData) {
-    await prisma.role.upsert({
-      where: { name: role.name },
-      update: { description: role.description },
-      create: role,
-    })
-  }
-  console.log(`Seeded ${rolesData.length} roles`)
-
-  const systemRole = (await prisma.role.findUnique({ where: { name: "system" } }))!
-  const adminRole = (await prisma.role.findUnique({ where: { name: "admin" } }))!
-  const userRole = (await prisma.role.findUnique({ where: { name: "user" } }))!
-
-  const allPermissions = await prisma.permission.findMany()
-  const permByCode = new Map(allPermissions.map((p) => [p.code, p]))
-
-  // ─── Role ↔ Permission mapping ─────────────────────────
-  const systemPermCodes = ["*"]
-  const adminPermCodes = DEFAULT_PERMISSIONS.filter((p) => !p.code.includes("*")).map((p) => p.code)
-  const userPermCodes = [
-    "conversation:create",
-    "conversation:read",
-    "message:create",
-    "message:read",
-    "customer:read",
-    "upload:create",
-    "upload:read",
-  ]
-
-  const rolePermissions: { roleId: string; codes: string[] }[] = [
-    { roleId: systemRole.id, codes: systemPermCodes },
-    { roleId: adminRole.id, codes: adminPermCodes },
-    { roleId: userRole.id, codes: userPermCodes },
-  ]
-
-  let rpCount = 0
-  for (const { roleId, codes } of rolePermissions) {
-    for (const code of codes) {
-      const perm = permByCode.get(code)
-      if (!perm) continue
-      await prisma.rolePermission.upsert({
-        where: { unique_role_permission: { roleId, permissionId: perm.id } },
-        update: {},
-        create: { roleId, permissionId: perm.id },
-      })
-      rpCount++
-    }
-  }
-  console.log(`Seeded ${rpCount} role-permission mappings`)
-
-  const users = [
-    {
-      name: "System",
-      email: "system@comitor.io",
-      username: "admin",
-      password: DEFAULT_PASSWORD,
+  // ─── 4) Attach role to user + attach full permission ───
+  await prisma.user.update({
+    where: { id: systemAdmin.id },
+    data: { roleId: systemRole.id },
+  })
+  await prisma.rolePermission.create({
+    data: {
       roleId: systemRole.id,
+      permissionId: fullPermission.id,
     },
-    {
-      name: "Administrator",
-      email: "admin@comitor.io",
-      username: "administrator",
-      password: DEFAULT_PASSWORD,
-      roleId: adminRole.id,
-    },
-  ]
-
-  for (const user of users) {
-    await prisma.user.upsert({
-      where: { username: user.username },
-      update: { name: user.name, email: user.email, roleId: user.roleId },
-      create: user,
-    })
-  }
-  console.log(`Seeded ${users.length} system users (password: 123456)`)
+  })
+  console.log("Attached role and full permission")
 
   console.log("\nSeed completed!")
 }

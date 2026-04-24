@@ -269,8 +269,8 @@ CREATE TABLE "user" (
     "email_verified" BOOLEAN NOT NULL DEFAULT false,
     "avatar_url" TEXT,
     "phone" TEXT,
-    "role_id" TEXT NOT NULL,
-    "agent_level_id" TEXT NOT NULL,
+    "role_id" TEXT,
+    "agent_level_id" TEXT,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "is_online" BOOLEAN NOT NULL DEFAULT false,
     "count_processing_sessions" INTEGER NOT NULL DEFAULT 0,
@@ -419,10 +419,10 @@ ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permission_id_fk
 ALTER TABLE "suggested_messages" ADD CONSTRAINT "suggested_messages_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user" ADD CONSTRAINT "user_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user" ADD CONSTRAINT "user_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "user" ADD CONSTRAINT "user_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "user"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user" ADD CONSTRAINT "user_agent_level_id_fkey" FOREIGN KEY ("agent_level_id") REFERENCES "agent_levels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "user" ADD CONSTRAINT "user_agent_level_id_fkey" FOREIGN KEY ("agent_level_id") REFERENCES "agent_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;

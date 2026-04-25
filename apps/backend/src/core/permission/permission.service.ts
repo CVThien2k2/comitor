@@ -26,4 +26,25 @@ export class PermissionService {
 
     return paginatedResponse(items, total, page, limit)
   }
+
+  async getPermissionByUserId(userId: string) {
+    const permissions = await this.prisma.client.permission.findMany({
+      where: {
+        rolePermissions: {
+          some: {
+            role: {
+              users: {
+                some: { id: userId },
+              },
+            },
+          },
+        },
+      },
+      select: { code: true },
+      distinct: ["code"],
+      orderBy: { code: "asc" },
+    })
+
+    return permissions.map((permission) => permission.code)
+  }
 }

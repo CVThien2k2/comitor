@@ -25,11 +25,26 @@ export class UserEntity {
   @ApiProperty({ example: null, nullable: true })
   roleId: string | null
 
+  @ApiProperty({ example: null, nullable: true })
+  agentLevelId: string | null
+
   @ApiProperty({ example: true })
   isActive: boolean
 
   @ApiProperty({ example: false })
   isOnline: boolean
+
+  @ApiProperty({ example: 0 })
+  countProcessing: number
+
+  @ApiProperty({ example: true })
+  isReadyProcessing: boolean
+
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
+  createdBy: string
+
+  @ApiProperty({ example: false })
+  isDeleted: boolean
 
   @ApiProperty()
   createdAt: Date

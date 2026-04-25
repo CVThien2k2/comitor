@@ -8,12 +8,12 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger"
-import type { Request as ExpressRequest } from "express"
 import type { User } from "@workspace/database"
-import { ApiResponseOf, InternalServerErrorEntity, UnauthorizedEntity } from "./common/entities/api-response.entity"
+import type { Request as ExpressRequest } from "express"
 import { AppService } from "./app.service"
-import { UserEntity } from "./core/users/entities/user.entity"
 import { Public } from "./common/decorators/public.decorator"
+import { ApiResponseOf, InternalServerErrorEntity, UnauthorizedEntity } from "./common/entities/api-response.entity"
+import { UserEntity } from "./core/users/entities/user.entity"
 
 interface RequestWithUser extends ExpressRequest {
   user: User
@@ -27,6 +27,9 @@ class AppInitBadgesDto {
 class AppInitDto {
   @ApiProperty({ type: UserEntity })
   user: UserEntity
+
+  @ApiProperty({ type: [String] })
+  permissions: string[]
 
   @ApiProperty({ type: AppInitBadgesDto })
   badges: AppInitBadgesDto

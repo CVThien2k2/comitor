@@ -18,6 +18,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await app.init()
         if (res.data?.user) useAuthStore.getState().setUser(res.data.user)
         if (res.data?.badges) useAppStore.getState().setBadges(res.data.badges)
+        if (res.data?.permissions) useAuthStore.getState().setPermissions(res.data.permissions)
         return res
       } catch (error: unknown) {
         const statusCode =
@@ -27,7 +28,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : undefined
 
         if (statusCode === 401) {
-          useAuthStore.getState().clearAuth()
           useAppStore.getState().reset()
           throw new Error("Unauthorized")
         }
@@ -41,8 +41,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refetchOnMount: false,
   })
 
-  // Only block UI during the very first init request.
-  // If init fails (e.g. CORS/network), keep rendering app to avoid spinner loop.
   if (!hydrated || (accessToken && !isFetched && isLoading)) {
     return <LoadingUI />
   }

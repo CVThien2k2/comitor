@@ -61,7 +61,9 @@ export function UserProfile({ collapsed }: { collapsed: boolean }) {
   )
 
   const logoutMutation = useMutation({
-    mutationFn: logout,
+    mutationFn: async () => {
+      await logout()
+    },
     onSuccess: () => {
       queryClient.clear()
       resetApp()

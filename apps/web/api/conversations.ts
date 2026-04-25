@@ -14,7 +14,7 @@ export interface PaginationQuery {
 // ─── API ────────────────────────────────────────────────
 
 export const conversations = {
-  getAll: (query?: PaginationQuery & { unread?: boolean }) =>
+  getAll: (query?: PaginationQuery & { unread?: boolean; myProcessing?: boolean }) =>
     api.get<ApiResponse<PaginatedResponse<Conversation>>>("/conversations", { params: query }),
 
   getUnreadCount: () => api.get<ApiResponse<number>>("/conversations/unread-count"),

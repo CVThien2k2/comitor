@@ -3,6 +3,7 @@ import { ConversationService } from "./core/conversation/conversation.service"
 import { User } from "@workspace/database"
 import { PrismaService } from "./database/prisma.service"
 import { RedisService } from "./redis"
+import { PermissionService } from "./core/permission/permission.service"
 
 @Injectable()
 export class AppService {
@@ -11,14 +12,17 @@ export class AppService {
   constructor(
     private readonly conversationService: ConversationService,
     private readonly prismaService: PrismaService,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly permissionService: PermissionService
   ) {}
 
   async init(user: User) {
     const [unreadCount] = await Promise.all([this.conversationService.countUnreadConversations()])
+    const permissions = await this.permissionService.getPermissionByUserId(user.id)
 
     return {
       user,
+      permissions,
       badges: {
         conversationsUnreadCount: unreadCount,
       },

@@ -7,10 +7,12 @@ import { TokenService } from "./token.service"
 import { AuthController } from "./auth.controller"
 import { JwtStrategy } from "../common/strategies/jwt.strategy"
 import { UsersModule } from "../core/users/users.module"
+import { PermissionModule } from "../core/permission/permission.module"
 
 @Module({
   imports: [
     UsersModule,
+    PermissionModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

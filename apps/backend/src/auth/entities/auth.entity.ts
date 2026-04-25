@@ -8,6 +8,9 @@ export class AuthEntity {
   @ApiProperty({ example: 1710401100000 })
   accessExpiresAt: number
 
+  @ApiProperty({ example: ["user:read", "role:update"], type: [String] })
+  permissions: string[]
+
   @ApiProperty({ type: UserEntity })
   user: UserEntity
 }
@@ -18,6 +21,9 @@ export class RefreshEntity {
 
   @ApiProperty({ example: 1710401100000 })
   accessExpiresAt: number
+
+  @ApiProperty({ example: ["user:read", "role:update"], type: [String] })
+  permissions: string[]
 
   @ApiProperty({ type: UserEntity })
   user: UserEntity

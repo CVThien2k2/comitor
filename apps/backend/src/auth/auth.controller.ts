@@ -43,7 +43,7 @@ export class AuthController {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.login(
+    const { accessToken, accessExpiresAt, refreshToken, user, permissions } = await this.authService.login(
       dto.username,
       dto.password
     )
@@ -51,7 +51,7 @@ export class AuthController {
     this.setRefreshCookie(res, refreshToken)
     return {
       message: "Đăng nhập thành công",
-      data: { accessToken, accessExpiresAt, user },
+      data: { accessToken, accessExpiresAt, permissions, user },
     }
   }
 
@@ -64,22 +64,24 @@ export class AuthController {
     const oldToken = req.cookies?.[REFRESH_TOKEN_COOKIE]
     if (!oldToken) throw new UnauthorizedException("Không tìm thấy refresh token")
 
-    // const { accessToken, accessExpiresAt, refreshToken, user } = await this.authService.refresh(oldToken)
-    // this.setRefreshCookie(res, refreshToken)
-    // return {
-    //   message: "Làm mới token thành công",
-    //   data: { accessToken, accessExpiresAt, user },
-    // }
+    const { accessToken, accessExpiresAt, refreshToken, user, permissions } = await this.authService.refresh(
+      oldToken
+    )
+    this.setRefreshCookie(res, refreshToken)
+    return {
+      message: "Làm mới token thành công",
+      data: { accessToken, accessExpiresAt, permissions, user },
+    }
   }
 
   @ApiOperation({ summary: "Đăng xuất" })
   @ApiOkResponse({ type: MessageResponseEntity })
   @Post("logout")
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
+  logout(@Request() req: ExpressRequest, @Res({ passthrough: true }) res: Response) {
     const token = req.cookies?.[REFRESH_TOKEN_COOKIE]
     if (token) {
-      await this.authService.logout(token)
+      this.authService.logout(token)
     }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: "/auth" })
     return { message: "Đăng xuất thành công" }

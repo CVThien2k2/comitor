@@ -8,8 +8,8 @@ function createPrismaClient() {
     connectionString: process.env.DATABASE_URL!,
   })
 
-  const enableQueryLog = process.env.PRISMA_QUERY_LOG === "true"
-  const logs: ("query" | "error")[] = enableQueryLog ? ["query", "error"] : ["error"]
+  const enableQueryLog = process.env.NODE_ENV !== "production"
+  const logs: ("query" | "error")[] = enableQueryLog ? ["query", "error"] : []
 
   return new PrismaClient({
     adapter,

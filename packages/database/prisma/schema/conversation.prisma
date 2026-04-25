@@ -11,6 +11,7 @@ model Conversation {
   status              ConversationStatus @default(pending) @map("status") //Trạng thái cuộc hội thoại
   countUnreadMessages Int                @default(0) @map("count_unread_messages") //Số lượng tin nhắn chưa đọc
   isUnread            Boolean            @default(false) @map("is_unread") //Cuộc hội thoại có tin nhắn chưa đọc hay không
+  processingBy        String?            @map("processing_by_user_id") //ID người dùng đang xử lý cuộc hội thoại\
 
   lastActivityAt DateTime  @map("last_activity_at")
   lastViewedAt   DateTime? @map("last_viewed_at")
@@ -23,6 +24,7 @@ model Conversation {
   conversationCustomers ConversationCustomer[]
   processingSessions    ProcessingSession[]
   messages              Message[]
+  processingByUser      User?                  @relation("ProcessingConversation", fields: [processingBy], references: [id])
 
   @@index([lastActivityAt(sort: Desc)], name: "last_activity_at")
   @@index([linkedAccountId], name: "linked_account_id")

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/
 import { ConfigService } from "@nestjs/config"
 import * as bcrypt from "bcryptjs"
 import * as crypto from "crypto"
+import { PermissionService } from "../core/permission/permission.service"
 import { UsersService } from "../core/users/users.service"
 import { EmailService } from "../email/email.service"
 import { RedisService } from "../redis/redis.service"
@@ -17,6 +18,7 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly permissionService: PermissionService,
     private readonly tokenService: TokenService,
     private readonly redisService: RedisService,
     private readonly emailService: EmailService,
@@ -33,21 +35,33 @@ export class AuthService {
     if (!isMatch) throw new UnauthorizedException("Tên đăng nhập hoặc mật khẩu không hợp lệ")
 
     const tokens = await this.tokenService.generateTokens(user.id, user.email)
+    const permissions = await this.permissionService.getPermissionByUserId(user.id)
     const { password: _, ...userData } = user
-    return { ...tokens, user: userData }
+    void _
+
+    return {
+      ...tokens,
+      user: userData,
+      permissions,
+    }
   }
 
   async refresh(refreshToken: string) {
-    // const payload = await this.tokenService.verifyRefreshToken(refreshToken)
-    // await this.tokenService.revokeRefreshToken(refreshToken)
-    // const user = await this.usersService.findById(payload.userId)
-    // if (!user) throw new UnauthorizedException()
-    // const tokens = await this.tokenService.generateTokens(user.id, user.email)
-    // return { ...tokens, user }
+    const payload = await this.tokenService.verifyRefreshToken(refreshToken)
+    const user = await this.usersService.findById(payload.userId)
+    if (!user) throw new UnauthorizedException()
+    const tokens = await this.tokenService.generateTokens(user.id, user.email)
+    const permissions = await this.permissionService.getPermissionByUserId(user.id)
+
+    return {
+      ...tokens,
+      user,
+      permissions,
+    }
   }
 
-  async logout(refreshToken: string) {
-    await this.tokenService.revokeRefreshToken(refreshToken)
+  logout(refreshToken: string) {
+    this.tokenService.revokeRefreshToken(refreshToken)
   }
 
   async forgotPassword(username: string) {
@@ -71,7 +85,7 @@ export class AuthService {
     const resetLink = `${frontendUrl}/reset-password?token=${token}`
 
     // Gửi email chạy ngầm, không block response
-    this.emailService.send(EmailType.RESET_PASSWORD, {
+    void this.emailService.send(EmailType.RESET_PASSWORD, {
       email: user.email,
       firstName: user.name,
       url: resetLink,

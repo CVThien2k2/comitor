@@ -33,6 +33,7 @@ model User {
   processedSessionAssignees SessionAssignee[]  @relation("ProcessingSessionAssignee") //Danh sách session assignees đã xử lý
   agentLevel                AgentLevel?        @relation(fields: [agentLevelId], references: [id])
   agentLevelCreated         AgentLevel[]       @relation("AgentLevelCreatedBy") //Danh sách agent levels đã tạo
+  processingConversations   Conversation[]     @relation("ProcessingConversation") //Danh sách conversations đang xử lý
 
   @@map("user")
 }

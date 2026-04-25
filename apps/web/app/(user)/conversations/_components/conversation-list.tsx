@@ -35,7 +35,7 @@ function ConversationListSkeleton({ count }: { count: number }) {
 export function ConversationListPanel() {
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch] = useDebounce(searchQuery.trim(), 500)
-  const [activeTab, setActiveTab] = useState("all")
+  const [activeTab, setActiveTab] = useState("received")
 
   const CONVERSATIONS_PER_PAGE = 20
 
@@ -63,6 +63,7 @@ export function ConversationListPanel() {
         limit: CONVERSATIONS_PER_PAGE,
         search: debouncedSearch || undefined,
         unread: activeTab === "unread",
+        myProcessing: activeTab === "received",
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
@@ -110,25 +111,25 @@ export function ConversationListPanel() {
   return (
     <div className="flex h-full flex-col bg-background">
       <div className="space-y-3 border-b border-border p-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-foreground">Hội thoại</h2>
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Icons.search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Tìm kiếm hội thoại"
+              value={searchQuery}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              className="h-9 border-transparent bg-muted/50 pl-9 focus-visible:border-border"
+            />
+          </div>
+          <Button variant="ghost" className="bg-muted/50 text-muted-foreground">
             <Icons.filter className="size-4" />
           </Button>
         </div>
-
-        <div className="relative">
-          <Icons.search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm hội thoại"
-            value={searchQuery}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            className="h-9 border-transparent bg-muted/50 pl-9 focus-visible:border-border"
-          />
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="h-8 w-full bg-muted/70 p-0.5">
+            <TabsTrigger value="received" className="h-7 flex-1 text-xs">
+              Đã nhận
+            </TabsTrigger>
             <TabsTrigger value="all" className="h-7 flex-1 text-xs">
               Tất cả
             </TabsTrigger>

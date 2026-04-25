@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common"
 import { ConversationService } from "./core/conversation/conversation.service"
 import { User } from "@workspace/database"
 import { PrismaService } from "./database/prisma.service"
-import { RedisService } from "./redis"
+import { RedisService } from "./redis/redis.service"
 import { PermissionService } from "./core/permission/permission.service"
 
 @Injectable()

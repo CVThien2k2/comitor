@@ -1,11 +1,16 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common"
 import { Observable, map } from "rxjs"
-import type { Response } from "express"
+import type { Request, Response } from "express"
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<Request>()
     const response = context.switchToHttp().getResponse<Response>()
+
+    if (request.headers.accept?.includes("text/event-stream")) {
+      return next.handle()
+    }
 
     return next.handle().pipe(
       map((body: { message?: string; data?: unknown } | unknown) => {

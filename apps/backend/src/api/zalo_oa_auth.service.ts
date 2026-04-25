@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { PrismaService } from "src/database/prisma.service"
-import { RedisService } from "src/redis"
+import { RedisService } from "src/redis/redis.service"
 import {
   getZaloOaAccessTokenRedisKey,
   getZaloOaRefreshTokenRedisKey,

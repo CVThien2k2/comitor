@@ -16,7 +16,7 @@ import {
   ZALO_OA_REFRESH_TOKEN_TTL_SECONDS,
 } from "./zalo_oa.redis"
 import { mapProfileToGoldenProfile } from "./utils/helper"
-import { RedisService } from "src/redis"
+import { RedisService } from "src/redis/redis.service"
 import { PrismaService } from "src/database/prisma.service"
 import { MessageSenderResponse } from "src/platform/message-senders/message-sender.interface"
 

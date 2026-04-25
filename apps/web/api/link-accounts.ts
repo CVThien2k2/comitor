@@ -1,6 +1,12 @@
 import { api } from "@/lib/axios"
 import type { ApiResponse, PaginatedResponse, LinkAccountItem, LinkAccountDetail } from "@/lib/types"
 
+export type ZaloLoginQr = {
+  sessionId: string
+  userId: string
+  status: "qr_ready"
+  qrCode: string
+}
 export interface LinkAccountQuery {
   page?: number
   limit?: number
@@ -23,4 +29,5 @@ export const linkAccounts = {
 
   linkMeta: (payload: { code: string }) =>
     api.post<ApiResponse<LinkAccountDetail[]>>("/link-accounts/link/meta-app", payload),
+  loginZalo: () => api.get<ApiResponse<ZaloLoginQr>>("/zalo/login"),
 }

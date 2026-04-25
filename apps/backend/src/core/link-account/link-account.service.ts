@@ -1,13 +1,13 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { PrismaService, TransactionClient } from "../../database/prisma.service"
-import { RedisService } from "../../redis"
+import { RedisService } from "../../redis/redis.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
 import { FetchWrapper } from "../../common/http/fetch.wrapper"
 import { ChannelType } from "@workspace/database"
-import { ZaloPersonalSessionService } from "../../platform/zalo_personal/zalo_personal-session.service"
+// import { ZaloPersonalSessionService } from "../../platform/zalo_personal/zalo_personal-session.service"
 import {
   getZaloOaAccessTokenRedisKey,
   getZaloOaRefreshTokenRedisKey,
@@ -72,8 +72,8 @@ export class LinkAccountService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
-    private readonly zaloPersonalSessionService: ZaloPersonalSessionService
+    private readonly redisService: RedisService
+    // private readonly zaloPersonalSessionService: ZaloPersonalSessionService
   ) {}
 
   async findAll(query: PaginationQueryDto) {
@@ -123,7 +123,7 @@ export class LinkAccountService {
     if (!account) throw new NotFoundException("Liên kết kênh không tồn tại")
 
     if (account.provider === ChannelType.zalo_personal) {
-      this.zaloPersonalSessionService.disconnectSession(account.id)
+      // this.zaloPersonalSessionService.disconnectSession(account.id)
     }
 
     // await this.prisma.client.$transaction(async (tx) => {

@@ -4,7 +4,7 @@ import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Response } from "express"
 import { QueueService } from "src/queue/queue.service"
 import { MetaMessageWebhook, ZaloOAWebhookPayload } from "src/utils/types/webhook"
-import { Public } from "../common/decorators/public.decorator"
+import { Public } from "../../common/decorators/public.decorator"
 import { WebhookService } from "./webhook.service"
 
 @ApiTags("Webhook")

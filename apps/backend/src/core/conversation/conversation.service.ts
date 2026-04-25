@@ -4,13 +4,13 @@ import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
 import { MESSAGE_INCLUDE } from "../message/message.include"
-import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
+// import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
 
 @Injectable()
 export class ConversationService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly zaloPersonalService: ZaloPersonalService
+    private readonly prisma: PrismaService
+    // private readonly zaloPersonalService: ZaloPersonalService
   ) {}
 
   private getConversationInclude() {
@@ -211,12 +211,12 @@ export class ConversationService {
         conversationName = accountCustomer?.goldenProfile.fullName || "Khách hàng"
         conversationAvatarUrl = accountCustomer?.avatarUrl || null
       } else {
-        const { name, avatarUrl } = await this.zaloPersonalService.getGroupConversationName(
-          data.externalId,
-          data.linkedAccountId
-        )
-        conversationName = name
-        conversationAvatarUrl = avatarUrl
+        // const { name, avatarUrl } = await this.zaloPersonalService.getGroupConversationName(
+        //   data.externalId,
+        //   data.linkedAccountId
+        // )
+        // conversationName = name
+        // conversationAvatarUrl = avatarUrl
       }
       // const conversation = await db.conversation.create({
       //   data: {

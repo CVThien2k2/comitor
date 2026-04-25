@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common"
 import { ConfigService } from "@nestjs/config"
 import { PrismaService } from "../../database/prisma.service"
-import { RedisService } from "../../redis"
+import { RedisService } from "../../redis/redis.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { CreateRoleDto } from "./dto/create-role.dto"

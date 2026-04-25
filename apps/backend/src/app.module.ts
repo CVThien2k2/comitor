@@ -13,13 +13,11 @@ import { MessageModule } from "./core/message/message.module"
 import { GoldenProfileModule } from "./core/golden-profile/golden-profile.module"
 import { AccountCustomerModule } from "./core/account-customer/account-customer.module"
 import { LinkAccountModule } from "./core/link-account/link-account.module"
-import { WebhookModule } from "./platform/webhook.module"
 import { UploadModule } from "./upload/upload.module"
 import { EmailModule } from "./email/email.module"
 import { SocketModule } from "./websocket/socket.module"
 import { EventsModule } from "./events/events.module"
-import { ZaloPersonalModule } from "./platform/zalo_personal/zalo_personal.module"
-import { RedisModule } from "./redis"
+import { RedisModule } from "./redis/redis.module"
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard"
 import { PermissionsGuard } from "./common/guards/permissions.guard"
 import { ApiModule } from "./api/api.module"
@@ -51,12 +49,10 @@ import { AppService } from "./app.service"
     GoldenProfileModule,
     AccountCustomerModule,
     LinkAccountModule,
-    WebhookModule,
     UploadModule,
     EmailModule,
     SocketModule,
     EventsModule,
-    ZaloPersonalModule,
     ApiModule,
     PlatformModule,
     QueueModule,

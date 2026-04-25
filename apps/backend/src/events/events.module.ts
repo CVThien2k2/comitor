@@ -7,12 +7,12 @@ import { MessageSenderRegistry } from "../platform/message-senders/message-sende
 import { ZaloOaSender } from "../platform/message-senders/zalo-oa.sender"
 import { FacebookSender } from "../platform/message-senders/facebook.sender"
 import { ZaloPersonalSender } from "../platform/message-senders/zalo-personal.sender"
-import { ZaloPersonalModule } from "src/platform/zalo_personal/zalo_personal.module"
+// import { ZaloPersonalModule } from "src/platform/zalo_personal/zalo_personal.module"
 import { ConversationModule } from "src/core/conversation/conversation.module"
 import { ApiModule } from "src/api/api.module"
 
 @Module({
-  imports: [UsersModule, MessageModule, ZaloPersonalModule, ConversationModule, ApiModule],
+  imports: [UsersModule, MessageModule, ConversationModule, ApiModule],
   providers: [
     UserStatusListener,
     MessageListener,

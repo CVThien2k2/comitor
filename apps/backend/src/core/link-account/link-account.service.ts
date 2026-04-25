@@ -76,43 +76,27 @@ export class LinkAccountService {
     private readonly zaloPersonalSessionService: ZaloPersonalSessionService
   ) {}
 
-  private async upsertProviderCredentials(tx: TransactionClient, params: UpsertProviderCredentialsParams) {
-    const { linkAccountId, ...credentialData } = params
-
-    // return tx.providerCredentials.upsert({
-    //   where: { linkAccountId },
-    //   update: credentialData,
-    //   create: {
-    //     linkAccountId,
-    //     ...credentialData,
-    //   },
-    // })
-  }
-
   async findAll(query: PaginationQueryDto) {
-    const { skip, take, page, limit } = paginate(query)
+    const { skip, take, page, limit, search } = paginate(query)
 
-    const where = query.search
-      ? {
-          OR: [
-            { displayName: { contains: query.search, mode: "insensitive" as const } },
-            { accountId: { contains: query.search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}
+    const where = {
+      isDeleted: false,
+      ...(search ? { OR: [{ displayName: { contains: search, mode: "insensitive" as const } }] } : {}),
+    }
 
-    // const [items, total] = await Promise.all([
-    //   this.prisma.client.linkAccount.findMany({
-    //     where,
-    //     include: { linkedByUser: { select: { id: true, name: true } } },
-    //     orderBy: { createdAt: "desc" },
-    //     skip,
-    //     take,
-    //   }),
-    //   this.prisma.client.linkAccount.count({ where }),
-    // ])
+    const [items, total] = await Promise.all([
+      this.prisma.client.linkAccount.findMany({
+        where,
+        omit: { credentials: true },
+        include: { createdByUser: { select: { id: true, name: true, avatarUrl: true } } },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      this.prisma.client.linkAccount.count({ where }),
+    ])
 
-    // return paginatedResponse(items, total, page, limit)
+    return paginatedResponse(items, total, page, limit)
   }
 
   async findById(id: string) {

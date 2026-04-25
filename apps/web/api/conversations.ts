@@ -1,5 +1,11 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, Conversation, MessageItem, CreateMessagePayload } from "@/lib/types"
+import type {
+  ApiResponse,
+  PaginatedResponse,
+  Conversation,
+  MessageItem,
+  CreateMessagePayload,
+} from "@/lib/types"
 
 export type { Conversation, MessageItem, MessageAttachment, CreateMessagePayload } from "@/lib/types"
 

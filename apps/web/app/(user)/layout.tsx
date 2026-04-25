@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
           )}
         >
           <AppHeader isSidebarOpen={isSidebarOpen} onToggleSidebar={handleToggleSidebar} />
-          <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-scroll">{children}</main>
         </div>
       </div>
     </AuthWrapper>

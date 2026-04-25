@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, Request } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Patch, Query, Req, Request } from "@nestjs/common"
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -16,7 +16,7 @@ import type { Request as ExpressRequest } from "express"
 import { Permissions } from "../../common/decorators/permissions.decorator"
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import {
-  ApiPaginatedResponseOf,
+  // ApiPaginatedResponseOf,
   ApiResponseOf,
   BadRequestEntity,
   ForbiddenEntity,
@@ -27,7 +27,7 @@ import {
 } from "../../common/entities/api-response.entity"
 import { ConversationService } from "./conversation.service"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
-import { ConversationEntity } from "./entities/conversation.entity"
+// import { ConversationEntity } from "./entities/conversation.entity"
 
 interface RequestWithUser extends ExpressRequest {
   user: User
@@ -43,11 +43,11 @@ export class ConversationController {
   constructor(private readonly conversationService: ConversationService) {}
 
   @ApiOperation({ summary: "Lấy danh sách cuộc hội thoại" })
-  @ApiOkResponse({ type: ApiPaginatedResponseOf(ConversationEntity) })
+  // @ApiOkResponse({ type: ApiPaginatedResponseOf(ConversationEntity) })
   @Permissions(P.CONVERSATION_READ)
   @Get()
-  async findAll(@Query() query: PaginationQueryDto) {
-    const data = await this.conversationService.findAll(query)
+  async findAll(@Query() query: PaginationQueryDto, @Req() req: RequestWithUser) {
+    const data = await this.conversationService.findAll(query, req.user.id)
     return { message: "Lấy danh sách cuộc hội thoại thành công", data }
   }
 
@@ -61,7 +61,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Lấy thông tin cuộc hội thoại theo ID" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
+  // @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_READ)
   @Get(":id")
@@ -71,7 +71,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Ghi nhận agent truy cập cuộc hội thoại gần nhất" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
+  // @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_READ)
   @Patch(":id/view")
@@ -81,7 +81,7 @@ export class ConversationController {
   }
 
   @ApiOperation({ summary: "Cập nhật cuộc hội thoại" })
-  @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
+  // @ApiOkResponse({ type: ApiResponseOf(ConversationEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.CONVERSATION_UPDATE)

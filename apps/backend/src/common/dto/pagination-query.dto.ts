@@ -34,4 +34,19 @@ export class PaginationQueryDto {
   @IsBoolean()
   @IsOptional()
   unread?: boolean
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    description: "Chỉ lấy cuộc hội thoại đang được xử lý bởi người dùng hiện tại",
+  })
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return undefined
+    if (typeof value === "boolean") return value
+    if (typeof value === "string") return value.toLowerCase() === "true"
+    return Boolean(value)
+  })
+  @IsBoolean()
+  @IsOptional()
+  myProcessing?: boolean
 }

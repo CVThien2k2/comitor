@@ -36,7 +36,7 @@ export function SidebarContent({ pathname, collapsed, onNavigate }: SidebarConte
   )
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <div className={cn("mb-6 flex h-16 items-center", collapsed ? "justify-center px-3" : "gap-3 px-4")}>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
           CH
@@ -52,7 +52,7 @@ export function SidebarContent({ pathname, collapsed, onNavigate }: SidebarConte
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
         <div className="space-y-1">
           {visibleMainNavItems.map((item) => (
             <SidebarNavItem
@@ -66,7 +66,7 @@ export function SidebarContent({ pathname, collapsed, onNavigate }: SidebarConte
         </div>
       </nav>
 
-      <div className="border-t border-sidebar-border px-3 py-2">
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-2">
         <div className="mb-2">
           <ThemeToggle collapsed={collapsed} />
         </div>
@@ -85,7 +85,7 @@ export function SidebarContent({ pathname, collapsed, onNavigate }: SidebarConte
 
         <UserProfile collapsed={collapsed} />
       </div>
-    </>
+    </div>
   )
 }
 

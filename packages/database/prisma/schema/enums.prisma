@@ -2,8 +2,6 @@ enum ChannelType {
   zalo_personal
   zalo_oa
   facebook
-  gmail
-  phone
 }
 
 enum JourneyState {

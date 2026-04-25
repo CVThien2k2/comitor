@@ -23,7 +23,7 @@ import {
   NotFoundEntity,
   UnauthorizedEntity,
 } from "../../common/entities/api-response.entity"
-import { LinkAccountEntity, LinkAccountListEntity, LinkAccountDetailEntity } from "./entities/link-account.entity"
+import { LinkAccountEntity } from "./entities/link-account.entity"
 import { LinkAccountService } from "./link-account.service"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
 import { LinkOAuthDto } from "./dto/link-oauth.dto"
@@ -38,7 +38,7 @@ export class LinkAccountController {
   constructor(private readonly linkAccountService: LinkAccountService) {}
 
   @ApiOperation({ summary: "Lấy danh sách liên kết kênh" })
-  @ApiOkResponse({ type: ApiPaginatedResponseOf(LinkAccountListEntity) })
+  @ApiOkResponse({ type: ApiPaginatedResponseOf(LinkAccountEntity) })
   @Permissions(P.LINK_ACCOUNT_READ)
   @Get()
   async findAll(@Query() query: PaginationQueryDto) {
@@ -47,7 +47,7 @@ export class LinkAccountController {
   }
 
   @ApiOperation({ summary: "Lấy thông tin liên kết kênh theo ID" })
-  @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(LinkAccountEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.LINK_ACCOUNT_READ)
   @Get(":id")
@@ -80,7 +80,7 @@ export class LinkAccountController {
   // ─── OAuth Linking ────────────────────────────────────
 
   @ApiOperation({ summary: "Liên kết Zalo OA qua OAuth" })
-  @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(LinkAccountEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @Post("zalo-oa")
   async linkZaloOa(@Body() dto: LinkOAuthDto, @Request() req: any) {
@@ -89,7 +89,7 @@ export class LinkAccountController {
   }
 
   @ApiOperation({ summary: "Liên kết Meta/Facebook qua OAuth" })
-  @ApiOkResponse({ type: ApiResponseOf(LinkAccountDetailEntity) })
+  @ApiOkResponse({ type: ApiResponseOf(LinkAccountEntity) })
   @ApiBadRequestResponse({ type: BadRequestEntity })
   @Post("meta")
   async linkMeta(@Body() dto: LinkOAuthDto, @Request() req: any) {

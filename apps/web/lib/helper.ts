@@ -1,4 +1,5 @@
 import type { Conversation, MessageItem } from "@/api/conversations"
+import { ChannelType, LinkAccountStatus } from "@workspace/database"
 
 // ─── Avatar Colors ──────────────────────────────────────
 
@@ -22,12 +23,41 @@ export function getAvatarColor(id: string) {
 
 // ─── Channel Config ─────────────────────────────────────
 
-export const channelConfig: Record<string, { color: string; bg: string }> = {
-  zalo_oa: { color: "text-blue-500", bg: "bg-blue-50" },
-  zalo_personal: { color: "text-blue-500", bg: "bg-blue-50" },
-  facebook: { color: "text-blue-600", bg: "bg-blue-50" },
-  gmail: { color: "text-red-500", bg: "bg-red-50" },
-  phone: { color: "text-emerald-600", bg: "bg-emerald-50" },
+export const channelMeta: Record<ChannelType, { label: string; iconSrc: string; color: string; bg: string }> = {
+  zalo_oa: {
+    label: "Zalo OA",
+    iconSrc: "/Zalo.png",
+    color: "text-blue-500",
+    bg: "bg-blue-50",
+  },
+  zalo_personal: {
+    label: "Zalo cá nhân",
+    iconSrc: "/Zalo.png",
+    color: "text-blue-500",
+    bg: "bg-blue-50",
+  },
+  facebook: {
+    label: "Facebook",
+    iconSrc: "/Facebook.png",
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+  },
+}
+
+export const linkAccountStatusMeta: Record<
+  LinkAccountStatus,
+  { label: string; badgeClassName: string; dotClassName: string }
+> = {
+  active: {
+    label: "Đang hoạt động",
+    badgeClassName: "border-emerald-500/20 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300",
+    dotClassName: "bg-emerald-500",
+  },
+  inactive: {
+    label: "Đã ngắt",
+    badgeClassName: "border-red-500/20 bg-red-500/8 text-red-700 dark:text-red-300",
+    dotClassName: "bg-red-500",
+  },
 }
 
 // ─── Formatters ─────────────────────────────────────────
@@ -98,14 +128,10 @@ export function getConversationDisplayName(conv: Conversation) {
 }
 
 export function getProviderLabel(provider: string) {
-  const map: Record<string, string> = {
-    zalo_oa: "Zalo OA",
-    zalo_personal: "Zalo",
-    facebook: "Facebook",
-    gmail: "Gmail",
-    phone: "Phone",
+  if (provider in channelMeta) {
+    return channelMeta[provider as ChannelType].label
   }
-  return map[provider] || provider
+  return provider
 }
 
 export function getConversationTagLabel(tag: string) {

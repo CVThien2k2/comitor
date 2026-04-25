@@ -1,0 +1,42 @@
+import { Separator } from "@workspace/ui/components/separator"
+import { Icons } from "@/components/global/icons"
+
+const steps = ["Mở ứng dụng Zalo trên điện thoại", "Ở mục Cài đặt, nhấn nút quét QR", "Quét mã QR để đăng nhập"]
+
+export default function Zalo() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="rounded-2xl border p-4"></div>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <h4 className="text-2xl font-semibold text-foreground">Quét QR để kết nối </h4>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-5">
+            {steps.map((step, index) => (
+              <div key={step} className="flex items-start gap-3">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                  {index + 1}
+                </div>
+                <p className="pt-1 text-sm leading-6 text-foreground">{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <Separator />
+
+          <div className="flex items-start gap-2 text-sm text-red-500">
+            <Icons.alertCircle className="mt-0.5 size-4 shrink-0" />
+            <p>
+              Sau khi đăng nhập, bạn vui lòng KHÔNG quét đăng nhập lại trên Zalo phiên bản website để tránh làm gián
+              đoạn luồng tin nhắn.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

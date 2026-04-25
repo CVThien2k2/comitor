@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -47,16 +48,18 @@ export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
             const isLast = index === breadcrumbItems.length - 1
 
             return (
-              <BreadcrumbItem key={item.href ?? `${item.label}-${index}`} className="min-w-0">
+              <React.Fragment key={item.href ?? `${item.label}-${index}`}>
                 {index > 0 && <BreadcrumbSeparator />}
-                {isLast || !item.href ? (
-                  <BreadcrumbPage className="truncate">{item.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild className="truncate">
-                    <Link href={item.href}>{item.label}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
+                <BreadcrumbItem className="min-w-0">
+                  {isLast || !item.href ? (
+                    <BreadcrumbPage className="truncate">{item.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild className="truncate">
+                      <Link href={item.href}>{item.label}</Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </React.Fragment>
             )
           })}
         </BreadcrumbList>

@@ -109,7 +109,7 @@ function buildFormValues(profile?: GoldenProfileDetail | null): EditGoldenProfil
     customerType: profile.customerType ?? "individual",
     elinesCustomerId: profile.elinesCustomerId ?? "",
     isBlacklisted: profile.isBlacklisted ?? false,
-    journeyState: profile.journeyState ?? "",
+    journeyState: "",
     characteristics: profile.characteristics ?? "",
     staffNotes: profile.staffNotes ?? "",
   }

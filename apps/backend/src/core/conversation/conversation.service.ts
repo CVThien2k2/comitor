@@ -8,9 +8,6 @@ import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.se
 
 @Injectable()
 export class ConversationService {
-  private readonly latestMessageOrder = [{ createdAt: "desc" as const }, { id: "desc" as const }]
-  private readonly conversationViewerSelect = { id: true, name: true, avatarUrl: true } as const
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly zaloPersonalService: ZaloPersonalService
@@ -19,9 +16,6 @@ export class ConversationService {
   private getConversationInclude() {
     return {
       linkedAccount: true,
-      lastViewedBy: {
-        select: this.conversationViewerSelect,
-      },
       accountCustomer: {
         select: {
           id: true,
@@ -31,7 +25,7 @@ export class ConversationService {
         },
       },
       messages: {
-        orderBy: this.latestMessageOrder,
+        orderBy: { createdAt: "desc" },
         take: 1,
         include: MESSAGE_INCLUDE,
       },
@@ -62,7 +56,7 @@ export class ConversationService {
     return unreadConversationIds.length
   }
 
-  async findAll(query: PaginationQueryDto) {
+  async findAll(query: PaginationQueryDto, userId: string) {
     const { skip, take, page, limit } = paginate(query)
     const unreadConversationIds = query.unread ? await this.findUnreadConversationIdsByLatestMessage() : null
 
@@ -73,12 +67,20 @@ export class ConversationService {
     const where = {
       ...(query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}),
       ...(query.unread ? { id: { in: unreadConversationIds ?? [] } } : {}),
+      ...(query.myProcessing ? { processingBy: userId } : {}),
     }
 
     const [items, total] = await Promise.all([
       this.prisma.client.conversation.findMany({
         where,
-        include: this.getConversationInclude(),
+        include: {
+          linkedAccount: { select: { id: true, provider: true, displayName: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: MESSAGE_INCLUDE,
+          },
+        },
         orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
         skip,
         take,
@@ -86,12 +88,7 @@ export class ConversationService {
       this.prisma.client.conversation.count({ where }),
     ])
 
-    const mapped = items.map((conv) => ({
-      ...conv,
-      unreadCount: this.getConversationUnreadCountFromLatestMessage(conv.messages),
-    }))
-
-    return paginatedResponse(mapped, total, page, limit)
+    return paginatedResponse(items, total, page, limit)
   }
 
   async findById(id: string) {
@@ -153,7 +150,7 @@ export class ConversationService {
 
     const latestMessage = await this.prisma.client.message.findFirst({
       where: { conversationId },
-      orderBy: this.latestMessageOrder,
+      orderBy: { createdAt: "desc" },
       select: { id: true, isRead: true },
     })
 

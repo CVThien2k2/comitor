@@ -30,7 +30,11 @@ const channelDescriptions: Record<ChannelType, string> = {
 
 type MobileStep = "list" | "detail"
 
-const channelContentMap: Record<ChannelType, ComponentType> = {
+type ChannelContentProps = {
+  onComplete?: () => void
+}
+
+const channelContentMap: Record<ChannelType, ComponentType<ChannelContentProps>> = {
   zalo_oa: ZaloOa,
   zalo_personal: Zalo,
   facebook: Meta,
@@ -219,7 +223,7 @@ export function AddConnectionDialog({ open, onOpenChange }: AddConnectionDialogP
                 <Separator className="mt-5" />
 
                 <div className="flex-1 overflow-y-auto p-6">
-                  <SelectedContent />
+                  <SelectedContent onComplete={() => handleDialogOpenChange(false)} />
                 </div>
               </div>
             </div>

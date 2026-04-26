@@ -10,11 +10,13 @@ import { WebhookController } from "./webhook/webhook.controller"
 import { WebhookService } from "./webhook/webhook.service"
 import { ZaloController } from "./zalo/zalo.controller"
 import { ZaloInstanceRegistry } from "./zalo/zalo-instance.registry"
+import { ZaloReconnectService } from "./zalo/zalo-reconnect.service"
 import { ZaloService } from "./zalo/zalo.service"
+import { LinkAccountModule } from "src/core/link-account/link-account.module"
 
 @Global()
 @Module({
-  imports: [ApiModule, ConversationModule],
+  imports: [ApiModule, ConversationModule, LinkAccountModule],
   controllers: [WebhookController, ZaloController],
   providers: [
     ProfileFetcherRegistry,
@@ -24,6 +26,7 @@ import { ZaloService } from "./zalo/zalo.service"
     ZaloPersonalSender,
     WebhookService,
     ZaloInstanceRegistry,
+    ZaloReconnectService,
     ZaloService,
   ],
   exports: [ProfileFetcherRegistry],

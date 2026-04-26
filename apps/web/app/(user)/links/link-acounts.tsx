@@ -4,60 +4,36 @@ import { useState } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
+import { Input } from "@workspace/ui/components/input"
 import { Separator } from "@workspace/ui/components/separator"
 import { AddConnectionDialog } from "@/app/(user)/links/_components/add-connection-dialog"
 import { Icons } from "@/components/global/icons"
-import type { LinkAccountItem } from "@/lib/types/link-account"
 import { LinkedAccountsStats } from "./_components/linked-accounts-stats"
 import { NotFoundLink } from "./_components/not-found-link"
 import { LinkedAccountCard } from "./_components/linked-account-card"
-
-const MOCK_LINKED_ACCOUNTS: LinkAccountItem[] = [
-  {
-    id: "link-01",
-    provider: "facebook",
-    displayName: "Meta Sales Inbox",
-    accountId: "meta.sales.01",
-    avatarUrl: null,
-    status: "active",
-    createdBy: "user-01",
-    createdByUser: { id: "user-01", name: "Thiên Cao", avatarUrl: null },
-    createdAt: "2026-04-20T08:00:00.000Z",
-    updatedAt: "2026-04-25T08:55:00.000Z",
-  },
-  {
-    id: "link-02",
-    provider: "zalo_oa",
-    displayName: "Zalo OA Comitor",
-    accountId: "zalo-oa-8821",
-    avatarUrl: null,
-    status: "active",
-    createdBy: "user-02",
-    createdByUser: { id: "user-02", name: "Hà Trần", avatarUrl: null },
-    createdAt: "2026-04-18T09:10:00.000Z",
-    updatedAt: "2026-04-25T07:15:00.000Z",
-  },
-]
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import { linkAccounts } from "@/api"
+import { channelMeta, getProviderLabel } from "@/lib/helper"
 
 export function LinkAcounts() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [searchValue, setSearchValue] = useState("")
+  const [selectedProvider, setSelectedProvider] = useState("all")
 
-  const { data: accounts } = useSuspenseQuery({
-    queryKey: ["link-accounts", "mock-list"],
+  const { data } = useSuspenseQuery({
+    queryKey: ["link-accounts"],
     queryFn: async () => {
-      await sleep(1000)
-      return MOCK_LINKED_ACCOUNTS
+      const response = await linkAccounts.getAll()
+      return response.data
     },
   })
+
+  const accounts = data?.items ?? []
 
   if (accounts.length === 0) return <NotFoundLink />
 
   const activeCount = accounts.filter((account) => account.status === "active").length
   const providerCount = new Set(accounts.map((account) => account.provider)).size
+  const providers = Object.keys(channelMeta)
 
   return (
     <div className="space-y-6">
@@ -82,6 +58,43 @@ export function LinkAcounts() {
           </div>
 
           <LinkedAccountsStats totalCount={accounts.length} activeCount={activeCount} providerCount={providerCount} />
+          <div className="rounded-2xl border border-border/60 bg-card/70 p-3.5 md:p-4">
+            <div className="flex flex-col gap-3">
+              <div className="relative w-full">
+                <Icons.search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Tìm theo tên tài khoản, ID..."
+                  className="h-10 rounded-xl border-border/70 bg-background pl-9"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={selectedProvider === "all" ? "default" : "outline"}
+                  className="rounded-full px-3"
+                  onClick={() => setSelectedProvider("all")}
+                >
+                  Tất cả
+                </Button>
+                {providers.map((provider) => (
+                  <Button
+                    key={provider}
+                    type="button"
+                    size="sm"
+                    variant={selectedProvider === provider ? "default" : "outline"}
+                    className="rounded-full px-3 capitalize"
+                    onClick={() => setSelectedProvider(provider)}
+                  >
+                    {getProviderLabel(provider)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
           <Separator />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {accounts.map((account) => (

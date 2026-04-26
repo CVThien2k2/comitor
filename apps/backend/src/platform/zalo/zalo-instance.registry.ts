@@ -4,20 +4,20 @@ import { Injectable } from "@nestjs/common"
 export class ZaloInstanceRegistry {
   private readonly instances = new Map<string, any>()
 
-  set(userId: string, api: any) {
-    this.instances.set(userId, api)
+  set(id: string, api: any) {
+    this.instances.set(id, api)
   }
 
-  get(userId: string) {
-    return this.instances.get(userId)
+  get(id: string) {
+    return this.instances.get(id)
   }
 
-  has(userId: string) {
-    return this.instances.has(userId)
+  has(id: string) {
+    return this.instances.has(id)
   }
 
-  remove(userId: string) {
-    this.instances.delete(userId)
+  remove(id: string) {
+    this.instances.delete(id)
   }
 
   size() {

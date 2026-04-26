@@ -14,8 +14,8 @@ export interface LinkAccountQuery {
 }
 
 export const linkAccounts = {
-  getAll: (query?: LinkAccountQuery) =>
-    api.get<ApiResponse<PaginatedResponse<LinkAccountItem>>>("/link-accounts", { params: query }),
+  getAll: async (query?: LinkAccountQuery) =>
+    await api.get<ApiResponse<PaginatedResponse<LinkAccountItem>>>("/link-accounts", { params: query }),
 
   getById: (id: string) => api.get<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`),
 

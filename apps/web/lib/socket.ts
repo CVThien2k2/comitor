@@ -1,8 +1,7 @@
 import { io, type Socket } from "socket.io-client"
+import { API_URL } from "@/lib/constants"
 import { useAuthStore } from "@/stores/auth-store"
 import { registerSocketHandlers } from "@/lib/socket-handlers"
-
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 
 let socket: Socket | null = null
 
@@ -15,7 +14,7 @@ export function connectSocket() {
   if (!token) return
   if (socket) return
 
-  socket = io(`${SOCKET_URL}/websocket`, {
+  socket = io(`${API_URL}/websocket`, {
     auth: { token },
     transports: ["websocket"],
     reconnection: true,

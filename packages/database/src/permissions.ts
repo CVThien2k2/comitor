@@ -91,6 +91,7 @@ export const PERMISSION = {
   LINK_ACCOUNT_READ: { code: "link-account:read", group: "link-account", description: "Xem liên kết kênh" },
   LINK_ACCOUNT_UPDATE: { code: "link-account:update", group: "link-account", description: "Cập nhật liên kết kênh" },
   LINK_ACCOUNT_DELETE: { code: "link-account:delete", group: "link-account", description: "Xóa liên kết kênh" },
+  LINK_ACCOUNT_CREATE: { code: "link-account:create", group: "link-account", description: "Tạo liên kết kênh" },
 
   // Agent Level
   AGENT_LEVEL_FULL: { code: "agent-level:*", group: "agent-level", description: "Full access to agent-level management" },

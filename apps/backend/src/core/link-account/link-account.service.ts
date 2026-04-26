@@ -5,10 +5,7 @@ import { PrismaService } from "../../database/prisma.service"
 import { RedisService } from "../../redis/redis.service"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateLinkAccountDto } from "./dto/update-link-account.dto"
-// import { FetchWrapper } from "../../common/http/fetch.wrapper"
 import { ChannelType } from "@workspace/database"
-// import { ZaloPersonalSessionService } from "../../platform/zalo_personal/zalo_personal-session.service"
-import { getZaloOaAccessTokenRedisKey, getZaloOaRefreshTokenRedisKey } from "../../api/zalo_oa.redis"
 
 @Injectable()
 export class LinkAccountService {
@@ -71,6 +68,48 @@ export class LinkAccountService {
     return linkAccount
   }
 
+  async createMany(
+    data: Array<{
+      accountId: string
+      provider: ChannelType
+      displayName: string
+      avatarUrl: string
+      credentials: any
+      createdBy: string
+    }>
+  ) {
+    let createdAccounts = 0
+    try {
+      await this.prisma.client.$transaction(async (tx) => {
+        const list: any[] = []
+        for (const item of data) {
+          const existing = await tx.linkAccount.findFirst({
+            where: { accountId: item.accountId, provider: item.provider, isDeleted: false, status: "active" },
+          })
+          const linkAccount = await tx.linkAccount.upsert({
+            where: {
+              unique_account_link: {
+                accountId: item.accountId,
+                provider: item.provider,
+              },
+            },
+            create: { ...item, status: "active", isDeleted: false },
+            update: { ...item, status: "active", isDeleted: false },
+          })
+
+          if (!existing) createdAccounts++
+          list.push(linkAccount)
+        }
+        return list
+      })
+    } catch {
+      throw new BadRequestException("Có lỗi xảy ra khi tạo liên kết kênh")
+    }
+    //Kênh này đã được liên kết từ trước rồim vẫn update nhưng throw để thông báo
+    if (createdAccounts == 0) throw new BadRequestException("Kênh này đã được liên kết từ trước rồi")
+    return createdAccounts
+  }
+
   //Lấy danh sách các account zalo cá nhân để khôi phục phiên
   async getZaloToConnect() {
     const accounts = await this.prisma.client.linkAccount.findMany({
@@ -99,7 +138,7 @@ export class LinkAccountService {
     })
   }
 
-  async findById(id: string) {
+  async findById(_id: string) {
     // const account = await this.prisma.client.linkAccount.findUnique({
     //   where: { id },
     //   include: { linkedByUser: { select: { id: true, name: true, avatarUrl: true } } },
@@ -134,16 +173,16 @@ export class LinkAccountService {
     //   await tx.linkAccount.delete({ where: { id } })
     // })
 
-    if (account.accountId) {
-      if (account.provider === ChannelType.zalo_oa) {
-        await this.redisService.del(
-          getZaloOaAccessTokenRedisKey(account.accountId),
-          getZaloOaRefreshTokenRedisKey(account.accountId)
-        )
-      } else {
-        await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
-      }
-    }
+    // if (account.accountId) {
+    //   if (account.provider === ChannelType.zalo_oa) {
+    //     await this.redisService.del(
+    //       getZaloOaAccessTokenRedisKey(account.accountId),
+    //       getZaloOaRefreshTokenRedisKey(account.accountId)
+    //     )
+    //   } else {
+    //     await this.redisService.del(`link_account:${account.provider}:${account.accountId}`)
+    //   }
+    // }
   }
 
   // ─── Zalo OA OAuth ─────────────────────────────────────

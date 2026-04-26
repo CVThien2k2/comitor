@@ -6,5 +6,5 @@ export type ProfileResult = {
 }
 
 export interface ProfileFetcher {
-  getProfile(userId: string, linkedAccount: LinkAccount): Promise<ProfileResult>
+  getProfile(userId: string, linkedAccount: LinkAccount)
 }

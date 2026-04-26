@@ -20,7 +20,6 @@ import { EventsModule } from "./events/events.module"
 import { RedisModule } from "./redis/redis.module"
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard"
 import { PermissionsGuard } from "./common/guards/permissions.guard"
-import { ApiModule } from "./api/api.module"
 import { QueueModule } from "./queue/queue.module"
 import { PlatformModule } from "./platform/platform.module"
 import { SuggestedMessageModule } from "./core/suggested-message/suggested-message.module"
@@ -53,7 +52,6 @@ import { AppService } from "./app.service"
     EmailModule,
     SocketModule,
     EventsModule,
-    ApiModule,
     PlatformModule,
     QueueModule,
     SuggestedMessageModule,

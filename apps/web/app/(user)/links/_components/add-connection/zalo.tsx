@@ -8,6 +8,7 @@ import { Separator } from "@workspace/ui/components/separator"
 import { toast } from "@workspace/ui/components/sonner"
 import { linkAccounts } from "@/api/link-accounts"
 import { Icons } from "@/components/global/icons"
+import { API_URL } from "@/lib/constants"
 
 type ZaloLoginStatus = "qr_ready" | "scanned" | "success" | "expired" | "declined" | "error"
 
@@ -16,8 +17,6 @@ type ZaloLoginEvent = {
 }
 
 const steps = ["Mở ứng dụng Zalo trên điện thoại", "Ở mục Cài đặt, nhấn nút quét QR", "Quét mã QR để đăng nhập"]
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-
 const shouldRefreshQr = (status: ZaloLoginStatus) => status === "expired" || status === "declined" || status === "error"
 
 const confettiPieces = [
@@ -174,7 +173,13 @@ function LoginSuccess({
             <Icons.check className="size-4" />
             Hoàn tất
           </Button>
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onAddAnother} disabled={isFetching}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={onAddAnother}
+            disabled={isFetching}
+          >
             {isFetching ? <Icons.spinner className="size-4 animate-spin" /> : <Icons.plus className="size-4" />}
             Đăng nhập thêm tài khoản mới
           </Button>
@@ -205,7 +210,7 @@ export default function Zalo({ onComplete }: { onComplete?: () => void }) {
 
   useEffect(() => {
     if (!qr?.sessionId) return
-    const events = new EventSource(`${API_URL}/zalo/login/events/${qr.sessionId}`)
+    const events = new EventSource(`${API_URL}/platform/zalo/login/events/${qr.sessionId}`)
     events.onmessage = (event) => {
       const nextEvent = JSON.parse(event.data) as ZaloLoginEvent
 
@@ -255,8 +260,29 @@ export default function Zalo({ onComplete }: { onComplete?: () => void }) {
 
   return (
     <div className="flex min-h-full items-center justify-center">
+      <style>
+        {`
+          @keyframes zalo-fade-up {
+            from { transform: translateY(8px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+
+          @keyframes zalo-soft-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 16%, transparent); }
+            50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 0%, transparent); }
+          }
+
+          .zalo-enter {
+            animation: zalo-fade-up 420ms ease-out both;
+          }
+        `}
+      </style>
+
       <div className="mx-auto grid w-full max-w-[680px] grid-cols-1 items-center gap-6 md:grid-cols-[240px_minmax(0,1fr)] lg:max-w-[760px] lg:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="mx-auto flex size-[min(72vw,240px)] items-center justify-center rounded-2xl border bg-background p-3 shadow-sm ring-1 shadow-primary/5 ring-primary/5 md:size-[240px] lg:size-[260px]">
+        <div
+          className="zalo-enter mx-auto flex size-[min(72vw,240px)] items-center justify-center rounded-2xl border bg-background p-3 shadow-sm ring-1 shadow-primary/5 ring-primary/5 md:size-[240px] lg:size-[260px]"
+          style={{ animation: "zalo-fade-up 420ms ease-out both, zalo-soft-pulse 2.4s ease-in-out infinite" }}
+        >
           {isQrLoading ? (
             <QrLoadingPreview />
           ) : qr?.qrCode ? (
@@ -302,20 +328,18 @@ export default function Zalo({ onComplete }: { onComplete?: () => void }) {
         </div>
 
         <div className="mx-auto w-full max-w-md space-y-5 text-center md:max-w-none md:text-left">
-          <div className="space-y-2">
+          <div className="zalo-enter space-y-2" style={{ animationDelay: "80ms" }}>
             <h4 className="text-xl leading-7 font-semibold text-foreground sm:text-2xl">Đăng nhập bằng mã QR</h4>
-            <p className="text-sm text-muted-foreground">
-              {isQrLoading
-                ? "Hệ thống đang chuẩn bị mã QR đăng nhập Zalo."
-                : isScanned
-                  ? "Mã QR đã được quét, vui lòng xác nhận trên điện thoại."
-                  : "Quét mã QR để đăng nhập Zalo"}
-            </p>
+            <p className="text-sm text-muted-foreground">{"Quét mã QR để đăng nhập Zalo"}</p>
           </div>
-          <Separator />
+          <Separator className="zalo-enter" style={{ animationDelay: "140ms" }} />
           <div className="space-y-5">
             {steps.map((step, index) => (
-              <div key={step} className="flex items-start gap-3 text-left">
+              <div
+                key={step}
+                className="flex items-start gap-3 text-left"
+                style={{ animation: `zalo-fade-up 360ms ease-out ${190 + index * 70}ms both` }}
+              >
                 <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                   {index + 1}
                 </div>
@@ -323,8 +347,11 @@ export default function Zalo({ onComplete }: { onComplete?: () => void }) {
               </div>
             ))}
           </div>
-          <Separator />
-          <div className="flex items-start gap-2 text-left text-sm text-red-500">
+          <Separator className="zalo-enter" style={{ animationDelay: "430ms" }} />
+          <div
+            className="zalo-enter flex items-start gap-2 text-left text-sm text-red-500"
+            style={{ animationDelay: "480ms" }}
+          >
             <Icons.alertCircle className="mt-0.5 size-4 shrink-0" />
             <p>
               Sau khi đăng nhập, bạn vui lòng KHÔNG quét đăng nhập lại trên Zalo phiên bản website để tránh làm gián

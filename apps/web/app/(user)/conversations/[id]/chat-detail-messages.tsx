@@ -4,7 +4,7 @@ import { messages as messagesApi, type Conversation, type MessageItem } from "@/
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
 import { useConversations } from "@/hooks/use-conversations"
-import { MESSAGES_PER_PAGE } from "@/lib/constants/messages"
+import { MESSAGES_PER_PAGE } from "@/lib/constants"
 import { getConversationLatestMessage } from "@/lib/conversation-read-state"
 import {
   formatConversationLastViewedAt,
@@ -327,14 +327,7 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     } finally {
       setIsTogglingReadState(false)
     }
-  }, [
-    beginManualUnreadSession,
-    endManualUnreadSession,
-    id,
-    isTogglingReadState,
-    latestMessage,
-    setMessageReadState,
-  ])
+  }, [beginManualUnreadSession, endManualUnreadSession, id, isTogglingReadState, latestMessage, setMessageReadState])
 
   const displayName = getConversationDisplayName(conversation)
   const hasLastViewedInfo = !!conversation.lastViewedBy?.name && !!conversation.lastViewedAt
@@ -352,7 +345,12 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
             hasLastViewedInfo ? "border border-primary/20 bg-primary/10" : "border border-border bg-muted/60"
           )}
         >
-          <p className={cn("text-[13.2px] leading-[1.35] font-medium", hasLastViewedInfo ? "text-primary" : "text-muted-foreground")}>
+          <p
+            className={cn(
+              "text-[13.2px] leading-[1.35] font-medium",
+              hasLastViewedInfo ? "text-primary" : "text-muted-foreground"
+            )}
+          >
             {lastViewedLabel}
           </p>
         </div>

@@ -1,21 +1,28 @@
 "use client"
 
-import { useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Input } from "@workspace/ui/components/input"
 import { Separator } from "@workspace/ui/components/separator"
+import { toast } from "@workspace/ui/components/sonner"
 import { AddConnectionDialog } from "@/app/(user)/links/_components/add-connection-dialog"
 import { Icons } from "@/components/global/icons"
 import { LinkedAccountsStats } from "./_components/linked-accounts-stats"
 import { NotFoundLink } from "./_components/not-found-link"
 import { LinkedAccountCard } from "./_components/linked-account-card"
-import { linkAccounts } from "@/api"
+import { ConnectMetaPayload, ConnectZaloOaPayload, linkAccounts } from "@/api"
 import { channelMeta, getProviderLabel } from "@/lib/helper"
 
 export function LinkAcounts() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+
+  const handledZaloOaCallbackRef = useRef(false)
   const [searchValue, setSearchValue] = useState("")
   const [selectedProvider, setSelectedProvider] = useState("all")
 
@@ -28,6 +35,96 @@ export function LinkAcounts() {
   })
 
   const accounts = data?.items ?? []
+
+  const { mutateAsync: connectZaloOa } = useMutation({
+    mutationFn: (payload: ConnectZaloOaPayload) => linkAccounts.connectZaloOa(payload),
+    onMutate: () => {
+      const toastId = toast.loading("Đang kết nối Zalo OA...")
+      return { toastId }
+    },
+    onSuccess: (response, _variables, context) => {
+      toast.success(response.message || "Kết nối Zalo OA thành công", {
+        id: context?.toastId,
+      })
+      void queryClient.invalidateQueries({ queryKey: ["link-accounts"] })
+    },
+    onError: (error, _variables, context) => {
+      toast.error(error?.message || "Kết nối Zalo OA thất bại", {
+        id: context?.toastId,
+      })
+    },
+    onSettled: () => {
+      router.replace("/links")
+      void queryClient.invalidateQueries({ queryKey: ["link-accounts"] })
+    },
+  })
+
+  const handledMetaCallbackRef = useRef(false)
+  const { mutateAsync: connectMeta } = useMutation({
+    mutationFn: (payload: ConnectMetaPayload) => linkAccounts.connectMeta(payload),
+    onMutate: () => {
+      const toastId = toast.loading("Đang kết nối Facebook...")
+      return { toastId }
+    },
+    onSuccess: (response, _variables, context) => {
+      toast.success(response.message || "Kết nối Facebook thành công", {
+        id: context?.toastId,
+      })
+    },
+    onError: (error, _variables, context) => {
+      toast.error(error?.message || "Kết nối Facebook thất bại", {
+        id: context?.toastId,
+      })
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["link-accounts"] })
+      router.replace("/links")
+    },
+  })
+
+  useEffect(() => {
+    const code = searchParams.get("code")
+    const oaId = searchParams.get("oa_id")
+    const state = searchParams.get("state")
+
+    const error = searchParams.get("error")
+    const errorReason = searchParams.get("error_reason")
+
+    //Xử lý người dùng hủy cấp quyền Facebook
+    if (state === "facebook" && error === "access_denied" && errorReason === "user_denied") {
+      if (!handledMetaCallbackRef.current) {
+        handledMetaCallbackRef.current = true
+        toast.error("Bạn đã hủy kết nối Facebook")
+      }
+      router.replace("/links")
+      return
+    }
+
+    //Xử lý callback từ Zalo OA
+    if (code && oaId && !handledZaloOaCallbackRef.current) {
+      connectZaloOa({ code, oaId })
+      handledZaloOaCallbackRef.current = true
+      return
+    }
+
+    //Xử lý callback từ Facebook
+    if (code && state === "facebook" && !handledMetaCallbackRef.current) {
+      connectMeta({ code })
+      handledMetaCallbackRef.current = true
+      return
+    }
+
+    //Xử lý lỗi từ Zalo OA
+    const provider = searchParams.get("provider")
+    const status = searchParams.get("status")
+    const message = searchParams.get("message")
+    if (!provider || !status) return
+    handledMetaCallbackRef.current = true
+    if (status === "success") toast.success(message || "Kết nối Zalo OA thành công")
+    else if (status === "error") toast.error(message || "Kết nối Zalo OA thất bại")
+
+    router.replace("/links")
+  }, [connectMeta, connectZaloOa, queryClient, router, searchParams])
 
   if (accounts.length === 0) return <NotFoundLink />
 

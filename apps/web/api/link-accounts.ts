@@ -1,5 +1,14 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, PaginatedResponse, LinkAccountItem, LinkAccountDetail } from "@/lib/types"
+import type { ApiResponse, LinkAccountItem, PaginatedResponse } from "@/lib/types"
+
+export type ConnectZaloOaPayload = {
+  code: string
+  oaId: string
+}
+
+export type ConnectMetaPayload = {
+  code: string
+}
 
 export type ZaloLoginQr = {
   sessionId: string
@@ -17,17 +26,9 @@ export const linkAccounts = {
   getAll: async (query?: LinkAccountQuery) =>
     await api.get<ApiResponse<PaginatedResponse<LinkAccountItem>>>("/link-accounts", { params: query }),
 
-  getById: (id: string) => api.get<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`),
+  loginZalo: () => api.get<ApiResponse<ZaloLoginQr>>("/platform/zalo/login"),
 
-  delete: (id: string) => api.delete<ApiResponse<null>>(`/link-accounts/${id}`),
+  connectZaloOa: (payload: ConnectZaloOaPayload) => api.post<ApiResponse>("/platform/zalo-oa/callback", payload),
 
-  update: (id: string, payload: { display_name?: string; status?: string }) =>
-    api.patch<ApiResponse<LinkAccountDetail>>(`/link-accounts/${id}`, payload),
-
-  linkZaloOa: (payload: { code: string }) =>
-    api.post<ApiResponse<LinkAccountDetail>>("/link-accounts/link/zalo-oa", payload),
-
-  linkMeta: (payload: { code: string }) =>
-    api.post<ApiResponse<LinkAccountDetail[]>>("/link-accounts/link/meta-app", payload),
-  loginZalo: () => api.get<ApiResponse<ZaloLoginQr>>("/zalo/login"),
+  connectMeta: (payload: ConnectMetaPayload) => api.post<ApiResponse>("/platform/meta/callback", payload),
 }

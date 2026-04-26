@@ -5,7 +5,7 @@ import type { MessageSender, MessageSenderInput } from "./message-sender.interfa
 export class FacebookSender implements MessageSender {
   private readonly logger = new Logger(FacebookSender.name)
 
-  async send(input: MessageSenderInput): Promise<void> {
+  send(input: MessageSenderInput) {
     this.logger.log(`[Facebook] Gửi tin nhắn ${input.message.id} đến cuộc hội thoại ${input.message.conversationId}`)
   }
 }

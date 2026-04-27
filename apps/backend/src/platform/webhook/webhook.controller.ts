@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Response } from "express"
 import { QueueService } from "src/queue/queue.service"
-import { MetaMessageWebhook, ZaloOAWebhookPayload } from "src/utils/types/webhook"
 import { Public } from "../../common/decorators/public.decorator"
 import { WebhookService } from "./webhook.service"
 
@@ -23,11 +22,9 @@ export class WebhookController {
   @Post("zalo-oa")
   @HttpCode(200)
   @ApiOperation({ summary: "Nhận webhook từ Zalo OA" })
-  async handleZaloOAWebhook(@Body() payload: ZaloOAWebhookPayload, @Res() res: Response) {
+  handleZaloOAWebhook(@Body() payload: any, @Res() res: Response) {
     res.status(200).send("OK")
-    const message = this.webhookService.mapZaloWebhook(payload)
-    if (!message) return
-    await this.queueService.addIncomingMessage(message)
+    return this.webhookService.handleZaloOAWebhook(payload)
   }
 
   @Public()
@@ -52,12 +49,8 @@ export class WebhookController {
   @Post("meta")
   @HttpCode(200)
   @ApiOperation({ summary: "Nhận webhook từ Meta (Facebook)" })
-  async handleWebhook(@Body() body: MetaMessageWebhook) {
-    console.log(JSON.stringify(body, null, 2))
-    const message = this.webhookService.mapMetaWebhook(body)
-    if (!message) return "EVENT_RECEIVED"
-
-    await this.queueService.addIncomingMessage(message)
-    return "EVENT_RECEIVED"
+  async handleWebhook(@Body() body: any, @Res() res: Response) {
+    await this.webhookService.mapMetaWebhook(body)
+    return res.status(200).send("EVENT_RECEIVED")
   }
 }

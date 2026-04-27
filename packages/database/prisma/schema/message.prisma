@@ -3,8 +3,9 @@ model Message {
   conversationId    String        @map("conversation_id")
   senderType        MessageSender @map("sender_type")
   accountCustomerId String?       @map("account_customer_id")
+  quoteMessageId    String?       @map("quote_message_id")
 
-  content    String?
+  content    Json?         @map("content") @db.JsonB
   status     MessageStatus @default(processing) @map("status")
   isRead     Boolean       @default(false) @map("is_read")
   externalId String?       @map("external_id") @db.VarChar(255)
@@ -15,29 +16,13 @@ model Message {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  conversation    Conversation        @relation(fields: [conversationId], references: [id])
-  accountCustomer AccountCustomer?    @relation(fields: [accountCustomerId], references: [id])
-  createdByUser   User?               @relation(fields: [createdBy], references: [id])
-  attachments     MessageAttachment[]
+  conversation    Conversation     @relation(fields: [conversationId], references: [id])
+  accountCustomer AccountCustomer? @relation(fields: [accountCustomerId], references: [id])
+  createdByUser   User?            @relation(fields: [createdBy], references: [id])
+  quoteMessage    Message?         @relation("QuoteMessage", fields: [quoteMessageId], references: [id])
+  quotedMessages  Message[]        @relation("QuoteMessage")
 
   @@index([conversationId], name: "conversation_id")
-  @@index([conversationId, createdAt(sort: Desc)], name: "conversation_latest_message")
-  @@index([conversationId, isRead], name: "conversation_unread")
   @@index([accountCustomerId], name: "message_account_customer_id")
   @@map("messages")
-}
-
-model MessageAttachment {
-  id           String  @id @default(uuid())
-  messageId    String  @map("message_id")
-  fileName     String? @map("file_name") @db.VarChar(255)
-  fileType     String? @map("file_type") @db.VarChar(100)
-  fileUrl      String? @map("file_url")
-  thumbnailUrl String? @map("thumbnail_url")
-  fileMimeType String? @map("file_mime_type") @db.VarChar(100)
-  key          String? @map("key") @db.VarChar(255)
-
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@map("message_attachments")
 }

@@ -1,11 +1,11 @@
-import type { LinkAccount, Message, MessageAttachment, MessageStatus } from "@workspace/database/generated/client"
+import type { LinkAccount, Message, MessageStatus } from "@workspace/database/generated/client"
 
 export type UserStatusEvent = {
   userId: string
 }
 
 export type MessageCreatedEvent = {
-  message: Message & { attachments?: MessageAttachment[] }
+  message: Message
   linkedAccount: LinkAccount
 }
 

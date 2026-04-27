@@ -1,7 +1,7 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { Logger } from "@nestjs/common"
 import { Job } from "bullmq"
-import { EventMessage, type Message } from "src/utils/types"
+import { EventMessage, type MessagePlatform } from "src/utils/types"
 import { QUEUE_NAMES } from "./queue.constants"
 import { MessageHandler } from "./message.handler"
 
@@ -13,7 +13,7 @@ export class MessageProcessor extends WorkerHost {
     super()
   }
 
-  async process(job: Job<Message>) {
+  async process(job: Job<MessagePlatform>) {
     const { data } = job
     const isLastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
 

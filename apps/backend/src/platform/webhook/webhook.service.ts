@@ -1,180 +1,33 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common"
 
-import { Attachment, EventMessage, Message, MessageType } from "src/utils/types"
-
-const toSafeString = (value: unknown): string | undefined => {
-  if (typeof value === "string") return value
-  if (typeof value === "number" || typeof value === "bigint" || typeof value === "boolean") {
-    return String(value)
-  }
-  return undefined
-}
-
-const toNumber = (value: unknown): number | undefined => {
-  const normalizedValue = Number(value)
-  return Number.isFinite(normalizedValue) ? normalizedValue : undefined
-}
-
-const inferAttachmentType = (...values: Array<unknown>): MessageType => {
-  const source = values
-    .map((value) => toSafeString(value) ?? "")
-    .join(" ")
-    .toLowerCase()
-
-  if (source.includes("sticker") || source.includes("emoji") || source.includes(".webp")) {
-    return "sticker"
-  }
-
-  if (source.includes("image") || /\.(jpg|jpeg|png|gif|bmp|webp)(\?|$)/.test(source)) {
-    return "image"
-  }
-
-  if (source.includes("video") || /\.(mp4|mov|avi|mkv|webm)(\?|$)/.test(source)) {
-    return "video"
-  }
-
-  if (source.includes("audio") || source.includes("voice") || /\.(mp3|wav|ogg|m4a|aac)(\?|$)/.test(source)) {
-    return "audio"
-  }
-
-  if (
-    source.includes("file") ||
-    source.includes("document") ||
-    /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|zip|rar)(\?|$)/.test(source)
-  ) {
-    return "file"
-  }
-
-  return "unknown"
-}
-
-const dedupeAttachments = (attachments: Attachment[]) =>
-  attachments.filter((attachment, index, values) => {
-    const key = `${attachment.type}|${attachment.url ?? ""}|${attachment.name ?? ""}|${attachment.thumbnail ?? ""}`
-    return (
-      values.findIndex(
-        (item) => `${item.type}|${item.url ?? ""}|${item.name ?? ""}|${item.thumbnail ?? ""}` === key
-      ) === index
-    )
-  })
-
-const isDefinedAttachment = (attachment: Attachment | null): attachment is Attachment => attachment != null
-
-const normalizeZaloOAAttachment = (attachment: any): Attachment | null => {
-  const payload = attachment?.payload ?? {}
-  const url = toSafeString(payload?.url)
-  const thumbnail = toSafeString(payload?.thumbnail)
-  const name = toSafeString(payload?.name) ?? toSafeString(payload?.id)
-  const size = toNumber(payload?.size)
-  const mimeType = toSafeString(payload?.type)
-  const type = inferAttachmentType(attachment?.type, mimeType, url, name)
-
-  if (!url && !thumbnail && !name && !mimeType && size == null) {
-    return null
-  }
-
-  return {
-    type,
-    url,
-    thumbnail,
-    name,
-    size,
-    mimeType,
-  }
-}
-
-const normalizeMetaAttachment = (attachment: any): Attachment | null => {
-  const payload = attachment?.payload ?? {}
-  const url =
-    toSafeString(payload?.url) ??
-    toSafeString(payload?.attachment_url) ??
-    toSafeString(payload?.file_url) ??
-    toSafeString(payload?.src)
-  const thumbnail = toSafeString(payload?.thumbnail_url) ?? toSafeString(payload?.thumbnail)
-  const name = toSafeString(payload?.name) ?? toSafeString(payload?.title) ?? toSafeString(payload?.filename)
-  const size = toNumber(payload?.size)
-  const mimeType = toSafeString(payload?.mime_type) ?? toSafeString(payload?.content_type)
-  const type = inferAttachmentType(attachment?.type, mimeType, url, name)
-
-  if (!url && !thumbnail && !name && !mimeType && size == null) {
-    return null
-  }
-
-  return {
-    type,
-    url,
-    thumbnail,
-    name,
-    size,
-    mimeType,
-  }
-}
+import { QueueService } from "src/queue/queue.service"
+import { mapMetasWebhook, mapZaloOaWebhook } from "./helper"
 
 @Injectable()
 export class WebhookService {
-  mapZaloWebhook(payload: any): Message | null {
-    const eventName = toSafeString(payload?.event_name)
-    const msg = payload?.message
-    const senderId = toSafeString(payload?.sender?.id)
-    const recipientId = toSafeString(payload?.recipient?.id)
-    const messageId = toSafeString(msg?.msg_id)
-    const timestamp = toNumber(payload?.timestamp)
+  private readonly logger = new Logger("WebhookService")
 
-    if (!eventName || !msg || typeof msg !== "object") {
-      return null
-    }
+  constructor(private readonly queueService: QueueService) {}
 
-    if (!senderId || !recipientId || !messageId || timestamp == null) {
-      return null
-    }
-
-    const isOutbound = eventName.startsWith("oa_send")
-    const rawAttachments = Array.isArray(msg.attachments) ? msg.attachments : []
-    const attachments = dedupeAttachments(rawAttachments.map(normalizeZaloOAAttachment).filter(isDefinedAttachment))
-    const text = toSafeString(msg?.text)
-
-    return {
-      provider: "zalo_oa",
-      eventName: isOutbound
-        ? (EventMessage.OUTBOUND as unknown as EventMessage)
-        : (EventMessage.INBOUND as unknown as EventMessage),
-      messageId,
-      conversationId: isOutbound ? recipientId : senderId,
-      senderId,
-      recipientId,
-      timestamp,
-      type: text ? "text" : (attachments[0]?.type ?? "unknown"),
-      text,
-      attachments: attachments.length ? attachments : undefined,
-      // raw: payload
+  async handleZaloOAWebhook(payload: any) {
+    try {
+      const message = mapZaloOaWebhook(payload)
+      if (!message) throw new Error()
+      await this.queueService.addIncomingMessage(message)
+    } catch {
+      this.logger.warn(`[ZaloOA] Tin nhắn Zalo OA chưa xử lý được: ${JSON.stringify(payload)}`)
     }
   }
 
-  mapMetaWebhook(payload: any): Message | null {
-    const msg = payload?.entry?.[0]?.messaging?.[0]
-
-    if (!msg?.message?.mid) {
-      return null
-    }
-
-    const hasIsEcho = Object.prototype.hasOwnProperty.call(msg.message, "is_echo")
-    const isEcho = hasIsEcho && msg.message.is_echo === true
-    const attachments = dedupeAttachments(
-      (msg.message.attachments ?? []).map(normalizeMetaAttachment).filter(isDefinedAttachment)
-    )
-
-    return {
-      provider: "facebook",
-      eventName: isEcho ? EventMessage.OUTBOUND : EventMessage.INBOUND,
-      messageId: msg.message.mid,
-      conversationId: msg.sender.id,
-      senderId: msg.sender.id,
-      recipientId: msg.recipient.id,
-      timestamp: msg.timestamp,
-      type: msg.message.text ? "text" : (attachments[0]?.type ?? "unknown"),
-      text: msg.message.text,
-      attachments: attachments.length ? attachments : undefined,
-      // raw: payload
+  async mapMetaWebhook(payload: any) {
+    try {
+      const messages = mapMetasWebhook(payload)
+      if (!messages) throw new Error()
+      for (const message of messages) {
+        await this.queueService.addIncomingMessage(message)
+      }
+    } catch {
+      this.logger.warn(`[Meta] Tin nhắn Meta chưa xử lý được: ${JSON.stringify(payload)}`)
     }
   }
 }

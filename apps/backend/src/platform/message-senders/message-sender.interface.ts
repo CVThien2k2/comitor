@@ -1,7 +1,7 @@
-import type { LinkAccount, MessageAttachment, Message } from "@workspace/database"
+import type { LinkAccount, Message } from "@workspace/database"
 
 export type MessageSenderInput = {
-  message: Message & { attachments?: MessageAttachment[] }
+  message: Message
   linkedAccount: LinkAccount
 }
 

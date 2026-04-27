@@ -1,6 +1,1 @@
-export * from "./webhook"
 export * from "./message"
-export * from "./events"
-export * from "./zalo_oa"
-export * from "./meta"
-export * from "./zalo_personal"

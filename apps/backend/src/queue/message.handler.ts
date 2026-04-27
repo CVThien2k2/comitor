@@ -1,11 +1,11 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common"
-import { EVENTS } from "../websocket/socket-events"
+import { Injectable, Logger } from "@nestjs/common"
 import { AccountCustomerService } from "src/core/account-customer/account-customer.service"
 import { ConversationService } from "src/core/conversation/conversation.service"
 import { MessageService } from "src/core/message/message.service"
 import { PrismaService } from "src/database/prisma.service"
-import type { Message } from "src/utils/types"
+import type { MessagePlatform } from "src/utils/types"
 import { SocketGateway } from "src/websocket/socket.gateway"
+import { ZaloInstanceRegistry } from "src/platform/zalo/zalo-instance.registry"
 
 @Injectable()
 export class MessageHandler {
@@ -16,10 +16,12 @@ export class MessageHandler {
     private readonly accountCustomerService: AccountCustomerService,
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
-    private readonly socketGateway: SocketGateway
+    private readonly socketGateway: SocketGateway,
+    private readonly zaloInstanceRegistry: ZaloInstanceRegistry
   ) {}
 
-  async handleInbound(message: Message) {
+  async handleInbound(message: MessagePlatform) {
+    console.log("handleInbound", message)
     // const {
     //   provider,
     //   senderId,
@@ -71,7 +73,8 @@ export class MessageHandler {
     // return dbMessage
   }
 
-  async handleOutbound(message: Message) {
+  async handleOutbound(message: MessagePlatform) {
+    console.log("handleOutbound", message)
     // const { provider, senderId, recipientId, conversationId, messageId: externalMessageId, isGroupMessage } = message
     // // Check tin nhắn đã có external id → đã xử lý rồi thì bỏ qua
     // const existingMessage = await this.prisma.client.message.findFirst({

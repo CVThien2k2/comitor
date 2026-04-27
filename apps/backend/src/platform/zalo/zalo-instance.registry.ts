@@ -1,13 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, Logger } from "@nestjs/common"
 import { LinkAccountService } from "src/core/link-account/link-account.service"
+import { QueueService } from "src/queue/queue.service"
+import { mapMessage } from "./helper"
 
 @Injectable()
 export class ZaloInstanceRegistry {
   private readonly logger = new Logger("ZaloPersonal")
   private readonly instances = new Map<string, any>()
 
-  constructor(private readonly linkAccountService: LinkAccountService) {}
+  constructor(
+    private readonly linkAccountService: LinkAccountService,
+    private readonly queueService: QueueService
+  ) {}
 
   set(id: string, api: any) {
     const existingApi = this.instances.get(id)
@@ -19,6 +24,7 @@ export class ZaloInstanceRegistry {
   }
 
   get(id: string) {
+    console.log("get", id, this.instances.get(id), this.instances)
     return this.instances.get(id)
   }
 
@@ -41,8 +47,14 @@ export class ZaloInstanceRegistry {
   startListening(id: string, api: any) {
     try {
       api.listener.on("connected", () => {})
-      api.listener.on("message", (message) => {
-        console.log("message", JSON.stringify(message))
+      api.listener.on("message", async (message) => {
+        try {
+          const messagePlatform = mapMessage(message)
+          if (messagePlatform) await this.queueService.addIncomingMessage(messagePlatform)
+          else this.logger.error(`Không thể map tin nhắn Zalo: ${JSON.stringify(message)}`)
+        } catch (error) {
+          this.logger.error(`Không thể map tin nhắn Zalo: ${JSON.stringify(message)}`)
+        }
       })
       api.listener.on("old_messages", (messages, type) => {})
       api.listener.on("delivered_messages", (messages) => {})

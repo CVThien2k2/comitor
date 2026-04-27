@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from "@nes
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { EVENTS } from "../../websocket/socket-events"
 import type { MessageCreatedEvent } from "../../websocket/socket-event-payloads"
-import type { Attachment } from "src/utils/types"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import { paginate, paginatedResponse } from "../../utils/paginate"
@@ -193,39 +192,39 @@ export class MessageService {
       // }
 
       // 2. Nếu có attachments → mỗi attachment = 1 message
-      if (hasAttachments) {
-        const now = new Date()
-        const attachmentMessages = await tx.message.createManyAndReturn({
-          data: attachments.map(() => ({
-            conversationId: dto.conversationId,
-            senderType: "agent" as MessageSender,
-            userId,
-            isRead: true,
-            timestamp: now,
-            content: null,
-            status: "processing" as MessageStatus,
-          })),
-          select: { id: true },
-        })
+      // if (hasAttachments) {
+      //   const now = new Date()
+      //   const attachmentMessages = await tx.message.createManyAndReturn({
+      //     data: attachments.map(() => ({
+      //       conversationId: dto.conversationId,
+      //       senderType: "agent" as MessageSender,
+      //       userId,
+      //       isRead: true,
+      //       timestamp: now,
+      //       content: null,
+      //       status: "processing" as MessageStatus,
+      //     })),
+      //     select: { id: true },
+      //   })
 
-        await tx.messageAttachment.createMany({
-          data: attachmentMessages.map((message, index) => ({
-            messageId: message.id,
-            fileName: attachments[index].fileName,
-            fileType: attachments[index].fileType,
-            fileUrl: attachments[index].fileUrl,
-            fileMimeType: getAttachmentMimeType({
-              mimeType: attachments[index].fileMimeType,
-              fileType: attachments[index].fileType,
-              fileName: attachments[index].fileName,
-              fileUrl: attachments[index].fileUrl,
-            }),
-            key: attachments[index].key,
-          })),
-        })
+      //   await tx.messageAttachment.createMany({
+      //     data: attachmentMessages.map((message, index) => ({
+      //       messageId: message.id,
+      //       fileName: attachments[index].fileName,
+      //       fileType: attachments[index].fileType,
+      //       fileUrl: attachments[index].fileUrl,
+      //       fileMimeType: getAttachmentMimeType({
+      //         mimeType: attachments[index].fileMimeType,
+      //         fileType: attachments[index].fileType,
+      //         fileName: attachments[index].fileName,
+      //         fileUrl: attachments[index].fileUrl,
+      //       }),
+      //       key: attachments[index].key,
+      //     })),
+      //   })
 
-        createdMessageIds.push(...attachmentMessages.map((m) => m.id))
-      }
+      //   createdMessageIds.push(...attachmentMessages.map((m) => m.id))
+      // }
 
       // 🔥 3. Query lại messages + include attachments
       const fullMessages = await tx.message.findMany({
@@ -277,7 +276,6 @@ export class MessageService {
       externalId: string
       timestamp: number
       content?: string
-      attachments?: Attachment[]
       isGroupMessage: boolean
     },
     tx?: TransactionClient
@@ -343,7 +341,6 @@ export class MessageService {
       externalId: string
       timestamp: number
       content?: string
-      attachments?: Attachment[]
       isGroupMessage: boolean
     },
     tx?: TransactionClient

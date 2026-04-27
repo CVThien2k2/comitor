@@ -7,6 +7,7 @@ import { MessageHandler } from "./message.handler"
 import { QueueService } from "./queue.service"
 import { AccountCustomerModule } from "../core/account-customer/account-customer.module"
 import { ConversationModule } from "../core/conversation/conversation.module"
+import { LinkAccountModule } from "../core/link-account/link-account.module"
 import { MessageModule } from "../core/message/message.module"
 
 @Global()
@@ -36,6 +37,7 @@ import { MessageModule } from "../core/message/message.module"
     }),
     AccountCustomerModule,
     ConversationModule,
+    LinkAccountModule,
     MessageModule,
   ],
   providers: [MessageProcessor, MessageHandler, QueueService],

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from "@nestjs/common"
+import { Injectable, Logger } from "@nestjs/common"
 
 import { QueueService } from "src/queue/queue.service"
 import { mapMetasWebhook, mapZaloOaWebhook } from "./helper"
@@ -12,6 +12,8 @@ export class WebhookService {
   async handleZaloOAWebhook(payload: any) {
     try {
       const message = mapZaloOaWebhook(payload)
+      const id = "2994357122857097520"
+      if (message?.senderId !== id && message?.recipientId !== id) return
       if (!message) throw new Error()
       await this.queueService.addIncomingMessage(message)
     } catch {

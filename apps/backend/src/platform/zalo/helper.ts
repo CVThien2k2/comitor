@@ -1,5 +1,5 @@
-import { ChannelType } from "@workspace/database"
-import { ContentMessage, EventMessage, MessagePlatform, MessageType } from "src/utils/types"
+import { ChannelType, Gender } from "@workspace/database"
+import { ContentMessage, EventMessage, MessagePlatform, MessageType, UserProfilePlatform } from "src/utils/types"
 
 export const mapAccountInfo = async (api: any) => {
   const raw = (await api.fetchAccountInfo?.()) ?? {}
@@ -128,5 +128,20 @@ export const mapMessage = (message: any): MessagePlatform | null => {
     timestamp: Number(data.ts) || Date.now(),
     type,
     content,
+  }
+}
+
+export const mapUserProfile = (user: any): UserProfilePlatform => {
+  return {
+    accountId: user.userId,
+    fullName: user.displayName || user.zaloName || user.username || "Unknown",
+    gender: user.gender === 0 ? Gender.male : user.gender === 1 ? Gender.female : Gender.other,
+    dateOfBirth: user.sdob,
+    primaryPhone: user.phoneNumber,
+    avatarUrl: user.avatar,
+    bgavatar: user.bgavatar || user.cover,
+    isFriend: user.isFr === 1,
+    isBlocked: user.isBlocked === 1,
+    isActive: user.isActive === 1,
   }
 }

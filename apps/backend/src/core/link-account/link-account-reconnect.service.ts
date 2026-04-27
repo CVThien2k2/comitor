@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common"
-import { ConfigService } from "@nestjs/config"
 import { ChannelType } from "@workspace/database"
 import { getPageInfo } from "src/platform/meta/api"
-import { getProfile as getZaloOaProfile, refreshAccessToken } from "src/platform/zalo-oa/api"
+import { getProfile as getZaloOaProfile } from "src/platform/zalo-oa/api"
 import { mapAccountInfo as mapZaloOaAccountInfo } from "src/platform/zalo-oa/helper"
+import { ZaloOaService } from "src/platform/zalo-oa/zalo-oa.service"
 import { mapAccountInfo as mapZaloPersonalAccountInfo } from "src/platform/zalo/helper"
 import { ZaloInstanceRegistry } from "src/platform/zalo/zalo-instance.registry"
 import { LinkAccountService } from "./link-account.service"
@@ -15,9 +15,9 @@ export class LinkAccountReconnectService {
   private readonly logger = new Logger(LinkAccountReconnectService.name)
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly linkAccountService: LinkAccountService,
-    private readonly zaloInstanceRegistry: ZaloInstanceRegistry
+    private readonly zaloInstanceRegistry: ZaloInstanceRegistry,
+    private readonly zaloOaService: ZaloOaService
   ) {}
 
   async reconnect(id: string) {
@@ -46,6 +46,12 @@ export class LinkAccountReconnectService {
     }
 
     return await this.linkAccountService.updateStatus(account.id, "inactive")
+  }
+
+  private async markInactiveIfNeeded(account: LinkAccount) {
+    if (account.status !== "inactive") {
+      await this.linkAccountService.updateStatus(account.id, "inactive")
+    }
   }
 
   private async reconnectZaloPersonal(account: LinkAccount) {
@@ -77,39 +83,24 @@ export class LinkAccountReconnectService {
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error"
-      await this.linkAccountService.updateStatus(account.id, "inactive")
+      await this.markInactiveIfNeeded(account)
       this.logger.error(`Reconnect Zalo cá nhân thất bại cho tài khoản ${account.accountId}: ${message}`)
       throw new BadRequestException("Reconnect Zalo cá nhân thất bại")
     }
   }
 
   private async reconnectZaloOa(account: LinkAccount) {
-    const credentials = account.credentials as any
-    const appId = this.configService.get<string>("ZALO_OA_ID", "")
-    const secretKey = this.configService.get<string>("ZALO_OA_SECRET_KEY", "")
-    let token = credentials
-    let profile = token?.access_token ? await getZaloOaProfile(token.access_token) : null
-
-    if (!profile && token?.refresh_token) {
-      const refreshedToken = await refreshAccessToken({
-        appId,
-        secretKey,
-        refreshToken: token.refresh_token,
-      })
-      if (refreshedToken?.access_token) {
-        token = refreshedToken
-        profile = await getZaloOaProfile(refreshedToken.access_token)
-      }
-    }
+    const accessToken = await this.zaloOaService.getAccessToken(account)
+    const profile = accessToken ? await getZaloOaProfile(accessToken) : null
 
     if (!profile) {
-      await this.linkAccountService.updateStatus(account.id, "inactive")
+      await this.markInactiveIfNeeded(account)
       throw new BadRequestException("Không thể lấy thông tin Zalo OA")
     }
 
     const accountInfo = mapZaloOaAccountInfo(profile)
     if (accountInfo.accountId !== account.accountId) {
-      await this.linkAccountService.updateStatus(account.id, "inactive")
+      await this.markInactiveIfNeeded(account)
       throw new BadRequestException("Thông tin Zalo OA không khớp tài khoản liên kết")
     }
 
@@ -117,7 +108,6 @@ export class LinkAccountReconnectService {
       status: "active",
       displayName: accountInfo.displayName,
       avatarUrl: accountInfo.avatarUrl,
-      credentials: token,
     })
   }
 
@@ -131,7 +121,7 @@ export class LinkAccountReconnectService {
 
     const pageInfo = await getPageInfo(account.accountId, pageAccessToken)
     if (!pageInfo?.id || pageInfo.id !== account.accountId) {
-      await this.linkAccountService.updateStatus(account.id, "inactive")
+      await this.markInactiveIfNeeded(account)
       throw new BadRequestException("Không thể lấy thông tin Facebook Page")
     }
 

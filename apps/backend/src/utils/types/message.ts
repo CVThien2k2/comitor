@@ -1,4 +1,4 @@
-import { ChannelType } from "@workspace/database"
+import { ChannelType, Gender } from "@workspace/database"
 
 export enum MessageType {
   TEXT = "text",
@@ -60,4 +60,18 @@ export type ContentMessage = {
 type Coordinates = {
   latitude: string
   longitude: string
+}
+
+export interface UserProfilePlatform {
+  //Thông tin người dùng từ nền tảng
+  accountId: string
+  fullName: string
+  gender?: Gender
+  dateOfBirth?: string
+  primaryPhone?: string
+  avatarUrl?: string
+  bgavatar?: string
+  isFriend?: boolean
+  isBlocked?: boolean
+  isActive?: boolean
 }

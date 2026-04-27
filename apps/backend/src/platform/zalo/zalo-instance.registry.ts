@@ -24,7 +24,6 @@ export class ZaloInstanceRegistry {
   }
 
   get(id: string) {
-    console.log("get", id, this.instances.get(id), this.instances)
     return this.instances.get(id)
   }
 

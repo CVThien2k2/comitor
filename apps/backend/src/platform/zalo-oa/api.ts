@@ -62,7 +62,8 @@ export async function refreshAccessToken(params: {
     .then((res) => res.json() as Promise<ZaloOaTokenResponse>)
     .catch(() => null)
 
-  if (!response?.access_token) return null
+  if (!response?.access_token)
+    throw new Error(`[ZaloOA][refreshAccessToken] Lỗi khi làm mới access token Zalo OA: ${JSON.stringify(response)}`)
   return response
 }
 
@@ -86,7 +87,9 @@ async function fetchApi<T>(params: {
     .then((res) => res.json() as Promise<ZaloOaApiResponse<T>>)
     .catch(() => null)
 
-  if (!response || response.error) return null
+  if (!response || response.error)
+    throw new Error(`[ZaloOA][${params.path}] Lỗi khi gọi API Zalo OA: ${JSON.stringify(response)}`)
+
   return response.data
 }
 
@@ -94,6 +97,14 @@ async function fetchApi<T>(params: {
 export async function getProfile(accessToken: string) {
   return await fetchApi<any>({
     path: "/v2.0/oa/getoa",
+    accessToken: accessToken,
+  })
+}
+
+//Lấy thông tin người dùng từ Zalo OA
+export async function getUserProfile(accessToken: string, userId: string) {
+  return await fetchApi<any>({
+    path: `/v3.0/oa/user/detail?data={"user_id":"${userId}"}`,
     accessToken: accessToken,
   })
 }

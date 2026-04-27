@@ -89,3 +89,16 @@ export async function getPageInfo(pageId: string, pageAccessToken: string): Prom
   if (!pageInfo) return null
   return pageInfo
 }
+
+export async function getUserProfile(pageScopedId: string, pageAccessToken: string) {
+  const url = new URL(`https://graph.facebook.com/v25.0/${pageScopedId}`)
+  url.searchParams.set("fields", "first_name,last_name,profile_pic,locale,timezone,gender")
+  url.searchParams.set("access_token", pageAccessToken)
+
+  const profile = await fetch(url.toString())
+    .then((res) => res.json())
+    .catch(() => null)
+
+  if (!profile || (profile as any)?.error) return null
+  return profile
+}

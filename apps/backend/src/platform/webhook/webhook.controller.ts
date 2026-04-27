@@ -2,7 +2,6 @@ import { Body, Controller, Get, HttpCode, Logger, Post, Query, Res } from "@nest
 import { ConfigService } from "@nestjs/config"
 import { ApiOperation, ApiTags } from "@nestjs/swagger"
 import { Response } from "express"
-import { QueueService } from "src/queue/queue.service"
 import { Public } from "../../common/decorators/public.decorator"
 import { WebhookService } from "./webhook.service"
 
@@ -14,8 +13,7 @@ export class WebhookController {
 
   constructor(
     private readonly webhookService: WebhookService,
-    private readonly configService: ConfigService,
-    private readonly queueService: QueueService
+    private readonly configService: ConfigService
   ) {}
 
   @Public()

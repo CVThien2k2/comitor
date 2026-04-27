@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import type { LinkAccount } from "@workspace/database"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
@@ -9,6 +9,7 @@ import { UpdateAccountCustomerDto } from "./dto/update-account-customer.dto"
 
 @Injectable()
 export class AccountCustomerService {
+  private readonly logger = new Logger(AccountCustomerService.name)
   constructor(
     private readonly prisma: PrismaService,
     private readonly goldenProfileService: GoldenProfileService,
@@ -80,18 +81,18 @@ export class AccountCustomerService {
 
     //Lấy thông tin người dùng để tạo hoặc cập nhật hồ sơ khách hàng
     const fetcher = this.profileFetcherRegistry.get(data.linkedAccount.provider)
-    if (!fetcher) throw new NotFoundException(`Không hỗ trợ provider: ${data.linkedAccount.provider}`)
+    if (!fetcher) throw new Error(`Không hỗ trợ provider: ${data.linkedAccount.provider}`)
 
-    const { profile, avatarUrl } = await fetcher.getProfile(data.accountId, data.linkedAccount)
-    if (!profile) throw new NotFoundException("Không tìm thấy thông tin người dùng")
+    const profile = await fetcher.getProfile(data.accountId, data.linkedAccount)
+    if (!profile) throw new Error("Không tìm thấy thông tin người dùng")
 
-    const goldenProfile = await this.goldenProfileService.getOrCreateFromProfile(profile, tx)
-    if (!goldenProfile) throw new NotFoundException("Không tìm thấy hồ sơ khách hàng")
+    // const goldenProfile = await this.goldenProfileService.getOrCreateFromProfile(profile, tx)
+    // if (!goldenProfile) throw new NotFoundException("Không tìm thấy hồ sơ khách hàng")
 
-    if (!profile.fullName)
-      throw new NotFoundException(
-        "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
-      )
+    // if (!profile.fullName)
+    //   throw new NotFoundException(
+    //     "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
+    //   )
 
     // try {
     //   return db.accountCustomer.create({

@@ -15,7 +15,6 @@ export class MessageProcessor extends WorkerHost {
 
   async process(job: Job<MessagePlatform>) {
     const { data } = job
-    const isLastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
 
     try {
       switch (data.eventName) {
@@ -30,9 +29,9 @@ export class MessageProcessor extends WorkerHost {
           break
       }
     } catch (error) {
-      if (isLastAttempt) {
-        this.logger.error(`Job ${job.id} thất bại sau ${job.attemptsMade + 1} lần thử: ${(error as Error).message}`)
-      }
+      this.logger.error(
+        `[MessageProcessor][process] ${error instanceof Error ? error.message : String(error)} - ${JSON.stringify(data)}`
+      )
       throw error
     }
   }

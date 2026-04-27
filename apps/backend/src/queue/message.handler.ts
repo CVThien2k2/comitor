@@ -21,47 +21,45 @@ export class MessageHandler {
   ) {}
 
   async handleInbound(message: MessagePlatform) {
-    console.log("handleInbound", message)
-    // const {
-    //   provider,
-    //   senderId,
-    //   recipientId,
-    //   conversationId: externalConversationId,
-    //   messageId: externalMessageId,
-    //   isGroupMessage,
-    // } = message
-    // const existingMessage = await this.prisma.client.message.findFirst({
-    //   where: { externalId: externalMessageId },
-    // })
-    // if (existingMessage) {
-    //   this.logger.warn(`Tin nhắn đã được xử lý từ trước: ${externalMessageId}`)
-    //   return
-    // }
-    // const linkedAccount = await this.prisma.client.linkAccount.findFirst({
-    //   where: { accountId: recipientId, provider },
-    // })
-    // if (!linkedAccount)
-    //   throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${recipientId}`)
-    // if (linkedAccount.status === "inactive") {
-    //   this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
-    //   return
-    // }
-    // const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {
-    //   const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
-    //   return this.messageService.createInbound(
-    //     {
-    //       externalConversationId,
-    //       linkedAccountId: linkedAccount.id,
-    //       accountCustomerId: accountCustomer.id,
-    //       externalId: externalMessageId,
-    //       timestamp: message.timestamp,
-    //       content: message.text,
-    //       attachments: message.attachments,
-    //       isGroupMessage: isGroupMessage ?? false,
-    //     },
-    //     tx
-    //   )
-    // })
+    const {
+      provider,
+      senderId,
+      recipientId,
+      messageId: externalMessageId,
+      isGroupMessage,
+      content,
+      timestamp,
+      type,
+    } = message
+
+    const existingMessage = await this.prisma.client.message.findFirst({
+      where: { externalId: externalMessageId },
+    })
+    if (existingMessage) return
+
+    const linkedAccount = await this.prisma.client.linkAccount.findFirst({
+      where: { accountId: recipientId, provider, status: "active", isDeleted: false },
+    })
+    if (!linkedAccount) return
+
+    // const { message: dbMessage, isNewConversation } =
+    await this.prisma.client.$transaction(async (tx) => {
+      const accountCustomer = await this.accountCustomerService.getOrCreate({ accountId: senderId, linkedAccount }, tx)
+      if (!accountCustomer) throw new Error("Không tìm thấy tài khoản khách hàng")
+      // return this.messageService.createInbound(
+      //   {
+      //     externalConversationId,
+      //     linkedAccountId: linkedAccount.id,
+      //     accountCustomerId: accountCustomer.id,
+      //     externalId: externalMessageId,
+      //     timestamp: message.timestamp,
+      //     content: message.text,
+      //     attachments: message.attachments,
+      //     isGroupMessage: isGroupMessage ?? false,
+      //   },
+      //   tx
+      // )
+    })
     // this.logger.log(`Đã lưu tin nhắn inbound: ${dbMessage.id} (external: ${externalMessageId})`)
     // if (isNewConversation) {
     //   const fullConversation = await this.conversationService.findById(dbMessage.conversationId)
@@ -74,52 +72,52 @@ export class MessageHandler {
   }
 
   async handleOutbound(message: MessagePlatform) {
-    console.log("handleOutbound", message)
-    // const { provider, senderId, recipientId, conversationId, messageId: externalMessageId, isGroupMessage } = message
-    // // Check tin nhắn đã có external id → đã xử lý rồi thì bỏ qua
-    // const existingMessage = await this.prisma.client.message.findFirst({
-    //   where: { externalId: externalMessageId },
-    // })
-    // if (existingMessage) {
-    //   this.logger.warn(`Tin nhắn đã được xử lý từ trước: ${externalMessageId}`)
-    //   return
-    // }
-    // // Outbound: senderId = linked account, recipientId = customer
-    // const linkedAccount = await this.prisma.client.linkAccount.findFirst({
-    //   where: { accountId: senderId, provider },
-    // })
-    // if (!linkedAccount)
-    //   throw new NotFoundException(`Không tìm thấy LinkedAccount: provider=${provider}, accountId=${senderId}`)
-    // if (linkedAccount.status === "inactive") {
-    //   this.logger.warn(`Tài khoản ${provider}:${linkedAccount.id} đang ở trạng thái inactive`)
-    //   return
-    // }
-    // const { message: dbMessage, isNewConversation } = await this.prisma.client.$transaction(async (tx) => {
-    //   const accountCustomer = await this.accountCustomerService.getOrCreate(
-    //     { accountId: recipientId, linkedAccount },
-    //     tx
-    //   )
-    //   const messageExisting = await tx.message.findFirst({
-    //     where: { externalId: externalMessageId },
-    //   })
-    //   if (messageExisting) {
-    //     this.logger.warn(`Tin nhắn đã được xử lý từ trước trong transaction: ${externalMessageId}`)
-    //     return { message: messageExisting, isNewConversation: false }
-    //   }
-    //   return this.messageService.createOutbound(
-    //     {
-    //       externalConversationId: conversationId,
-    //       linkedAccountId: linkedAccount.id,
-    //       accountCustomerId: accountCustomer.id,
-    //       externalId: externalMessageId,
-    //       timestamp: message.timestamp,
-    //       content: message.text,
-    //       attachments: message.attachments,
-    //       isGroupMessage: isGroupMessage ?? false,
-    //     },
-    //     tx
-    //   )
-    // })
+    const {
+      provider,
+      senderId,
+      recipientId,
+      messageId: externalMessageId,
+      isGroupMessage,
+      content,
+      timestamp,
+      type,
+    } = message
+    // Check tin nhắn đã có external id → đã xử lý rồi thì bỏ qua
+    const existingMessage = await this.prisma.client.message.findFirst({
+      where: { externalId: externalMessageId },
+    })
+    if (existingMessage) return
+
+    // Outbound: senderId = linked account, recipientId = customer
+    const linkedAccount = await this.prisma.client.linkAccount.findFirst({
+      where: { accountId: senderId, provider, status: "active", isDeleted: false },
+    })
+    if (!linkedAccount) return
+    // const { message: dbMessage, isNewConversation } =
+    await this.prisma.client.$transaction(async (tx) => {
+      const accountCustomer = await this.accountCustomerService.getOrCreate(
+        { accountId: recipientId, linkedAccount },
+        tx
+      )
+      // const messageExisting = await tx.message.findFirst({
+      //   where: { externalId: externalMessageId },
+      // })
+      // if (messageExisting) return { message: messageExisting, isNewConversation: false }
+
+      // return this.messageService.createOutbound(
+      //   {
+      //     externalConversationId: conversationId,
+      //     linkedAccountId: linkedAccount.id,
+      //     accountCustomerId: accountCustomer.id,
+      //     externalId: externalMessageId,
+      //     timestamp: message.timestamp,
+      //     content: message.text,
+      //     attachments: message.attachments,
+      //     isGroupMessage: isGroupMessage ?? false,
+      //   },
+      //   tx
+      // )
+    })
     // this.logger.log(`Đã lưu tin nhắn outbound: ${dbMessage.id} (external: ${externalMessageId})`)
     // if (isNewConversation) {
     //   const fullConversation = await this.conversationService.findById(dbMessage.conversationId)

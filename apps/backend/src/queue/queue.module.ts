@@ -8,7 +8,6 @@ import { QueueService } from "./queue.service"
 import { AccountCustomerModule } from "../core/account-customer/account-customer.module"
 import { ConversationModule } from "../core/conversation/conversation.module"
 import { MessageModule } from "../core/message/message.module"
-// import { ZaloPersonalModule } from "../platform/zalo_personal/zalo_personal.module"
 
 @Global()
 @Module({
@@ -38,7 +37,6 @@ import { MessageModule } from "../core/message/message.module"
     AccountCustomerModule,
     ConversationModule,
     MessageModule,
-    // ZaloPersonalModule,
   ],
   providers: [MessageProcessor, MessageHandler, QueueService],
   exports: [QueueService],

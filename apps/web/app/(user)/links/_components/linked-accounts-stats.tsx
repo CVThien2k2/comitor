@@ -1,14 +1,40 @@
 "use client"
 
+import { linkAccounts } from "@/api"
 import { Icons } from "@/components/global/icons"
+import { useQuery } from "@tanstack/react-query"
 
-type LinkedAccountsStatsProps = {
-  totalCount: number
-  activeCount: number
-  providerCount: number
+function LinkedAccountsStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={`linked-account-stats-skeleton-${index}`} className="rounded-3xl border border-border/60 bg-card p-4 shadow-sm">
+          <div className="space-y-6 animate-pulse">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-3">
+                <div className="h-3 w-24 rounded bg-muted/60" />
+                <div className="h-8 w-16 rounded bg-muted/60" />
+              </div>
+              <div className="size-11 rounded-2xl bg-muted/60" />
+            </div>
+            <div className="h-4 w-40 rounded bg-muted/60" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
-export function LinkedAccountsStats({ totalCount, activeCount, providerCount }: LinkedAccountsStatsProps) {
+export function LinkedAccountsStats() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["link-accounts", "stats"],
+    queryFn: () => linkAccounts.getStats(),
+  })
+
+  if (isLoading) return <LinkedAccountsStatsSkeleton />
+
+  const stats = data?.data
+
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className="group rounded-3xl border border-border/60 bg-card p-4 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1.5 hover:shadow-md">
@@ -16,7 +42,7 @@ export function LinkedAccountsStats({ totalCount, activeCount, providerCount }: 
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Tổng tài khoản</p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{totalCount}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{stats?.totalCount ?? 0}</p>
             </div>
 
             <div className="flex size-11 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
@@ -33,7 +59,7 @@ export function LinkedAccountsStats({ totalCount, activeCount, providerCount }: 
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Đang hoạt động</p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{activeCount}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{stats?.activeCount ?? 0}</p>
             </div>
 
             <div className="flex size-11 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 group-hover:scale-105">
@@ -50,7 +76,7 @@ export function LinkedAccountsStats({ totalCount, activeCount, providerCount }: 
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Loại kênh</p>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{providerCount}</p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{stats?.providerCount ?? 0}</p>
             </div>
 
             <div className="flex size-11 items-center justify-center rounded-2xl bg-muted text-foreground transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 group-hover:scale-105">

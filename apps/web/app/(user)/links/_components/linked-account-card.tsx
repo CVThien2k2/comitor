@@ -1,19 +1,53 @@
 "use client"
 
 import Image from "next/image"
+import { memo } from "react"
+import { Icons } from "@/components/global/icons"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { cn } from "@workspace/ui/lib/utils"
 import type { LinkAccountItem } from "@/lib/types/link-account"
 import { channelMeta, formatTimestamp, getAvatarColor, getInitials, linkAccountStatusMeta } from "@/lib/helper"
 
-export function LinkedAccountCard({ account }: { account: LinkAccountItem }) {
+type LinkedAccountCardProps = {
+  account: LinkAccountItem
+  canDelete?: boolean
+  canUpdate?: boolean
+  isDeleting?: boolean
+  isDisconnecting?: boolean
+  isReconnecting?: boolean
+  onDelete?: (id: string) => void
+  onDisconnect?: (id: string) => void
+  onReconnect?: (id: string) => void
+}
+
+export const LinkedAccountCard = memo(function LinkedAccountCard({
+  account,
+  canDelete = false,
+  canUpdate = false,
+  isDeleting = false,
+  isDisconnecting = false,
+  isReconnecting = false,
+  onDelete,
+  onDisconnect,
+  onReconnect,
+}: LinkedAccountCardProps) {
   const meta = channelMeta[account.provider]
   const statusMeta = linkAccountStatusMeta[account.status]
   const creatorName = account.createdByUser?.name || "Không rõ"
   const creatorAvatarColor = getAvatarColor(account.createdByUser?.id || account.createdBy || account.id)
   const accountAvatarColor = getAvatarColor(account.accountId || account.id || account.provider)
+  const isActive = account.status === "active"
+  const isInactive = account.status === "inactive"
+  const isMutating = isDeleting || isDisconnecting || isReconnecting
+  const showReconnect = canUpdate && isInactive
+  const showDisconnect = canUpdate && isActive
+  const showDelete = canDelete
+  const showActions = showReconnect || showDisconnect || showDelete
+  const deleteDisabled = isActive || isMutating
+  const updateDisabled = isMutating
 
   return (
     <Card className="group relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-sm transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg">
@@ -84,7 +118,55 @@ export function LinkedAccountCard({ account }: { account: LinkAccountItem }) {
             </div>
           </div>
         </div>
+        {showActions && (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {showReconnect && (
+              <Button
+                type="button"
+                className="h-10 flex-1 rounded-2xl"
+                disabled={updateDisabled}
+                onClick={() => onReconnect?.(account.id)}
+              >
+                {isReconnecting ? (
+                  <Icons.loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Icons.refreshCw className="size-4" />
+                )}
+                Reconnect
+              </Button>
+            )}
+            {showDisconnect && (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 flex-1 rounded-2xl"
+                disabled={updateDisabled}
+                onClick={() => onDisconnect?.(account.id)}
+              >
+                {isDisconnecting ? (
+                  <Icons.loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Icons.unplug className="size-4" />
+                )}
+                Tắt
+              </Button>
+            )}
+            {showDelete && (
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-10 flex-1 rounded-2xl"
+                disabled={deleteDisabled}
+                onClick={() => onDelete?.(account.id)}
+                title={isActive ? "Tắt tài khoản trước khi xóa" : undefined}
+              >
+                {isDeleting ? <Icons.loader2 className="size-4 animate-spin" /> : <Icons.trash className="size-4" />}
+                Xóa
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
-}
+})

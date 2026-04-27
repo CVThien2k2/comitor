@@ -23,7 +23,7 @@ type ZaloLoginSession = {
 export class ZaloService {
   private readonly loginSessions = new Map<string, ZaloLoginSession>() //Phiên đăng nhập Zalo
   private readonly userLoginSessions = new Map<string, string>()
-  private readonly logger = new Logger(ZaloService.name)
+  private readonly logger = new Logger("ZaloPersonal")
 
   constructor(
     private readonly zaloInstanceRegistry: ZaloInstanceRegistry,
@@ -109,15 +109,16 @@ export class ZaloService {
         .then(async (api) => {
           if (!this.loginSessions.has(sessionId)) return
           const accountInfo = await mapAccountInfo(api)
-          await this.linkAccountService.create({
+          const linkAccount = await this.linkAccountService.create({
             ...accountInfo,
             createdBy: userId,
           })
+          this.zaloInstanceRegistry.set(linkAccount.id, api)
           this.emitLoginEvent(sessionId, { status: "success" })
           this.closeLoginSession(sessionId)
         })
         .catch((error: Error) => {
-          this.logger.error(error.message)
+          this.logger.error(`Lỗi khi đăng nhập Zalo cá nhân: ${error.message}`)
           if (!this.loginSessions.has(sessionId)) return
           this.emitLoginEvent(sessionId, { status: "error" })
           this.closeLoginSession(sessionId)

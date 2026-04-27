@@ -1,5 +1,6 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, LinkAccountItem, PaginatedResponse } from "@/lib/types"
+import type { ApiResponse, LinkAccountItem, LinkAccountStats, PaginatedResponse } from "@/lib/types"
+import type { ChannelType, LinkAccountStatus } from "@workspace/database"
 
 export type ConnectZaloOaPayload = {
   code: string
@@ -8,6 +9,12 @@ export type ConnectZaloOaPayload = {
 
 export type ConnectMetaPayload = {
   code: string
+}
+
+export type UpdateLinkAccountPayload = {
+  displayName?: string
+  avatarUrl?: string
+  status?: LinkAccountStatus
 }
 
 export type ZaloLoginQr = {
@@ -20,11 +27,22 @@ export interface LinkAccountQuery {
   page?: number
   limit?: number
   search?: string
+  provider?: ChannelType
 }
 
 export const linkAccounts = {
   getAll: async (query?: LinkAccountQuery) =>
     await api.get<ApiResponse<PaginatedResponse<LinkAccountItem>>>("/link-accounts", { params: query }),
+  getStats: async () => await api.get<ApiResponse<LinkAccountStats>>("/link-accounts/stats"),
+
+  update: (id: string, payload: UpdateLinkAccountPayload) =>
+    api.patch<ApiResponse<LinkAccountItem>>(`/link-accounts/${id}`, payload),
+
+  delete: (id: string) => api.delete<ApiResponse<null>>(`/link-accounts/${id}`),
+
+  disconnect: (id: string) => api.post<ApiResponse<LinkAccountItem>>(`/link-accounts/${id}/disconnect`),
+
+  reconnect: (id: string) => api.post<ApiResponse<LinkAccountItem>>(`/link-accounts/${id}/reconnect`),
 
   loginZalo: () => api.get<ApiResponse<ZaloLoginQr>>("/platform/zalo/login"),
 

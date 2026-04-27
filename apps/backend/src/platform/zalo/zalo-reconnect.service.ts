@@ -4,7 +4,7 @@ import { ZaloInstanceRegistry } from "./zalo-instance.registry"
 
 @Injectable()
 export class ZaloReconnectService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(ZaloReconnectService.name)
+  private readonly logger = new Logger("ZaloPersonal")
 
   constructor(
     private readonly linkAccountService: LinkAccountService,
@@ -31,34 +31,17 @@ export class ZaloReconnectService implements OnApplicationBootstrap {
         const api = await zalo.login({ cookie, imei, userAgent })
 
         this.zaloInstanceRegistry.set(account.id, api)
-        this.startListening(api, zcaJs)
         this.logger.log(`Khôi phục phiên đăng nhập thành công cho tài khoản ${account.accountId}`)
-      } catch {
-        await this.linkAccountService.updateStatus(account.id, "inactive") //Chuyển trang thái từ active sang inactive nếu khôi phục thất bại
-        this.logger.error(`Khôi phục phiên đăng nhập Zalo cá nhân thất bại cho tài khoản ${account.accountId}`)
+      } catch (error) {
+        const message = (error as Error).message
+        //Nếu lỗi không phải là lỗi fetch failed thì chuyển trang thái từ active sang inactive
+        if (!message.includes("fetch failed")) await this.linkAccountService.updateStatus(account.id, "inactive") //Chuyển trang thái từ active sang inactive nếu khôi phục thất bại
+        this.logger.error(
+          `Khôi phục phiên đăng nhập Zalo cá nhân thất bại cho tài khoản ${account.accountId}: ${message}`
+        )
       }
     }
   }
 
   //Khởi tạo sự kiện lắng nghe
-  startListening(api: any, zcaJs: any) {
-    try {
-      api.listener.on("message", (message) => {
-        console.log("message")
-      })
-      api.listener.on("reaction", (reaction) => {
-        console.log("reaction")
-      })
-      api.listener.on("undo", (undo) => {
-        console.log("undo")
-      })
-      api.listener.on("group_event", (data) => {
-        console.log("group_event")
-      })
-
-      api.listener.start()
-    } catch {
-      this.logger.error("Mất kết nối với Zalo cá nhân")
-    }
-  }
 }

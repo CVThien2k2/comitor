@@ -1,12 +1,13 @@
 import { Module } from "@nestjs/common"
-// import { ZaloPersonalModule } from "../../platform/zalo_personal/zalo_personal.module"
+import { ZaloInstanceRegistry } from "src/platform/zalo/zalo-instance.registry"
+import { ZaloService } from "src/platform/zalo/zalo.service"
+import { LinkAccountReconnectService } from "./link-account-reconnect.service"
 import { LinkAccountService } from "./link-account.service"
 import { LinkAccountController } from "./link-account.controller"
 
 @Module({
-  // imports: [ZaloPersonalModule],
   controllers: [LinkAccountController],
-  providers: [LinkAccountService],
-  exports: [LinkAccountService],
+  providers: [LinkAccountService, LinkAccountReconnectService, ZaloInstanceRegistry, ZaloService],
+  exports: [LinkAccountService, LinkAccountReconnectService, ZaloInstanceRegistry, ZaloService],
 })
 export class LinkAccountModule {}

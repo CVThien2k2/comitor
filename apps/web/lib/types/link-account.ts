@@ -18,3 +18,9 @@ export type LinkAccountItem = {
 }
 
 export type LinkAccountDetail = LinkAccountItem
+
+export type LinkAccountStats = {
+  totalCount: number
+  activeCount: number
+  providerCount: number
+}

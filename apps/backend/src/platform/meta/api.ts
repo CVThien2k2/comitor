@@ -14,6 +14,8 @@ export interface MetaPagesResponse {
 }
 
 export interface MetaPageInfoResponse {
+  id?: string
+  name?: string
   picture?: {
     data?: {
       url?: string
@@ -77,7 +79,7 @@ export async function getPageAccounts(userAccessToken: string): Promise<MetaPage
 
 export async function getPageInfo(pageId: string, pageAccessToken: string): Promise<MetaPageInfoResponse | null> {
   const url = new URL(`https://graph.facebook.com/v25.0/${pageId}`)
-  url.searchParams.set("fields", "picture.type(large)")
+  url.searchParams.set("fields", "id,name,picture.type(large)")
   url.searchParams.set("access_token", pageAccessToken)
 
   const pageInfo = await fetch(url.toString())

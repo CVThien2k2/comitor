@@ -42,3 +42,7 @@ npm-debug.log*
 
 # Docker
 docker-compose.yml
+
+.venv/
+site
+.cache

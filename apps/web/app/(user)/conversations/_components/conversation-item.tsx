@@ -9,6 +9,50 @@ import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { useRouter } from "next/navigation"
 import { ROUTES } from "@/lib/routes"
 import { useAuthStore } from "@/stores/auth-store"
+import type { MessageItem } from "@/lib/types"
+
+const ATTACHMENT_FALLBACK_TEXT = "[Tệp đính kèm]"
+
+function getMessageTextContent(content: unknown): string {
+  if (!content) return ""
+  if (typeof content === "string") return content.trim()
+
+  if (Array.isArray(content)) {
+    const textParts = content
+      .map((part) => {
+        if (!part || typeof part !== "object") return ""
+        const maybeText = (part as { text?: unknown }).text
+        return typeof maybeText === "string" ? maybeText.trim() : ""
+      })
+      .filter(Boolean)
+    return textParts.join(" ").trim()
+  }
+
+  if (typeof content === "object") {
+    const maybeText = (content as { text?: unknown }).text
+    return typeof maybeText === "string" ? maybeText.trim() : ""
+  }
+
+  return ""
+}
+
+function getConversationPreview(lastMsg: MessageItem | undefined) {
+  if (!lastMsg) return ""
+  return getMessageTextContent(lastMsg.content) || ATTACHMENT_FALLBACK_TEXT
+}
+
+function getSenderPrefix(lastMsg: MessageItem, currentUserId?: string) {
+  if (lastMsg.senderType === "agent") {
+    const senderId = lastMsg.userId ?? lastMsg.user?.id
+    return senderId && senderId === currentUserId ? "Bạn: " : `${lastMsg.user?.name ?? "Agent"}: `
+  }
+
+  if (lastMsg.senderType === "customer") {
+    return `${lastMsg.accountCustomer?.name ?? "Khách hàng"}: `
+  }
+
+  return ""
+}
 
 export function ConversationItem({ conversation }: { conversation: Conversation }) {
   const router = useRouter()
@@ -24,6 +68,7 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
   }
   const displayName = getConversationDisplayName(conversation)
   const lastMsg = conversation.messages?.[0]
+  const previewText = useMemo(() => getConversationPreview(lastMsg), [lastMsg])
   const unreadCount = conversation.unreadCount ?? 0
   const isUnread = unreadCount > 0
 
@@ -77,12 +122,8 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
 
         {lastMsg && (
           <p className={cn("truncate text-sm", isUnread ? "font-medium text-foreground/90" : "text-muted-foreground")}>
-            {lastMsg.senderType === "agent" &&
-              ((lastMsg.userId ?? lastMsg.user?.id) && (lastMsg.userId ?? lastMsg.user?.id) === currentUserId
-                ? "Bạn: "
-                : `${lastMsg.user?.name ?? "Agent"}: `)}
-            {lastMsg.senderType === "customer" && `${lastMsg.accountCustomer?.name ?? "Khách hàng"}: `}
-            {lastMsg.content || "[Tệp đính kèm]"}
+            {getSenderPrefix(lastMsg, currentUserId)}
+            {previewText}
           </p>
         )}
       </div>

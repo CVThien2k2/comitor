@@ -1,5 +1,6 @@
 import { ChannelType, Gender } from "@workspace/database"
 import { UserProfilePlatform } from "src/utils/types"
+import { normalizeDateOfBirth, normalizePrimaryPhone } from "../profile-normalizer"
 
 export const mapAccountInfo = (profile: any) => {
   return {
@@ -16,7 +17,7 @@ export const mapUserProfile = (user: any): UserProfilePlatform => {
     fullName: user.display_name || "Unknown",
     avatarUrl: user.avatar,
     gender: Gender.other,
-    dateOfBirth: user.birth_date ? String(user.birth_date) : undefined,
-    primaryPhone: user.shared_info?.phone,
+    dateOfBirth: normalizeDateOfBirth(user.birth_date),
+    primaryPhone: normalizePrimaryPhone(user.shared_info?.phone),
   }
 }

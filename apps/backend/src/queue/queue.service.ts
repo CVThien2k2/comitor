@@ -14,13 +14,13 @@ export class QueueService {
   ) {}
 
   private createMessageJobId(message: MessagePlatform) {
-    const normalizedMessageId = String(message.messageId).trim().replaceAll(":", "-")
+    const normalizedMessageId = String(message.externalMessageId).trim().replaceAll(":", "-")
 
     if (!normalizedMessageId) {
       return undefined
     }
 
-    return `${message.eventName}-${message.provider}-${normalizedMessageId}`
+    return `${message.typeConversation}-${message.provider}-${normalizedMessageId}`
   }
 
   async addIncomingMessage(message: MessagePlatform) {

@@ -1,38 +1,172 @@
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq"
 import { Logger } from "@nestjs/common"
 import { Job } from "bullmq"
-import { EventMessage, type MessagePlatform } from "src/utils/types"
+import { type MessagePlatform } from "src/utils/types"
 import { QUEUE_NAMES } from "./queue.constants"
-import { MessageHandler } from "./message.handler"
+import { PrismaService } from "src/database/prisma.service"
+import { AccountCustomer, type LinkAccount } from "@workspace/database"
+import { AccountCustomerService } from "src/core/account-customer/account-customer.service"
+import { ZaloInstanceRegistry } from "src/platform/zalo/zalo-instance.registry"
+
+type GroupConversationInfo = {
+  name: string
+  avatarUrl: string | null
+}
+
+type GroupConversationInfoResolver = (
+  externalConversationId: string,
+  linkedAccount: LinkAccount
+) => Promise<GroupConversationInfo>
 
 @Processor(QUEUE_NAMES.INCOMING_MESSAGE)
 export class MessageProcessor extends WorkerHost {
   private readonly logger = new Logger(MessageProcessor.name)
 
-  constructor(private readonly messageHandler: MessageHandler) {
+  private readonly groupConversationInfoResolvers: Partial<
+    Record<MessagePlatform["provider"], GroupConversationInfoResolver>
+  > = {
+    zalo_personal: this.resolveZaloGroup.bind(this),
+  }
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accountCustomerService: AccountCustomerService,
+    private readonly zaloInstanceRegistry: ZaloInstanceRegistry
+  ) {
     super()
   }
 
   async process(job: Job<MessagePlatform>) {
-    const { data } = job
-
+    const {
+      provider, //Nền tảng
+      typeConversation, //Loại cuộc hội thoại
+      externalConversationId, //ID cuộc hội thoại trên nền tảng
+      externalMessageId, //ID tin nhắn trên nền tảng
+      accountCustomerId, //ID tài khoản khách hàng
+      linkedAccountId, //ID tài khoản hệ thống nhận về tin nhắn này
+      senderType, //Loại người gửi tin nhắn
+      timestamp, //Thời gian tin nhắn
+      type, //Loại tin nhắn
+      content, //Nội dung tin nhắn
+    } = job.data
     try {
-      switch (data.eventName) {
-        case EventMessage.INBOUND:
-          await this.messageHandler.handleInbound(data)
-          break
-        case EventMessage.OUTBOUND:
-          await this.messageHandler.handleOutbound(data)
-          break
-        default:
-          this.logger.debug(`Bỏ qua tin nhắn: ${data.messageId}`)
-          break
-      }
+      // Check tin nhắn đã có external id → đã xử lý rồi thì bỏ qua
+      const existingMessage = await this.prisma.client.message.findFirst({
+        where: { externalId: externalMessageId },
+      })
+      if (existingMessage) return
+      // Check tài khoản liên kết tồn tại
+      const linkedAccount = await this.prisma.client.linkAccount.findFirst({
+        where: {
+          provider,
+          status: "active",
+          isDeleted: false,
+          OR: [{ accountId: linkedAccountId }],
+        },
+      })
+      if (!linkedAccount) return
+
+      const ts = new Date(timestamp)
+      const messageTimestamp = Number.isNaN(ts.getTime()) ? new Date() : ts
+
+      await this.prisma.client.$transaction(async (tx) => {
+        const isCustomerMessage = senderType === "customer"
+
+        let accountCustomer: AccountCustomer | null = null
+        if (accountCustomerId) {
+          accountCustomer = await this.accountCustomerService.getOrCreate(
+            { accountId: accountCustomerId, linkedAccount },
+            tx
+          )
+          if (!accountCustomer) throw new Error("Không tìm thấy tài khoản khách hàng")
+        }
+
+        const messageCreateData = {
+          senderType,
+          accountCustomerId: accountCustomer?.id,
+          externalId: externalMessageId,
+          timestamp: messageTimestamp,
+          type,
+          content,
+          status: "success" as const,
+        }
+
+        const conversation = await tx.conversation.upsert({
+          where: {
+            linked_account_external_id: {
+              linkedAccountId: linkedAccount.id,
+              externalId: externalConversationId,
+            },
+          },
+          create: {
+            linkedAccountId: linkedAccount.id,
+            externalId: externalConversationId,
+            type: typeConversation,
+            ...(typeConversation === "group"
+              ? await this.resolveGroupConversationInfo(provider, externalConversationId, linkedAccount)
+              : {
+                  name: accountCustomer?.name || "Khách hàng",
+                  avatarUrl: accountCustomer?.avatarUrl ?? null,
+                }),
+            status: "pending",
+            isUnread: isCustomerMessage,
+            countUnreadMessages: isCustomerMessage ? 1 : 0,
+            lastActivityAt: messageTimestamp,
+            messages: { create: messageCreateData },
+          },
+          update: {
+            isUnread: isCustomerMessage,
+            countUnreadMessages: isCustomerMessage ? { increment: 1 } : 0,
+            lastActivityAt: messageTimestamp,
+            messages: { create: messageCreateData },
+          },
+          select: { id: true },
+        })
+
+        if (accountCustomer) {
+          await tx.conversationCustomer.createMany({
+            data: [{ conversationId: conversation.id, accountCustomerId: accountCustomer.id }],
+            skipDuplicates: true,
+          })
+        }
+
+        await tx.conversation.updateMany({
+          where: { id: conversation.id, status: "closed" },
+          data: { status: "pending" },
+        })
+      })
     } catch (error) {
       this.logger.error(
-        `[MessageProcessor][process] ${error instanceof Error ? error.message : String(error)} - ${JSON.stringify(data)}`
+        `[MessageProcessor][process] ${error instanceof Error ? error.message : String(error)} - ${JSON.stringify(job.data)}`
       )
       throw error
+    }
+  }
+
+  private async resolveGroupConversationInfo(
+    provider: MessagePlatform["provider"],
+    externalConversationId: string,
+    linkedAccount: LinkAccount
+  ) {
+    const resolver = this.groupConversationInfoResolvers[provider]
+    if (!resolver) throw new Error(`Chưa hỗ trợ conversation group cho channel ${provider}`)
+    return resolver(externalConversationId, linkedAccount)
+  }
+
+  private async resolveZaloGroup(externalConversationId: string, linkedAccount: LinkAccount) {
+    const linkedAccountExternalId = linkedAccount.accountId
+    if (!linkedAccountExternalId) throw new Error("Không tìm thấy accountId của tài khoản Zalo")
+
+    const api = this.zaloInstanceRegistry.get(linkedAccountExternalId)
+    if (!api) throw new Error("Phiên Zalo cá nhân chưa sẵn sàng để lấy thông tin nhóm")
+
+    const response = await api.getGroupInfo(externalConversationId)
+    const group =
+      response?.gridInfoMap?.[externalConversationId] ?? response?.gridInfoMap?.[String(externalConversationId)]
+
+    return {
+      name: group?.name || "Nhóm hội thoại",
+      avatarUrl: group?.fullAvt || group?.avt || null,
     }
   }
 

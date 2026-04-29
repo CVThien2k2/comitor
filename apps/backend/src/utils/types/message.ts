@@ -1,33 +1,29 @@
-import { ChannelType, Gender } from "@workspace/database"
+import { ChannelType, ConversationType, Gender, MessageSender, MessageType } from "@workspace/database"
 
-export enum MessageType {
-  TEXT = "text",
-  IMAGE = "image",
-  FILE = "file",
-  VIDEO = "video",
-  AUDIO = "audio",
-  STICKER = "sticker",
-  GIF = "gif",
-  RECOMMENDED = "recommended", //Danh thiếp
-  LOCATION = "location", //Vị trí
-  TEMPLATE = "template",
-}
-
-export enum EventMessage {
-  INBOUND = "inbound", // Tin nhắn đến
-  OUTBOUND = "outbound", // Tin nhắn đi
-}
+// export enum MessageType {
+//   TEXT = "text",
+//   IMAGE = "image",
+//   FILE = "file",
+//   VIDEO = "video",
+//   AUDIO = "audio",
+//   STICKER = "sticker",
+//   GIF = "gif",
+//   RECOMMENDED = "recommended", //Danh thiếp
+//   LOCATION = "location", //Vị trí
+//   TEMPLATE = "template",
+// }
 
 export interface MessagePlatform {
-  eventName: EventMessage
   provider: ChannelType
-  isGroupMessage: boolean
-  messageId: string
-  senderId: string
-  recipientId: string
-  timestamp: number
-  type: MessageType
-  content: ContentMessage[]
+  typeConversation: ConversationType //Loại cuộc hội thoại
+  externalConversationId: string //ID cuộc hội thoại trên nền tảng
+  externalMessageId: string //ID tin nhắn trên nền tảng
+  accountCustomerId: string //ID tài khoản khách hàng
+  linkedAccountId: string //ID tài khoản hệ thống nhận về tin nhắn này
+  senderType: MessageSender //Loại người gửi tin nhắn
+  timestamp: number //Thời gian tin nhắn
+  type: MessageType //Loại tin nhắn
+  content: ContentMessage[] //Nội dung tin nhắn
 }
 
 /**

@@ -17,14 +17,13 @@ export class AppService {
   ) {}
 
   async init(user: User) {
-    const [unreadCount] = await Promise.all([this.conversationService.countUnreadConversations()])
     const permissions = await this.permissionService.getPermissionByUserId(user.id)
 
     return {
       user,
       permissions,
       badges: {
-        conversationsUnreadCount: unreadCount,
+        conversationsUnreadCount: 0,
       },
     }
   }

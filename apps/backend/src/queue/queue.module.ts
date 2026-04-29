@@ -3,7 +3,6 @@ import { BullModule } from "@nestjs/bullmq"
 import { ConfigService } from "@nestjs/config"
 import { QUEUE_NAMES } from "./queue.constants"
 import { MessageProcessor } from "./message.processor"
-import { MessageHandler } from "./message.handler"
 import { QueueService } from "./queue.service"
 import { AccountCustomerModule } from "../core/account-customer/account-customer.module"
 import { ConversationModule } from "../core/conversation/conversation.module"
@@ -40,7 +39,7 @@ import { MessageModule } from "../core/message/message.module"
     LinkAccountModule,
     MessageModule,
   ],
-  providers: [MessageProcessor, MessageHandler, QueueService],
+  providers: [MessageProcessor, QueueService],
   exports: [QueueService],
 })
 export class QueueModule {}

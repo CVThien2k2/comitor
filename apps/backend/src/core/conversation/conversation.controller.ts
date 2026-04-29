@@ -56,8 +56,7 @@ export class ConversationController {
   @Permissions(P.CONVERSATION_READ)
   @Get("unread-count")
   async unreadCount() {
-    const data = await this.conversationService.countUnreadConversations()
-    return { message: "Lấy số cuộc hội thoại chưa đọc thành công", data }
+    return { message: "Lấy số cuộc hội thoại chưa đọc thành công", data: 0 }
   }
 
   @ApiOperation({ summary: "Lấy thông tin cuộc hội thoại theo ID" })

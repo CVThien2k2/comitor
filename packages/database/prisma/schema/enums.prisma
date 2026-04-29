@@ -75,3 +75,16 @@ enum SessionAssigneeStatus {
   completed
   cancelled
 }
+
+enum MessageType {
+  text
+  image
+  file
+  video
+  audio
+  sticker
+  gif
+  recommended
+  location
+  template
+}

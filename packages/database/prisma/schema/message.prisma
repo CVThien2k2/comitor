@@ -10,6 +10,7 @@ model Message {
   isRead     Boolean       @default(false) @map("is_read")
   externalId String?       @map("external_id") @db.VarChar(255)
   timestamp  DateTime      @default(now()) @map("timestamp")
+  type       MessageType   @map("type")
 
   createdBy String?  @map("created_by_id")
   isDeleted Boolean  @default(false) @map("is_deleted")

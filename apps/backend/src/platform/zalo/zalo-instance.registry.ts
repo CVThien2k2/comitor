@@ -48,7 +48,7 @@ export class ZaloInstanceRegistry {
       api.listener.on("connected", () => {})
       api.listener.on("message", async (message) => {
         try {
-          const messagePlatform = mapMessage(message)
+          const messagePlatform = mapMessage(message,id)
           if (messagePlatform) await this.queueService.addIncomingMessage(messagePlatform)
           else this.logger.error(`Không thể map tin nhắn Zalo: ${JSON.stringify(message)}`)
         } catch (error) {

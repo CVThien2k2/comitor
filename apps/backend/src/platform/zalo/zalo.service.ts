@@ -113,7 +113,7 @@ export class ZaloService {
             ...accountInfo,
             createdBy: userId,
           })
-          this.zaloInstanceRegistry.set(linkAccount.id, api)
+          this.zaloInstanceRegistry.set(linkAccount.accountId as string, api)
           this.emitLoginEvent(sessionId, { status: "success" })
           this.closeLoginSession(sessionId)
         })

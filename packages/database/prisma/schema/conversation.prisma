@@ -29,5 +29,6 @@ model Conversation {
   @@index([lastActivityAt(sort: Desc)], name: "last_activity_at")
   @@index([linkedAccountId], name: "linked_account_id")
   @@index([lastViewedAt(sort: Desc)], name: "last_viewed_at")
+  @@unique([linkedAccountId, externalId], name: "linked_account_external_id")
   @@map("conversations")
 }

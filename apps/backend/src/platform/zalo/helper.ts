@@ -1,5 +1,5 @@
-import { ChannelType, Gender } from "@workspace/database"
-import { ContentMessage, EventMessage, MessagePlatform, MessageType, UserProfilePlatform } from "src/utils/types"
+import { ChannelType, ConversationType, Gender, MessageSender, MessageType } from "@workspace/database"
+import { ContentMessage, MessagePlatform, UserProfilePlatform } from "src/utils/types"
 
 export const mapAccountInfo = async (api: any) => {
   const raw = (await api.fetchAccountInfo?.()) ?? {}
@@ -24,33 +24,34 @@ export const mapAccountInfo = async (api: any) => {
 const mapMessageType = (type: string): MessageType | null => {
   switch (type) {
     case "webchat":
-      return MessageType.TEXT
+      return MessageType.text
     case "chat.photo":
-      return MessageType.IMAGE
+      return MessageType.image
     case "share.file":
-      return MessageType.FILE
+      return MessageType.file
     case "chat.video.msg":
-      return MessageType.VIDEO
+      return MessageType.video
     case "chat.voice":
-      return MessageType.AUDIO
+      return MessageType.audio
     case "chat.sticker":
-      return MessageType.STICKER
+      return MessageType.sticker
     case "chat.recommended": //Danh thiếp
-      return MessageType.RECOMMENDED
+      return MessageType.recommended
     case "chat.webcontent": // Tài khoản ngân hàng
-      return MessageType.TEMPLATE
+      return MessageType.template
     case "chat.location.new": // Vị trí
-      return MessageType.LOCATION
+      return MessageType.location
     case "chat.gif": // GIF
-      return MessageType.GIF
+      return MessageType.gif
     default:
       return null
   }
 }
 
-const mapEventMessage = (isSelf: boolean): EventMessage => (isSelf ? EventMessage.OUTBOUND : EventMessage.INBOUND)
+const mapSenderType = (isSelf: boolean): MessageSender => (isSelf ? MessageSender.agent : MessageSender.customer)
 
-const mapIsGroupMessage = (type: number): boolean => (type === 1 ? true : false) // 1: Group, 0: Personal
+const mapConversationType = (type: number): ConversationType =>
+  type === 1 ? ConversationType.group : ConversationType.personal // 1: Group, 0: Personal
 
 const parseJson = (value: unknown): any => {
   if (typeof value !== "string") return null
@@ -62,6 +63,61 @@ const parseJson = (value: unknown): any => {
 }
 
 const firstDefined = (...values: any[]) => values.find((value) => value !== undefined && value !== null && value !== "")
+
+const normalizeDateOfBirth = (value: unknown): string | undefined => {
+  if (value === null || value === undefined || value === "") return undefined
+
+  const toIsoDate = (year: number, month: number, day: number): string | undefined => {
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return undefined
+    if (year < 1900 || year > 2100) return undefined
+    if (month < 1 || month > 12) return undefined
+    if (day < 1 || day > 31) return undefined
+
+    const date = new Date(Date.UTC(year, month - 1, day))
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+      return undefined
+    }
+
+    return date.toISOString().slice(0, 10)
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const timestamp = value > 9999999999 ? value : value * 1000
+    const date = new Date(timestamp)
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10)
+  }
+
+  if (typeof value !== "string") return undefined
+  const raw = value.trim()
+  if (!raw) return undefined
+
+  if (/^\d+$/.test(raw)) {
+    if (raw.length === 8) {
+      const firstYear = Number(raw.slice(0, 4))
+      if (firstYear >= 1900 && firstYear <= 2100) {
+        return toIsoDate(firstYear, Number(raw.slice(4, 6)), Number(raw.slice(6, 8)))
+      }
+      return toIsoDate(Number(raw.slice(4, 8)), Number(raw.slice(2, 4)), Number(raw.slice(0, 2)))
+    }
+
+    const timestampNumber = Number(raw)
+    if (Number.isFinite(timestampNumber) && raw.length >= 10) {
+      const timestamp = raw.length > 10 ? timestampNumber : timestampNumber * 1000
+      const date = new Date(timestamp)
+      return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10)
+    }
+  }
+
+  const parts = raw.split(/[\/\-.]/).map((part) => part.trim())
+  if (parts.length === 3 && parts.every((part) => /^\d+$/.test(part))) {
+    const [a, b, c] = parts.map(Number)
+    if (parts[0].length === 4) return toIsoDate(a, b, c)
+    if (parts[2].length === 4) return toIsoDate(c, b, a)
+  }
+
+  const parsed = new Date(raw)
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString().slice(0, 10)
+}
 
 const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
   const rawContent = data?.content
@@ -77,7 +133,14 @@ const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
 
   const params = parseJson(rawContent.params) ?? rawContent.params ?? {}
   const location = params?.location ?? params?.loc ?? rawContent.location ?? rawContent.coordinates
-  const latitude = firstDefined(location?.latitude, location?.lat, params?.latitude, params?.lat, rawContent.latitude, rawContent.lat)
+  const latitude = firstDefined(
+    location?.latitude,
+    location?.lat,
+    params?.latitude,
+    params?.lat,
+    rawContent.latitude,
+    rawContent.lat
+  )
   const longitude = firstDefined(
     location?.longitude,
     location?.lng,
@@ -95,13 +158,20 @@ const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
     type: rawContent.type ?? data?.msgType,
     text: rawContent.title ?? params?.title ?? params?.text ?? params?.msg,
     url: firstDefined(rawContent.href, rawContent.url, params?.href, params?.url, params?.oriUrl, params?.normalUrl),
-    thumbnailUrl: firstDefined(rawContent.thumb, rawContent.thumbnail, rawContent.thumbUrl, params?.thumb, params?.thumbnail, params?.thumbUrl),
+    thumbnailUrl: firstDefined(
+      rawContent.thumb,
+      rawContent.thumbnail,
+      rawContent.thumbUrl,
+      params?.thumb,
+      params?.thumbnail,
+      params?.thumbUrl
+    ),
     name: firstDefined(rawContent.title, rawContent.name, params?.fileName, params?.name),
     description: firstDefined(rawContent.description, params?.description, params?.desc),
     size: firstDefined(rawContent.size, params?.size, params?.fileSize),
     stickerId: firstDefined(rawContent.id, rawContent.stickerId, params?.id, params?.stickerId),
     coordinates:
-      type === MessageType.LOCATION && latitude !== undefined && longitude !== undefined
+      type === MessageType.location && latitude !== undefined && longitude !== undefined
         ? { latitude: String(latitude), longitude: String(longitude) }
         : undefined,
   }
@@ -109,22 +179,27 @@ const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
   return [content]
 }
 
-export const mapMessage = (message: any): MessagePlatform | null => {
+export const mapMessage = (message: any, linkedAccountId: string): MessagePlatform | null => {
   const type = mapMessageType(message?.data?.msgType)
-  const eventName = mapEventMessage(message.isSelf)
-  const isGroupMessage = mapIsGroupMessage(message.type)
+  const senderType = mapSenderType(message.isSelf)
+  const typeConversation = mapConversationType(message.type)
   const data = message.data
-  if (!type || !eventName || !data) return null
+  if (!type || !data) return null
   const content = mapContentMessage(data, type)
   if (!content.length) return null
+  const externalConversationId = message.isSelf ? data.idTo : data.uidFrom
+  const accountCustomerId =
+    message.isSelf && typeConversation === ConversationType.group ? null : externalConversationId
+  if (!externalConversationId || !data.msgId) return null
 
   return {
-    eventName,
     provider: "zalo_personal" as ChannelType,
-    isGroupMessage,
-    messageId: data.msgId,
-    senderId: data.uidFrom,
-    recipientId: data.idTo,
+    typeConversation,
+    externalConversationId,
+    externalMessageId: data.msgId,
+    accountCustomerId,
+    linkedAccountId,
+    senderType,
     timestamp: Number(data.ts) || Date.now(),
     type,
     content,
@@ -136,7 +211,7 @@ export const mapUserProfile = (user: any): UserProfilePlatform => {
     accountId: user.userId,
     fullName: user.displayName || user.zaloName || user.username || "Unknown",
     gender: user.gender === 0 ? Gender.male : user.gender === 1 ? Gender.female : Gender.other,
-    dateOfBirth: user.sdob,
+    dateOfBirth: normalizeDateOfBirth(user.sdob),
     primaryPhone: user.phoneNumber,
     avatarUrl: user.avatar,
     bgavatar: user.bgavatar || user.cover,

@@ -4,14 +4,10 @@ import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
 import { MESSAGE_INCLUDE } from "../message/message.include"
-// import { ZaloPersonalService } from "src/platform/zalo_personal/zalo_personal.service"
 
 @Injectable()
 export class ConversationService {
-  constructor(
-    private readonly prisma: PrismaService
-    // private readonly zaloPersonalService: ZaloPersonalService
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private getConversationInclude() {
     return {
@@ -27,46 +23,16 @@ export class ConversationService {
       messages: {
         orderBy: { createdAt: "desc" },
         take: 1,
-        include: MESSAGE_INCLUDE,
+        // include: MESSAGE_INCLUDE,
       },
     } as const
   }
 
-  private async findUnreadConversationIdsByLatestMessage() {
-    const rows = await this.prisma.client.$queryRaw<Array<{ conversationId: string }>>`
-      SELECT latest."conversation_id" AS "conversationId"
-      FROM (
-        SELECT DISTINCT ON ("conversation_id") "conversation_id", "is_read"
-        FROM "messages"
-        ORDER BY "conversation_id", "created_at" DESC, "id" DESC
-      ) AS latest
-      WHERE latest."is_read" = false
-    `
-
-    return rows.map((row) => row.conversationId)
-  }
-
-  private getConversationUnreadCountFromLatestMessage(messages: Array<{ isRead: boolean }> | undefined) {
-    const latestMessage = messages?.[0]
-    return latestMessage && !latestMessage.isRead ? 1 : 0
-  }
-
-  async countUnreadConversations() {
-    const unreadConversationIds = await this.findUnreadConversationIdsByLatestMessage()
-    return unreadConversationIds.length
-  }
-
   async findAll(query: PaginationQueryDto, userId: string) {
     const { skip, take, page, limit } = paginate(query)
-    const unreadConversationIds = query.unread ? await this.findUnreadConversationIdsByLatestMessage() : null
-
-    if (query.unread && unreadConversationIds && unreadConversationIds.length === 0) {
-      return paginatedResponse([], 0, page, limit)
-    }
 
     const where = {
       ...(query.search ? { name: { contains: query.search, mode: "insensitive" as const } } : {}),
-      ...(query.unread ? { id: { in: unreadConversationIds ?? [] } } : {}),
       ...(query.myProcessing ? { processingBy: userId } : {}),
     }
 
@@ -78,7 +44,7 @@ export class ConversationService {
           messages: {
             orderBy: { createdAt: "desc" },
             take: 1,
-            include: MESSAGE_INCLUDE,
+            // include: MESSAGE_INCLUDE,
           },
         },
         orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
@@ -99,7 +65,18 @@ export class ConversationService {
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    return { ...conversation, unreadCount: this.getConversationUnreadCountFromLatestMessage(conversation.messages) }
+    return { ...conversation, unreadCount: conversation.countUnreadMessages }
+  }
+
+  async findByExternalId(externalId: string) {
+    const conversation = await this.prisma.client.conversation.findFirst({
+      where: { externalId },
+      select: { id: true },
+    })
+
+    if (!conversation) return null
+
+    return conversation.id
   }
 
   async update(id: string, dto: UpdateConversationDto) {
@@ -116,7 +93,7 @@ export class ConversationService {
       include: this.getConversationInclude(),
     })
 
-    return { ...conversation, unreadCount: this.getConversationUnreadCountFromLatestMessage(conversation.messages) }
+    return { ...conversation, unreadCount: conversation.countUnreadMessages }
   }
 
   async markAsViewed(conversationId: string, userId: string) {

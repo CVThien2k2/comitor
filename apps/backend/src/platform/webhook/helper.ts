@@ -1,48 +1,53 @@
-import { ChannelType } from "@workspace/database"
-import { ContentMessage, EventMessage, MessagePlatform, MessageType } from "src/utils/types"
+import { ChannelType, ConversationType, MessageSender, MessageType } from "@workspace/database"
+import { ContentMessage, MessagePlatform } from "src/utils/types"
 
 const ZALO_OA_MESSAGE_EVENT = {
-  user_send_text: { eventName: EventMessage.INBOUND, type: MessageType.TEXT }, // Người dùng gửi tin nhắn văn bản
-  user_send_image: { eventName: EventMessage.INBOUND, type: MessageType.IMAGE }, // Người dùng gửi tin nhắn hình ảnh
-  user_send_link: { eventName: EventMessage.INBOUND, type: MessageType.TEXT }, // Người dùng gửi tin nhắn liên kết
-  user_send_audio: { eventName: EventMessage.INBOUND, type: MessageType.AUDIO }, // Người dùng gửi tin nhắn âm thanh
-  user_send_video: { eventName: EventMessage.INBOUND, type: MessageType.VIDEO }, // Người dùng gửi tin nhắn video
-  user_send_sticker: { eventName: EventMessage.INBOUND, type: MessageType.STICKER }, // Người dùng gửi tin nhắn sticker
-  user_send_location: { eventName: EventMessage.INBOUND, type: MessageType.LOCATION }, // Người dùng gửi vị trí
-  user_send_file: { eventName: EventMessage.INBOUND, type: MessageType.FILE }, // Người dùng gửi file
-  user_send_gif: { eventName: EventMessage.INBOUND, type: MessageType.GIF }, // Người dùng gửi tin nhắn GIF
-  user_send_business_card: { eventName: EventMessage.INBOUND, type: MessageType.RECOMMENDED }, // Người dùng gửi danh thiếp
-  // user_reacted_message: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng thả cảm xúc vào tin nhắn
-  // user_click_chatnow: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng click nút Chat ngay
-  // user_seen_message: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng đã xem tin nhắn OA
-  // user_received_message: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng đã nhận tin nhắn OA
-  // user_feedback: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng gửi feedback
-  // follow: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng theo dõi OA
-  // unfollow: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng bỏ theo dõi OA
-  // user_submit_info: { eventName: EventMessage.INBOUND, type: MessageType.TEMPLATE }, // Người dùng chia sẻ thông tin
+  user_send_text: { senderType: MessageSender.customer, type: MessageType.text }, // Người dùng gửi tin nhắn văn bản
+  user_send_image: { senderType: MessageSender.customer, type: MessageType.image }, // Người dùng gửi tin nhắn hình ảnh
+  user_send_link: { senderType: MessageSender.customer, type: MessageType.text }, // Người dùng gửi tin nhắn liên kết
+  user_send_audio: { senderType: MessageSender.customer, type: MessageType.audio }, // Người dùng gửi tin nhắn âm thanh
+  user_send_video: { senderType: MessageSender.customer, type: MessageType.video }, // Người dùng gửi tin nhắn video
+  user_send_sticker: { senderType: MessageSender.customer, type: MessageType.sticker }, // Người dùng gửi tin nhắn sticker
+  user_send_location: { senderType: MessageSender.customer, type: MessageType.location }, // Người dùng gửi vị trí
+  user_send_file: { senderType: MessageSender.customer, type: MessageType.file }, // Người dùng gửi file
+  user_send_gif: { senderType: MessageSender.customer, type: MessageType.gif }, // Người dùng gửi tin nhắn GIF
+  user_send_business_card: { senderType: MessageSender.customer, type: MessageType.recommended }, // Người dùng gửi danh thiếp
+  // user_reacted_message: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng thả cảm xúc vào tin nhắn
+  // user_click_chatnow: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng click nút Chat ngay
+  // user_seen_message: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng đã xem tin nhắn OA
+  // user_received_message: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng đã nhận tin nhắn OA
+  // user_feedback: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng gửi feedback
+  // follow: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng theo dõi OA
+  // unfollow: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng bỏ theo dõi OA
+  // user_submit_info: { eventName: EventMessage.INBOUND, type: MessageType.template }, // Người dùng chia sẻ thông tin
 
   //Outbound
-  oa_send_text: { eventName: EventMessage.OUTBOUND, type: MessageType.TEXT }, // OA gửi tin nhắn văn bản
-  oa_send_image: { eventName: EventMessage.OUTBOUND, type: MessageType.IMAGE }, // OA gửi tin nhắn hình ảnh
-  oa_send_gif: { eventName: EventMessage.OUTBOUND, type: MessageType.GIF }, // OA gửi tin nhắn có ảnh GIF
-  oa_send_file: { eventName: EventMessage.OUTBOUND, type: MessageType.FILE }, // OA gửi tin nhắn đính kèm file
-  oa_send_sticker: { eventName: EventMessage.OUTBOUND, type: MessageType.STICKER }, // OA gửi tin nhắn sticker
-  // oa_reacted_message: { eventName: EventMessage.OUTBOUND, type: MessageType.TEMPLATE }, // OA thả cảm xúc vào tin nhắn người dùng
-  // oa_send_list: { eventName: EventMessage.OUTBOUND, type: MessageType.TEMPLATE }, // OA gửi tin nhắn tương tác dạng danh sách
-  // oa_send_template: { eventName: EventMessage.OUTBOUND, type: MessageType.TEMPLATE }, // OA gửi tin nhắn tương tác dạng template
-} satisfies Record<string, { eventName: EventMessage; type: MessageType; group?: boolean }>
+  oa_send_text: { senderType: MessageSender.agent, type: MessageType.text }, // OA gửi tin nhắn văn bản
+  oa_send_image: { senderType: MessageSender.agent, type: MessageType.image }, // OA gửi tin nhắn hình ảnh
+  oa_send_gif: { senderType: MessageSender.agent, type: MessageType.gif }, // OA gửi tin nhắn có ảnh GIF
+  oa_send_file: { senderType: MessageSender.agent, type: MessageType.file }, // OA gửi tin nhắn đính kèm file
+  oa_send_sticker: { senderType: MessageSender.agent, type: MessageType.sticker }, // OA gửi tin nhắn sticker
+  // oa_reacted_message: { eventName: EventMessage.OUTBOUND, type: MessageType.template }, // OA thả cảm xúc vào tin nhắn người dùng
+  // oa_send_list: { eventName: EventMessage.OUTBOUND, type: MessageType.template }, // OA gửi tin nhắn tương tác dạng danh sách
+  // oa_send_template: { eventName: EventMessage.OUTBOUND, type: MessageType.template }, // OA gửi tin nhắn tương tác dạng template
+} satisfies Record<string, { senderType: MessageSender; type: MessageType }>
 
 export const mapZaloOaWebhook = (payload: any): MessagePlatform | null => {
   const e = ZALO_OA_MESSAGE_EVENT[payload.event_name]
   if (!e) return null
+  const isCustomer = e.senderType === MessageSender.customer
+  const accountCustomerId = isCustomer ? payload.sender?.id : payload.recipient?.id // ID tài khoản khách hàng: người dùng gửi nhân tin nhắn
+  const linkedAccountId = isCustomer ? payload.recipient?.id : payload.sender?.id // ID tài khoản hệ thống nhận về tin nhắn này: OA gửi, nhận tin nhắn
+  if (!accountCustomerId || !linkedAccountId || !payload.message?.msg_id) return null
 
   return {
-    eventName: e.eventName,
     provider: "zalo_oa" as ChannelType,
-    isGroupMessage: e.group ?? false,
-    messageId: payload.message.msg_id,
-    senderId: payload.sender.id,
-    recipientId: payload.recipient.id,
+    typeConversation: ConversationType.personal,
+    externalConversationId: accountCustomerId,
+    externalMessageId: payload.message.msg_id,
+    accountCustomerId,
+    linkedAccountId,
+    senderType: e.senderType,
     timestamp: Date.now(),
     type: e.type,
     content: [mapContentMessage(payload)],
@@ -89,19 +94,25 @@ export const mapMetaChange = (change: any): MessagePlatform | null => {
 
 // Map một item messaging của Meta về MessagePlatform chuẩn.
 const mapMetaMessaging = (messaging: any, entryTime?: number): MessagePlatform | null => {
+  // Chỉ map tin giữa người dùng và page, chưa có nhóm
   const message = messaging?.message
   if (!messaging || !message) return null
 
   const content = mapMetaContentMessage(message)
   if (!content.length) return null
+  const senderType = message.is_echo ? MessageSender.agent : MessageSender.customer
+  const accountCustomerId = message.is_echo ? messaging.recipient?.id : messaging.sender?.id // ID tài khoản khách hàng: người dùng gửi nhân tin nhắn
+  const linkedAccountId = message.is_echo ? messaging.sender?.id : messaging.recipient?.id // ID tài khoản hệ thống nhận về tin nhắn này: Meta gửi, nhận tin nhắn
+  if (!accountCustomerId || !linkedAccountId || !message.mid) return null
 
   return {
-    eventName: message.is_echo ? EventMessage.OUTBOUND : EventMessage.INBOUND,
     provider: "facebook" as ChannelType,
-    isGroupMessage: false,
-    messageId: message.mid,
-    senderId: messaging.sender?.id,
-    recipientId: messaging.recipient?.id,
+    typeConversation: ConversationType.personal,
+    externalConversationId: accountCustomerId,
+    externalMessageId: message.mid,
+    accountCustomerId,
+    linkedAccountId,
+    senderType,
     timestamp: messaging.timestamp ?? entryTime ?? Date.now(),
     type: mapMetaMessageType(message),
     content,
@@ -110,22 +121,22 @@ const mapMetaMessaging = (messaging: any, entryTime?: number): MessagePlatform |
 
 // Xác định loại MessageType từ payload message của Meta.
 const mapMetaMessageType = (message: any): MessageType => {
-  if (message?.text) return MessageType.TEXT
+  if (message?.text) return MessageType.text
 
   const attachmentType = message?.attachments?.[0]?.type
   switch (attachmentType) {
     case "image":
-      return MessageType.IMAGE
+      return MessageType.image
     case "video":
-      return MessageType.VIDEO
+      return MessageType.video
     case "audio":
-      return MessageType.AUDIO
+      return MessageType.audio
     case "file":
-      return MessageType.FILE
+      return MessageType.file
     case "location":
-      return MessageType.LOCATION
+      return MessageType.location
     default:
-      return MessageType.TEMPLATE
+      return MessageType.template
   }
 }
 

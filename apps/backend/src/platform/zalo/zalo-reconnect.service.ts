@@ -30,7 +30,7 @@ export class ZaloReconnectService implements OnApplicationBootstrap {
         const zalo = new zcaJs.Zalo({ selfListen: true, logging: false })
         const api = await zalo.login({ cookie, imei, userAgent })
 
-        this.zaloInstanceRegistry.set(account.id, api)
+        this.zaloInstanceRegistry.set(account.accountId as string, api)
         this.logger.log(`Khôi phục phiên đăng nhập thành công cho tài khoản ${account.accountId}`)
       } catch (error) {
         const message = (error as Error).message

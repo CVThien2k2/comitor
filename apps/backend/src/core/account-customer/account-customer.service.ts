@@ -4,15 +4,27 @@ import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import { ProfileFetcherRegistry } from "../../platform/profile-fetchers/profile-fetcher.registry"
 import { paginate, paginatedResponse } from "../../utils/paginate"
-import { GoldenProfileService } from "../golden-profile/golden-profile.service"
 import { UpdateAccountCustomerDto } from "./dto/update-account-customer.dto"
+
+function normalizeDateOfBirthForDb(value?: string): Date | undefined {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const date = new Date(`${trimmed}T00:00:00.000Z`)
+    return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== trimmed ? undefined : date
+  }
+
+  const parsed = new Date(trimmed)
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed
+}
 
 @Injectable()
 export class AccountCustomerService {
   private readonly logger = new Logger(AccountCustomerService.name)
   constructor(
     private readonly prisma: PrismaService,
-    private readonly goldenProfileService: GoldenProfileService,
     private readonly profileFetcherRegistry: ProfileFetcherRegistry
   ) {}
 
@@ -84,29 +96,51 @@ export class AccountCustomerService {
     if (!fetcher) throw new Error(`Không hỗ trợ provider: ${data.linkedAccount.provider}`)
 
     const profile = await fetcher.getProfile(data.accountId, data.linkedAccount)
-    if (!profile) throw new Error("Không tìm thấy thông tin người dùng")
 
-    // const goldenProfile = await this.goldenProfileService.getOrCreateFromProfile(profile, tx)
-    // if (!goldenProfile) throw new NotFoundException("Không tìm thấy hồ sơ khách hàng")
+    if (!profile.fullName)
+      throw new NotFoundException(
+        "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
+      )
 
-    // if (!profile.fullName)
-    //   throw new NotFoundException(
-    //     "Không tìm thấy họ và tên người dùng trong thông tin người dùng" + JSON.stringify(profile)
-    //   )
+    try {
+      const conditions: { primaryEmail?: string; primaryPhone?: string }[] = []
+      if (profile.primaryEmail) conditions.push({ primaryEmail: profile.primaryEmail })
+      if (profile.primaryPhone) conditions.push({ primaryPhone: profile.primaryPhone })
 
-    // try {
-    //   return db.accountCustomer.create({
-    //     data: {
-    //       accountId: data.accountId,
-    //       linkedAccountId: data.linkedAccount.id,
-    //       name: profile.fullName,
-    //       goldenProfileId: goldenProfile.id,
-    //       avatarUrl,
-    //     },
-    //   })
-    // } catch (error: any) {
-    //   throw new Error(`Lỗi tạo tài khoản khách hàng: ${error?.message}`)
-    // }
+      const existingGoldenProfile = conditions.length
+        ? await db.goldenProfile.findFirst({
+            where: { OR: conditions },
+          })
+        : null
+
+      const goldenProfile =
+        existingGoldenProfile ??
+        (await db.goldenProfile.create({
+          data: {
+            linkedAccountId: data.linkedAccount.id,
+            fullName: profile.fullName,
+            gender: profile.gender,
+            dateOfBirth: normalizeDateOfBirthForDb(profile.dateOfBirth),
+            primaryPhone: profile.primaryPhone,
+            primaryEmail: profile.primaryEmail,
+          },
+        }))
+
+      if (!goldenProfile) throw new NotFoundException("Không tìm thấy hồ sơ khách hàng")
+
+      return db.accountCustomer.create({
+        data: {
+          accountId: data.accountId,
+          linkedAccountId: data.linkedAccount.id,
+          name: profile.fullName,
+          goldenProfileId: goldenProfile.id,
+          avatarUrl: profile.avatarUrl,
+          lastActivityAt: new Date(),
+        },
+      })
+    } catch (error) {
+      throw new Error(`Lỗi tạo tài khoản khách hàng: ${(error as Error).message}`)
+    }
   }
 
   async delete(id: string) {

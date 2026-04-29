@@ -1,6 +1,5 @@
 // Include mặc định khi query message (dùng chung cho message service và conversation service)
 export const MESSAGE_INCLUDE = {
-  attachments: true,
   createdByUser: { select: { id: true, name: true, avatarUrl: true } },
   accountCustomer: {
     select: {

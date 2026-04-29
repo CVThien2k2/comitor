@@ -6,9 +6,11 @@ import { AppHeader } from "@/components/sidebar/app-header"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { cn } from "@workspace/ui/lib/utils"
 import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
+import { usePathname } from "next/navigation"
 
 export default function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const isMobile = useMediaQuery("(max-width: 639px)")
+  const pathname = usePathname()
   const [isDesktopCollapsed, setIsDesktopCollapsed] = React.useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false)
 
@@ -19,6 +21,8 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
   }, [isMobile])
 
   const isSidebarOpen = isMobile ? isMobileSidebarOpen : !isDesktopCollapsed
+  const isConversationDetailRoute = pathname?.startsWith("/conversations/")
+  const shouldHideAppHeader = isMobile && isConversationDetailRoute
 
   const handleToggleSidebar = () => {
     if (isMobile) {
@@ -43,7 +47,7 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
             !isMobile && (isDesktopCollapsed ? "pl-[68px]" : "pl-[236px]")
           )}
         >
-          <AppHeader isSidebarOpen={isSidebarOpen} onToggleSidebar={handleToggleSidebar} />
+          {!shouldHideAppHeader && <AppHeader isSidebarOpen={isSidebarOpen} onToggleSidebar={handleToggleSidebar} />}
           <main className="min-h-0 flex-1 overflow-y-scroll">{children}</main>
         </div>
       </div>

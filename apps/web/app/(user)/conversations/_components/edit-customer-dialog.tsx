@@ -1,16 +1,13 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Controller, useForm } from "react-hook-form"
 import { goldenProfiles, type GoldenProfileDetail } from "@/api/golden-profiles"
 import { ConversationAvatar } from "@/components/global/conversation-avatar"
 import { Icons } from "@/components/global/icons"
 import { getConversationDisplayName, getProviderLabel } from "@/lib/helper"
 import { editGoldenProfileSchema, type EditGoldenProfileSchema } from "@/lib/schema/golden-profile"
-import { useChatStore } from "@/stores/chat-store"
-import type { ApiResponse, Conversation, UpdateGoldenProfilePayload } from "@/lib/types"
+import type { ApiResponse, ConversationItem, UpdateGoldenProfilePayload } from "@/lib/types"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Checkbox } from "@workspace/ui/components/checkbox"
@@ -25,10 +22,12 @@ import {
   FieldTitle,
 } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
+import { ScrollArea } from "@workspace/ui/components/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select"
 import { toast } from "@workspace/ui/components/sonner"
 import { Textarea } from "@workspace/ui/components/textarea"
-import { ScrollArea } from "@workspace/ui/components/scroll-area"
+import { useEffect, type ReactNode } from "react"
+import { Controller, useForm } from "react-hook-form"
 
 const EMPTY_FORM_VALUES: EditGoldenProfileSchema = {
   fullName: "",
@@ -78,7 +77,7 @@ const FALLBACK_CUSTOMER_NAME = "Khách hàng"
 const UNSET_SELECT_VALUE = "__unset__"
 
 type EditCustomerDialogProps = {
-  conversation: Conversation
+  conversation: ConversationItem
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -171,7 +170,8 @@ function SectionCard({
 
 export function EditCustomerDialog({ conversation, open, onOpenChange }: EditCustomerDialogProps) {
   const queryClient = useQueryClient()
-  const syncAccountCustomerProfileName = useChatStore((state) => state.syncAccountCustomerProfileName)
+  // Store đã tối giản, tạm comment syncAccountCustomerProfileName:
+  // const syncAccountCustomerProfileName = useChatStore((state) => state.syncAccountCustomerProfileName)
 
   const goldenProfileId = conversation.accountCustomer?.goldenProfileId
   const accountCustomerId = conversation.accountCustomerId ?? null
@@ -218,11 +218,14 @@ export function EditCustomerDialog({ conversation, open, onOpenChange }: EditCus
       const nextFullName = response.data?.fullName ?? variables.payload.fullName ?? null
 
       if (accountCustomerId) {
-        syncAccountCustomerProfileName({
-          accountCustomerId,
-          previousFullName: variables.previousFullName,
-          nextFullName,
-        })
+        // Store đã tối giản, tạm comment syncAccountCustomerProfileName:
+        // syncAccountCustomerProfileName({
+        //   accountCustomerId,
+        //   previousFullName: variables.previousFullName,
+        //   nextFullName,
+        // })
+        void accountCustomerId
+        void nextFullName
       }
 
       void queryClient.invalidateQueries({ queryKey: ["conversations", "detail", conversation.id] })

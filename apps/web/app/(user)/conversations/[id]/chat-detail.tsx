@@ -7,68 +7,63 @@ import { useQuery } from "@tanstack/react-query"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@workspace/ui/components/resizable"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@workspace/ui/components/sheet"
 import { useMediaQuery } from "@workspace/ui/hooks/use-media-query"
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { UserInfoPanel } from "../_components/user-info-panel"
 import { ChatDetailMessages } from "./chat-detail-messages"
 import { ChatDetailNotFound } from "./chat-detail-not-found"
 import { ChatDetailSkeleton } from "./chat-detail-skeleton"
 
 export function ChatDetail({ id }: { id: string }) {
-  const listConversation = useChatStore((s) => s.conversations.find((conversation) => conversation.id === id) ?? null)
-  const selectedConversation = useChatStore((s) => s.selectedConversation)
-  const setSelectedConversation = useChatStore((s) => s.setSelectedConversation)
-  const hydrateConversation = useChatStore((s) => s.hydrateConversation)
-  const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
-  const setShowUserInfo = useChatStore((s) => s.setShowUserInfoPanel)
-  const { markAsViewed } = useConversations()
+  const conversationFromStore = useChatStore(
+    (s) => s.conversations.find((conversation) => conversation.id === id) ?? null
+  )
+  const { markAsRead } = useConversations()
+
+  const [showUserInfo, setShowUserInfo] = useState(false)
   const isDesktop = useMediaQuery("(min-width: 1280px)")
-  const viewedConversationRef = useRef<string | null>(null)
+  const markReadSnapshotRef = useRef("")
 
   const { data: conversationResponse, isLoading: isLoadingConversation } = useQuery({
     queryKey: ["conversations", "detail", id],
     queryFn: () => conversationsApi.getById(id),
-    enabled: !!id,
+    enabled: !!id && !conversationFromStore,
   })
 
-  const activeConversation =
-    selectedConversation?.id === id ? selectedConversation : listConversation ?? conversationResponse?.data ?? null
-
-  useLayoutEffect(() => {
-    if (!id || !listConversation) return
-    if (selectedConversation?.id === id) return
-
-    setSelectedConversation(listConversation)
-  }, [id, listConversation, selectedConversation?.id, setSelectedConversation])
+  const activeConversation = conversationFromStore ?? conversationResponse?.data ?? null
 
   useEffect(() => {
-    if (!conversationResponse?.data || isLoadingConversation) return
+    if (!activeConversation?.id) return
 
-    hydrateConversation(conversationResponse.data)
+    const unreadCount = activeConversation.countUnreadMessages ?? 0
+    const hasUnread = activeConversation.isUnread || unreadCount > 0
 
-    if (selectedConversation?.id !== conversationResponse.data.id) {
-      setSelectedConversation(conversationResponse.data)
+    if (!hasUnread) {
+      markReadSnapshotRef.current = ""
+      return
     }
-  }, [conversationResponse?.data, hydrateConversation, isLoadingConversation, selectedConversation?.id, setSelectedConversation])
 
-  useEffect(() => {
-    if (!conversationResponse?.data?.id) return
-    if (viewedConversationRef.current === conversationResponse.data.id) return
+    const snapshot = `${activeConversation.id}:${unreadCount}:${activeConversation.isUnread ? 1 : 0}`
+    if (markReadSnapshotRef.current === snapshot) return
 
-    viewedConversationRef.current = conversationResponse.data.id
-    void markAsViewed(conversationResponse.data.id).catch(() => {
-      viewedConversationRef.current = null
-    })
-  }, [conversationResponse?.data, markAsViewed])
+    markReadSnapshotRef.current = snapshot
+    markAsRead(activeConversation.id)
+  }, [activeConversation?.countUnreadMessages, activeConversation?.id, activeConversation?.isUnread, markAsRead])
 
+  const handleToggleUserInfo = useCallback(() => setShowUserInfo((prev) => !prev), [setShowUserInfo])
   const handleCloseUserInfo = useCallback(() => setShowUserInfo(false), [setShowUserInfo])
 
   if (isLoadingConversation && !activeConversation) return <ChatDetailSkeleton />
   if (!activeConversation) return <ChatDetailNotFound />
 
+  // Mobile & Tablet
   if (!isDesktop) {
     return (
       <>
-        <ChatDetailMessages conversation={activeConversation} />
+        <ChatDetailMessages
+          conversation={activeConversation}
+          showUserInfo={showUserInfo}
+          onToggleUserInfo={handleToggleUserInfo}
+        />
         <Sheet open={showUserInfo} onOpenChange={setShowUserInfo}>
           <SheetContent side="right" showCloseButton={false} className="w-80 p-0 sm:max-w-sm">
             <SheetHeader className="sr-only">
@@ -81,10 +76,15 @@ export function ChatDetail({ id }: { id: string }) {
     )
   }
 
+  // Desktop
   return (
     <ResizablePanelGroup orientation="horizontal">
       <ResizablePanel id="messages" minSize={50} className="min-w-0">
-        <ChatDetailMessages conversation={activeConversation} />
+        <ChatDetailMessages
+          conversation={activeConversation}
+          showUserInfo={showUserInfo}
+          onToggleUserInfo={handleToggleUserInfo}
+        />
       </ResizablePanel>
 
       {showUserInfo && (

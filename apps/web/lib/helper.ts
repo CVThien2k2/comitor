@@ -1,4 +1,4 @@
-import type { Conversation, MessageItem } from "@/api/conversations"
+import type { ConversationItem, MessageItem } from "@/api/conversations"
 import { ChannelType, LinkAccountStatus } from "@workspace/database"
 
 // ─── Avatar Colors ──────────────────────────────────────
@@ -119,7 +119,7 @@ export function formatConversationLastViewedAt(dateStr: string) {
   })
 }
 
-export function getConversationDisplayName(conv: Conversation) {
+export function getConversationDisplayName(conv: ConversationItem) {
   if (conv.name) return conv.name
   const lastMsg = conv.messages?.[0]
   const customer = lastMsg?.accountCustomer
@@ -146,7 +146,7 @@ export function getSenderName(msg: MessageItem) {
     return msg.accountCustomer?.name || "Khách hàng"
   }
   if (msg.senderType === "agent") {
-    return msg.user?.name || "Agent"
+    return msg.createdByUser?.name || "Agent"
   }
   return "Hệ thống"
 }

@@ -12,10 +12,35 @@ import { cn } from "@workspace/ui/lib/utils"
 
 type MessageActionsProps = {
   isCustomer: boolean
-  content?: string | null
+  content?: unknown
+}
+
+function getMessageTextContent(content: unknown): string {
+  if (!content) return ""
+  if (typeof content === "string") return content.trim()
+
+  if (Array.isArray(content)) {
+    const textParts = content
+      .map((part) => {
+        if (!part || typeof part !== "object") return ""
+        const maybeText = (part as { text?: unknown }).text
+        return typeof maybeText === "string" ? maybeText.trim() : ""
+      })
+      .filter(Boolean)
+    return textParts.join(" ").trim()
+  }
+
+  if (typeof content === "object") {
+    const maybeText = (content as { text?: unknown }).text
+    return typeof maybeText === "string" ? maybeText.trim() : ""
+  }
+
+  return ""
 }
 
 export function MessageActions({ isCustomer, content }: MessageActionsProps) {
+  const contentText = getMessageTextContent(content)
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -31,8 +56,8 @@ export function MessageActions({ isCustomer, content }: MessageActionsProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={isCustomer ? "start" : "end"} className="min-w-36">
-        {content && (
-          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(content)}>
+        {contentText && (
+          <DropdownMenuItem onClick={() => navigator.clipboard.writeText(contentText)}>
             <Icons.copy className="mr-2 size-4" />
             Sao chép
           </DropdownMenuItem>

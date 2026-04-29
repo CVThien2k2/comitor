@@ -8,11 +8,20 @@ import { Input } from "@workspace/ui/components/input"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { useAppStore } from "@/stores/app-store"
 import { useChatStore } from "@/stores/chat-store"
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type UIEvent } from "react"
+import { useConversations } from "@/hooks/use-conversations"
+import { ROUTES } from "@/lib/routes"
+import type { ConversationItem as ConversationItemType } from "@/lib/types"
+import { useCallback, useEffect, useState, type ChangeEvent, type UIEvent } from "react"
 import { useShallow } from "zustand/react/shallow"
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { useDebounce } from "use-debounce"
+import { useRouter } from "next/navigation"
 import { ConversationItem } from "./conversation-item"
+
+type ConversationCursorParam = {
+  cursorLastActivityAt: string
+  cursorId: string
+}
 
 function ConversationListSkeleton({ count }: { count: number }) {
   return (
@@ -33,70 +42,57 @@ function ConversationListSkeleton({ count }: { count: number }) {
 // ─── Conversation List Panel ────────────────────────────
 
 export function ConversationListPanel() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch] = useDebounce(searchQuery.trim(), 500)
-  const [activeTab, setActiveTab] = useState("received")
+  const [activeTab, setActiveTab] = useState("all")
 
   const CONVERSATIONS_PER_PAGE = 20
+
+  const { markAsRead } = useConversations()
 
   const unreadConversationsCount = useAppStore((s) => s.badges.conversationsUnreadCount ?? 0)
 
   const {
     setConversations,
-    appendConversations,
     conversations: filtered,
   } = useChatStore(
     useShallow((s) => ({
       setConversations: s.setConversations,
-      appendConversations: s.appendConversations,
       conversations: s.conversations,
     }))
   )
 
-  const lastSyncedPageCount = useRef(0)
-
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["conversations", "list", CONVERSATIONS_PER_PAGE, debouncedSearch, activeTab],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam }) =>
       conversations.getAll({
-        page: pageParam,
         limit: CONVERSATIONS_PER_PAGE,
         search: debouncedSearch || undefined,
         unread: activeTab === "unread",
         myProcessing: activeTab === "received",
+        cursorLastActivityAt: pageParam?.cursorLastActivityAt,
+        cursorId: pageParam?.cursorId,
       }),
-    initialPageParam: 1,
+    initialPageParam: null as ConversationCursorParam | null,
     getNextPageParam: (lastPage) => {
       const meta = lastPage.data?.meta
-      if (!meta) return undefined
-      return meta.page < meta.totalPages ? meta.page + 1 : undefined
+      if (!meta?.hasMore || !meta.nextCursor) return undefined
+      return {
+        cursorLastActivityAt: meta.nextCursor.lastActivityAt,
+        cursorId: meta.nextCursor.id,
+      }
     },
   })
 
   useEffect(() => {
-    lastSyncedPageCount.current = 0
     setConversations([])
   }, [debouncedSearch, activeTab, setConversations])
 
   useEffect(() => {
-    const pages = data?.pages
-    if (!pages?.length) return
-
-    if (pages.length === 1) {
-      const items = pages[0]?.data?.items ?? []
-      setConversations(items)
-      lastSyncedPageCount.current = 1
-      return
-    }
-
-    if (pages.length > lastSyncedPageCount.current) {
-      const newPages = pages.slice(lastSyncedPageCount.current)
-      for (const p of newPages) {
-        appendConversations(p.data?.items ?? [])
-      }
-      lastSyncedPageCount.current = pages.length
-    }
-  }, [data?.pages, appendConversations, setConversations])
+    const items = data?.pages.flatMap((page) => page.data?.items ?? []) ?? []
+    setConversations(items)
+  }, [data?.pages, setConversations])
 
   const handleScroll = useCallback(
     (e: UIEvent<HTMLDivElement>) => {
@@ -106,6 +102,16 @@ export function ConversationListPanel() {
       if (el.scrollHeight - el.scrollTop - el.clientHeight < 500) fetchNextPage()
     },
     [fetchNextPage, hasNextPage, isFetchingNextPage]
+  )
+
+  const handleConversationClick = useCallback(
+    (conversation: ConversationItemType) => {
+      if (conversation.countUnreadMessages > 0) {
+        markAsRead(conversation.id)
+      }
+      router.push(ROUTES.conversationDetail.path.replace(":id", conversation.id))
+    },
+    [markAsRead, router]
   )
 
   return (
@@ -127,11 +133,11 @@ export function ConversationListPanel() {
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="h-8 w-full bg-muted/70 p-0.5">
-            <TabsTrigger value="received" className="h-7 flex-1 text-xs">
-              Đã nhận
-            </TabsTrigger>
             <TabsTrigger value="all" className="h-7 flex-1 text-xs">
               Tất cả
+            </TabsTrigger>
+            <TabsTrigger value="received" className="h-7 flex-1 text-xs">
+              Đã nhận
             </TabsTrigger>
             <TabsTrigger value="unread" className="h-7 flex-1 gap-1 text-xs">
               Chưa đọc
@@ -154,7 +160,9 @@ export function ConversationListPanel() {
             <p className="text-sm">Không có hội thoại nào</p>
           </div>
         ) : (
-          filtered.map((conversation) => <ConversationItem key={conversation.id} conversation={conversation} />)
+          filtered.map((conversation) => (
+            <ConversationItem key={conversation.id} conversation={conversation} onClick={handleConversationClick} />
+          ))
         )}
 
         {isFetchingNextPage && hasNextPage && <ConversationListSkeleton count={5} />}

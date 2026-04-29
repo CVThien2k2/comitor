@@ -1,151 +1,35 @@
 "use client"
 
-import { messages as messagesApi, type Conversation, type MessageItem } from "@/api/conversations"
-import { ConversationAvatar } from "@/components/global/conversation-avatar"
-import { Icons } from "@/components/global/icons"
-import { useConversations } from "@/hooks/use-conversations"
+import { ConversationItem, messagesApi } from "@/api/conversations"
 import { MESSAGES_PER_PAGE } from "@/lib/constants"
-import { getConversationLatestMessage } from "@/lib/conversation-read-state"
-import {
-  formatConversationLastViewedAt,
-  getConversationDisplayName,
-  getConversationTagLabel,
-  getProviderLabel,
-  mergeConversationSeedWithFetchedMessages,
-} from "@/lib/helper"
+import { mergeConversationSeedWithFetchedMessages } from "@/lib/helper"
 import { ROUTES } from "@/lib/routes"
-import { useChatStore } from "@/stores/chat-store"
 import { useInfiniteQuery } from "@tanstack/react-query"
-import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
-import { cn } from "@workspace/ui/lib/utils"
 import { useRouter } from "next/navigation"
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { MessageImageRunGallery } from "../_components/message-image-run-gallery"
-import { MessageBubble } from "../_components/message-bubble"
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { ChatComposer } from "./chat-composer"
+import { ChatDetailHeader } from "./chat-detail-header"
+import { ChatMessagesList } from "./chat-messages-list"
+import { MessageSearchDialog } from "./message-search-dialog"
 
-function FlowSeparator({ startTime }: { startTime: string }) {
-  const d = new Date(startTime)
-  const now = new Date()
-  const isToday = d.toDateString() === now.toDateString()
-  const timeLabel = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-  const dateLabel = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })
-  return (
-    <div className="my-2 flex items-center gap-3">
-      <div className="h-px flex-1 bg-border/70" />
-      <div className="flex items-center gap-2 px-2 leading-none">
-        <span className="text-[11px] font-medium text-muted-foreground">{timeLabel}</span>
-        {!isToday && <span className="text-[11px] font-medium text-muted-foreground/80">{dateLabel}</span>}
-      </div>
-      <div className="h-px flex-1 bg-border/70" />
-    </div>
-  )
+// Khi scroll gần đỉnh container thì nạp thêm page cũ.
+const TOP_FETCH_THRESHOLD_PX = 300
+
+type ChatDetailMessagesProps = {
+  conversation: ConversationItem
+  showUserInfo: boolean
+  onToggleUserInfo: () => void
 }
 
-function MessageListSkeleton({ count }: { count: number }) {
-  return (
-    <div className="flex flex-col gap-3 py-2" aria-hidden>
-      {Array.from({ length: count }).map((_, i) => {
-        const isLeft = i % 2 === 0
-        return (
-          <div key={i} className={cn("flex max-w-[70%] gap-2.5", isLeft ? "self-start" : "flex-row-reverse self-end")}>
-            {isLeft && <div className="size-8 shrink-0 animate-pulse rounded-full bg-muted" />}
-            <div className={cn("space-y-1.5", !isLeft && "flex flex-col items-end")}>
-              <div className="h-3 w-16 animate-pulse rounded bg-muted" />
-              <div
-                className={cn(
-                  "h-10 animate-pulse rounded-2xl bg-muted",
-                  isLeft ? "w-48 rounded-tl-md" : "w-40 rounded-tr-md"
-                )}
-              />
-              <div className="h-3 w-10 animate-pulse rounded bg-muted" />
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-const getMessageSenderKey = (message: MessageItem) => {
-  return `${message.senderType}:${message.accountCustomerId ?? message.userId ?? "unknown"}`
-}
-
-const getRenderableAttachment = (message: MessageItem) => {
-  return (message.attachments ?? []).find((att) => !!(att.fileUrl || att.thumbnailUrl))
-}
-
-const isImageAttachment = (message: MessageItem) => {
-  const att = getRenderableAttachment(message)
-  if (!att) return false
-
-  const mime = att.fileMimeType?.toLowerCase() ?? ""
-  if (mime.startsWith("image/")) return true
-
-  const type = att.fileType?.toLowerCase() ?? ""
-  if (type === "image") return true
-
-  const source = `${att.fileUrl ?? ""} ${att.thumbnailUrl ?? ""} ${att.fileName ?? ""}`.toLowerCase()
-  return /\.(jpg|jpeg|png|gif|bmp|webp|svg)(\?|$)/.test(source)
-}
-
-const getMessageTimeMs = (message: MessageItem) => {
-  const createdAtMs = new Date(message.createdAt).getTime()
-  if (Number.isFinite(createdAtMs)) return createdAtMs
-  return new Date(message.timestamp).getTime()
-}
-
-type MessageRenderItem =
-  | { type: "single"; message: MessageItem; showAvatar: boolean }
-  | { type: "gallery"; messages: MessageItem[]; showAvatar: boolean }
-
-const buildMessageRenderItems = (messages: MessageItem[]): MessageRenderItem[] => {
-  const IMAGE_RUN_MAX_GAP_MS = 10 * 1000
-  const items: MessageRenderItem[] = []
-
-  for (let i = 0; i < messages.length; ) {
-    const current = messages[i]!
-    const previous = messages[i - 1]
-    const showAvatar = !previous || getMessageSenderKey(previous) !== getMessageSenderKey(current)
-
-    if (!isImageAttachment(current)) {
-      items.push({ type: "single", message: current, showAvatar })
-      i += 1
-      continue
-    }
-
-    let j = i + 1
-    while (
-      j < messages.length &&
-      isImageAttachment(messages[j]!) &&
-      getMessageSenderKey(messages[j]!) === getMessageSenderKey(current) &&
-      getMessageTimeMs(messages[j]!) - getMessageTimeMs(messages[j - 1]!) < IMAGE_RUN_MAX_GAP_MS
-    ) {
-      j += 1
-    }
-
-    const imageRun = messages.slice(i, j)
-    if (imageRun.length >= 2) {
-      items.push({ type: "gallery", messages: imageRun, showAvatar })
-    } else {
-      items.push({ type: "single", message: current, showAvatar })
-    }
-    i = j
-  }
-
-  return items
-}
-
-export function ChatDetailMessages({ conversation }: { conversation: Conversation }) {
+export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInfo }: ChatDetailMessagesProps) {
   const router = useRouter()
-  const showUserInfo = useChatStore((s) => s.showUserInfoPanel)
-  const toggleUserInfo = useChatStore((s) => s.toggleUserInfoPanel)
-  const manualUnreadSession = useChatStore((s) => s.manualUnreadSession)
-  const beginManualUnreadSession = useChatStore((s) => s.beginManualUnreadSession)
-  const endManualUnreadSession = useChatStore((s) => s.endManualUnreadSession)
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Khóa hội thoại hiện tại.
   const conversationId = conversation.id
-  const { markAsRead, setMessageReadState } = useConversations()
+
+  // Refs phục vụ auto scroll và giữ vị trí khi load page cũ.
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevPageCountRef = useRef(0)
@@ -154,23 +38,23 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
   const isInitialLoadRef = useRef(true)
   const prevConversationIdRef = useRef("")
   const shouldScrollToBottomRef = useRef(false)
-  const isNearBottomRef = useRef(true)
-  const [isTogglingReadState, setIsTogglingReadState] = useState(false)
 
-  const id = conversationId
-
+  // Seed messages lấy từ conversation detail để có dữ liệu tức thì trước khi query messages trả về.
   const seedMessages = useMemo(() => conversation.messages ?? [], [conversation.messages])
 
+  // Query messages theo infinite paging.
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ["messages", "list", id, MESSAGES_PER_PAGE],
-    queryFn: ({ pageParam = 1 }) => messagesApi.getByConversation(id, { page: pageParam, limit: MESSAGES_PER_PAGE }),
-    enabled: !!id,
+    queryKey: ["messages", "list", conversationId, MESSAGES_PER_PAGE],
+    queryFn: ({ pageParam = 1 }) =>
+      messagesApi.getByConversation(conversationId, { page: pageParam, limit: MESSAGES_PER_PAGE }),
+    enabled: !!conversationId,
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const meta = lastPage.data?.meta
       if (!meta) return undefined
       return meta.page < meta.totalPages ? meta.page + 1 : undefined
     },
+    // Chuẩn hóa messages về thứ tự tăng dần thời gian + loại bỏ trùng id giữa các page.
     select: (queryData) => {
       const all = queryData.pages.flatMap((page) => page.data?.items ?? []).reverse()
       const seen = new Set<string>()
@@ -192,66 +76,29 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     [seedMessages, fetchedChronological]
   )
   const pageCount = data?.pages.length ?? 0
-  const latestSeedMessage = getConversationLatestMessage(conversation)
-  const latestFetchedMessage = messageList[messageList.length - 1] ?? null
-  const latestMessage = latestSeedMessage ?? latestFetchedMessage
-  const latestMessageId = latestMessage?.id ?? ""
-  const isLatestMessageUnread = latestMessage ? !latestMessage.isRead : false
-  const isManualUnreadSessionActive =
-    manualUnreadSession?.conversationId === id && manualUnreadSession.messageId === latestMessageId
-
-  const messageGroups = useMemo(() => {
-    const FLOW_GAP_MS = 30 * 60 * 1000
-    const groups: { startTime: string; messages: MessageItem[] }[] = []
-    let current: { startTime: string; messages: MessageItem[] } | null = null
-
-    for (const msg of messageList) {
-      const msgTime = new Date(msg.createdAt).getTime()
-      const msgHour = new Date(msg.createdAt).getHours()
-
-      if (!current) {
-        current = { startTime: msg.createdAt, messages: [msg] }
-        continue
-      }
-
-      const lastMsg = current.messages[current.messages.length - 1]!
-      const lastMsgTime = new Date(lastMsg.createdAt).getTime()
-      const lastMsgHour = new Date(lastMsg.createdAt).getHours()
-
-      const shouldSplit = lastMsgHour !== msgHour || msgTime - lastMsgTime >= FLOW_GAP_MS
-
-      if (shouldSplit) {
-        groups.push(current)
-        current = { startTime: msg.createdAt, messages: [msg] }
-      } else {
-        current.messages.push(msg)
-      }
-    }
-
-    if (current) groups.push(current)
-    return groups
-  }, [messageList])
 
   useLayoutEffect(() => {
-    if (prevConversationIdRef.current !== id) {
-      prevConversationIdRef.current = id
+    if (prevConversationIdRef.current !== conversationId) {
+      prevConversationIdRef.current = conversationId
       isInitialLoadRef.current = true
       prevPageCountRef.current = 0
       prevScrollHeightRef.current = 0
       prevMessageCountRef.current = 0
-      isNearBottomRef.current = true
     }
 
     const el = scrollContainerRef.current
     if (!el || messageList.length === 0) return
     if (isLoading && seedMessages.length === 0) return
 
+    // Lần đầu vào chat: kéo xuống cuối cuộc trò chuyện.
     if (isInitialLoadRef.current) {
       el.scrollTop = el.scrollHeight
       isInitialLoadRef.current = false
+      // Load page cũ hơn: giữ nguyên viewport bằng cách bù scrollHeight delta.
     } else if (pageCount > prevPageCountRef.current) {
       const newScrollHeight = el.scrollHeight
       el.scrollTop = newScrollHeight - prevScrollHeightRef.current
+      // Có tin mới (hoặc vừa gửi): kéo xuống cuối khi có cờ request.
     } else if (shouldScrollToBottomRef.current || messageList.length > prevMessageCountRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
       shouldScrollToBottomRef.current = false
@@ -259,40 +106,15 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
 
     prevPageCountRef.current = pageCount
     prevMessageCountRef.current = messageList.length
-  }, [id, messageList, pageCount, isLoading, seedMessages.length])
-
-  useEffect(() => {
-    return () => {
-      endManualUnreadSession(id)
-    }
-  }, [endManualUnreadSession, id])
-
-  useEffect(() => {
-    if (!manualUnreadSession) return
-    if (manualUnreadSession.conversationId !== id) return
-    if (manualUnreadSession.messageId === latestMessageId) return
-
-    endManualUnreadSession(id, manualUnreadSession.messageId)
-  }, [endManualUnreadSession, id, latestMessageId, manualUnreadSession])
-
-  // Trạng thái unread/read của conversation được suy ra từ tin nhắn mới nhất.
-  useEffect(() => {
-    if (isManualUnreadSessionActive || !id) return
-
-    if ((conversation.unreadCount ?? 0) > 0 || isLatestMessageUnread) {
-      markAsRead(id)
-    }
-  }, [conversation.unreadCount, id, isLatestMessageUnread, isManualUnreadSessionActive, markAsRead])
+  }, [conversationId, messageList, pageCount, isLoading, seedMessages.length])
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current
     if (!el) return
 
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
-    isNearBottomRef.current = distanceFromBottom < 120
-
     if (!hasNextPage || isFetchingNextPage) return
-    if (el.scrollTop < 300) {
+    // Kéo gần đỉnh thì nạp page trước đó.
+    if (el.scrollTop < TOP_FETCH_THRESHOLD_PX) {
       prevScrollHeightRef.current = el.scrollHeight
       fetchNextPage()
     }
@@ -302,174 +124,34 @@ export function ChatDetailMessages({ conversation }: { conversation: Conversatio
     shouldScrollToBottomRef.current = true
   }, [])
 
-  const handleBack = () => {
-    router.push(ROUTES.conversations.path)
-  }
-
-  const handleToggleReadState = useCallback(async () => {
-    if (!id || !latestMessage || isTogglingReadState) return
-
-    const currentMessageId = latestMessage.id
-    const previousIsRead = latestMessage.isRead
-    const nextIsRead = !latestMessage.isRead
-    if (nextIsRead) endManualUnreadSession(id, currentMessageId)
-    else beginManualUnreadSession(id, currentMessageId)
-
-    setIsTogglingReadState(true)
-
-    try {
-      const result = await setMessageReadState(id, currentMessageId, nextIsRead, previousIsRead)
-
-      if (!result.didUpdate) {
-        if (nextIsRead) beginManualUnreadSession(id, currentMessageId)
-        else endManualUnreadSession(id, currentMessageId)
-      }
-    } finally {
-      setIsTogglingReadState(false)
-    }
-  }, [beginManualUnreadSession, endManualUnreadSession, id, isTogglingReadState, latestMessage, setMessageReadState])
-
-  const displayName = getConversationDisplayName(conversation)
-  const hasLastViewedInfo = !!conversation.lastViewedBy?.name && !!conversation.lastViewedAt
-  const lastViewedLabel =
-    conversation.lastViewedBy?.name && conversation.lastViewedAt
-      ? `Agent truy cập lần cuối: ${conversation.lastViewedBy.name} - ${formatConversationLastViewedAt(conversation.lastViewedAt)}`
-      : "Chưa có agent truy cập cuộc trò chuyện này"
+  const handleBack = useCallback(() => router.push(ROUTES.conversations.path), [router])
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="flex flex-col gap-y-2 border-b border-border bg-muted/50 px-2 py-2 backdrop-blur-sm sm:px-3 sm:py-2.5 md:px-4 md:py-3">
-        <div
-          className={cn(
-            "max-w-full rounded-md px-2.5 py-1.5",
-            hasLastViewedInfo ? "border border-primary/20 bg-primary/10" : "border border-border bg-muted/60"
-          )}
-        >
-          <p
-            className={cn(
-              "text-[13.2px] leading-[1.35] font-medium",
-              hasLastViewedInfo ? "text-primary" : "text-muted-foreground"
-            )}
-          >
-            {lastViewedLabel}
-          </p>
-        </div>
-        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5 md:gap-3">
-          <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={handleBack}>
-            <Icons.chevronLeft className="h-5 w-5" />
-          </Button>
-          <ConversationAvatar
-            id={id}
-            name={displayName}
-            provider={conversation.linkedAccount?.provider}
-            avatarUrl={conversation.avatarUrl || undefined}
-            className="size-8 md:size-10"
-          />
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <h3 className="truncate text-sm font-semibold text-foreground sm:text-base">{displayName}</h3>
-            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              {conversation.linkedAccount?.provider && (
-                <Badge className="h-5 max-w-full px-1.5 text-[10px] font-normal">
-                  {getProviderLabel(conversation.linkedAccount?.provider)}
-                </Badge>
-              )}
-              {conversation.tag === "business" && (
-                <Badge className="h-5 max-w-full px-1.5 text-[10px] font-normal">
-                  {getConversationTagLabel(conversation.tag)}
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-1.5">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9"
-            >
-              <Icons.phone className="size-4 md:size-[18px]" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="size-8 text-foreground hover:bg-primary/20 hover:text-primary md:size-9"
-            >
-              <Icons.video className="size-4 md:size-[18px]" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className={cn(
-                "size-8 hover:bg-primary/20 hover:text-primary md:size-9",
-                isLatestMessageUnread ? "bg-primary/20 text-primary" : "text-foreground"
-              )}
-              onClick={() => void handleToggleReadState()}
-              aria-label={isLatestMessageUnread ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
-              aria-pressed={isLatestMessageUnread}
-              title={isLatestMessageUnread ? "Đánh dấu đã đọc" : "Đánh dấu chưa đọc"}
-              disabled={!latestMessageId || isTogglingReadState}
-            >
-              {isTogglingReadState ? (
-                <Icons.spinner className="size-4 animate-spin md:size-[18px]" />
-              ) : (
-                <Icons.mail className="size-4 md:size-[18px]" />
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className={cn(
-                "size-8 hover:bg-primary/20 hover:text-primary md:size-9",
-                showUserInfo ? "bg-primary/20 text-primary" : "text-foreground"
-              )}
-              onClick={toggleUserInfo}
-            >
-              <Icons.moreHorizontal className="size-4 md:size-[18px]" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div
-        ref={scrollContainerRef}
+      <ChatDetailHeader
+        conversation={conversation}
+        showUserInfo={showUserInfo}
+        onBack={handleBack}
+        onOpenSearch={() => setIsSearchOpen(true)}
+        onToggleUserInfo={onToggleUserInfo}
+      />
+      <ChatMessagesList
+        isLoading={isLoading}
+        isFetchingNextPage={isFetchingNextPage}
+        messageList={messageList}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto bg-background px-2 py-3 sm:px-3 sm:py-4 md:px-4"
-      >
-        {(isFetchingNextPage || isLoading) && <MessageListSkeleton count={10} />}
+        scrollContainerRef={scrollContainerRef}
+        messagesEndRef={messagesEndRef}
+      />
 
-        {isLoading && messageList.length === 0 ? (
-          <MessageListSkeleton count={20} />
-        ) : messageList.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
-            <Icons.messageSquare className="mb-3 size-10 opacity-40" />
-            <p className="text-sm">Chưa có tin nhắn nào</p>
-            <p className="mt-1 text-xs">Hãy bắt đầu cuộc trò chuyện!</p>
-          </div>
-        ) : (
-          <div className="flex w-full flex-col gap-1">
-            {messageGroups.map((group, groupIndex) => (
-              <Fragment key={`${group.startTime}-${groupIndex}`}>
-                <FlowSeparator startTime={group.startTime} />
-                {buildMessageRenderItems(group.messages).map((item) => {
-                  if (item.type === "single") {
-                    return <MessageBubble key={item.message.id} message={item.message} showAvatar={item.showAvatar} />
-                  }
-                  return (
-                    <MessageImageRunGallery
-                      key={`gallery-${item.messages[0]!.id}-${item.messages[item.messages.length - 1]!.id}`}
-                      messages={item.messages}
-                      showAvatar={item.showAvatar}
-                    />
-                  )
-                })}
-              </Fragment>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-      </div>
+      {/* Composer */}
+      <ChatComposer
+        key={conversationId}
+        conversationId={conversationId}
+        onRequestScrollToBottom={requestScrollToBottom}
+      />
 
-      <ChatComposer key={conversationId} onRequestScrollToBottom={requestScrollToBottom} />
+      <MessageSearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} messages={messageList} />
     </div>
   )
 }

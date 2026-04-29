@@ -1,114 +1,89 @@
-import type { ChannelType } from "@workspace/database"
+import type {
+  ChannelType,
+  ConversationStatus,
+  ConversationTag,
+  ConversationType,
+  JourneyState,
+  MessageSender,
+  MessageStatus,
+  MessageType,
+} from "@workspace/database"
 
-// ─── Message ────────────────────────────────────────────
+export type Coordinates = {
+  latitude: string
+  longitude: string
+}
 
-export interface MessageAttachment {
+export type ContentMessage = {
+  type?: string
+  quote_msg_id?: string
+  text?: string
+  url?: string
+  thumbnailUrl?: string
+  name?: string
+  description?: string
+  size?: number | string
+  stickerId?: string
+  coordinates?: Coordinates
+}
+export interface AccountCustomerItem {
   id: string
-  messageId: string
-  fileName: string | null
-  fileType: string | null
-  fileUrl: string | null
-  thumbnailUrl: string | null
-  fileMimeType: string | null
-  key: string | null
-  createdAt: string | null
+  goldenProfileId?: string | null
+  avatarUrl: string | null
+  name: string | null
+}
+
+export interface ConversationLinkAccountItem {
+  id: string
+  provider: ChannelType
+  displayName: string | null
 }
 
 export interface MessageItem {
   id: string
   conversationId: string
-  senderType: "agent" | "customer" | "system"
+  senderType: MessageSender
   accountCustomerId: string | null
-  userId: string | null
-  content: string | null
-  status: "processing" | "success" | "failed"
+  quoteMessageId: string | null
+  content: string | ContentMessage | ContentMessage[] | null
+  status: MessageStatus
   externalId: string | null
   isRead: boolean
   timestamp: string
+  type: MessageType
+  createdBy: string | null
+  isDeleted: boolean
   createdAt: string
   updatedAt: string
-  attachments?: MessageAttachment[]
-  user?: { id: string; name: string; avatarUrl: string | null } | null
-  accountCustomer?: {
+  createdByUser?: {
     id: string
-    goldenProfileId: string | null
+    name: string
     avatarUrl: string | null
-    name: string | null
   } | null
+  accountCustomer?: AccountCustomerItem | null
 }
 
-// ─── Conversation ───────────────────────────────────────
-
-/** Bản serialize API (chuỗi ISO) — khác model Prisma cùng tên. */
-export interface LinkAccount {
-  id: string
-  provider: ChannelType
-  linkedByUserId: string
-  providerCredentialsId: string | null
-  displayName: string | null
-  accountId: string | null
-  avatarUrl: string | null
-  createdAt: string
-  updatedAt: string
-  status: "active" | "inactive"
-}
-
-export interface ConversationViewer {
-  id: string
-  name: string
-  avatarUrl: string | null
-}
-
-export interface Conversation {
+export interface ConversationItem {
   id: string
   linkedAccountId: string
-  name: string | null
+  name: string
   avatarUrl: string | null
   externalId: string | null
-  type: "personal" | "group"
-  tag: "other" | "business"
-  journeyState: string | null
-  lastActivityAt: string | null
-  lastViewedById: string | null
+  type: ConversationType
+  tag: ConversationTag
+  journeyState: JourneyState | null
+  status: ConversationStatus
+  countUnreadMessages: number
+  isUnread: boolean
+  processingBy: string | null
+  lastActivityAt: string
   lastViewedAt: string | null
-  accountCustomerId: string | null
+  isDeleted: boolean
   createdAt: string
   updatedAt: string
-  linkedAccount?: LinkAccount
-  lastViewedBy?: ConversationViewer | null
-  accountCustomer?: {
-    id: string
-    goldenProfileId: string | null
-    avatarUrl: string | null
-    name: string | null
-  }
-  conversationCustomers?: {
-    id: string
-    conversationId: string
-    accountCustomerId: string
-    isAdmin: boolean
-    createdAt: string
-    updatedAt: string
-    accountCustomer?: {
-      id: string
-      goldenProfileId: string | null
-      avatarUrl: string | null
-      name: string | null
-    }
-  }[]
-  messages?: MessageItem[]
+  linkedAccount: ConversationLinkAccountItem
+  messages: MessageItem[]
   unreadCount?: number
-}
-
-export interface CreateMessagePayload {
-  conversationId: string
-  content?: string
-  attachments?: {
-    fileName?: string
-    fileType?: string
-    fileUrl?: string
-    thumbnailUrl?: string
-    fileMimeType?: string
-    key?: string
-  }[]
+  accountCustomerId?: string | null
+  accountCustomer?: AccountCustomerItem | null
 }

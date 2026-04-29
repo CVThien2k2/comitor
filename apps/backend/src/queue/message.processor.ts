@@ -83,7 +83,7 @@ export class MessageProcessor extends WorkerHost {
 
         const messageCreateData = {
           senderType,
-          accountCustomerId: accountCustomer?.id,
+          accountCustomerId: senderType === "customer" ? accountCustomer?.id : null,
           externalId: externalMessageId,
           timestamp: messageTimestamp,
           type,

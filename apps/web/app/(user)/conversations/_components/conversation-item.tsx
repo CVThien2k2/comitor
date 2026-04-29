@@ -1,15 +1,11 @@
-import { useMemo } from "react"
-import type { Conversation } from "@/api/conversations"
+import { ConversationAvatar } from "@/components/global/conversation-avatar"
+import { formatTimestamp, getConversationDisplayName } from "@/lib/helper"
+import type { ConversationItem, MessageItem } from "@/lib/types"
+import { useAuthStore } from "@/stores/auth-store"
 import { Badge } from "@workspace/ui/components/badge"
 import { cn } from "@workspace/ui/lib/utils"
-import { formatTimestamp, getConversationDisplayName } from "@/lib/helper"
-import { useChatStore } from "@/stores/chat-store"
-import { useConversations } from "@/hooks/use-conversations"
-import { ConversationAvatar } from "@/components/global/conversation-avatar"
-import { useRouter } from "next/navigation"
-import { ROUTES } from "@/lib/routes"
-import { useAuthStore } from "@/stores/auth-store"
-import type { MessageItem } from "@/lib/types"
+import { usePathname } from "next/navigation"
+import { useMemo } from "react"
 
 const ATTACHMENT_FALLBACK_TEXT = "[Tệp đính kèm]"
 
@@ -43,8 +39,8 @@ function getConversationPreview(lastMsg: MessageItem | undefined) {
 
 function getSenderPrefix(lastMsg: MessageItem, currentUserId?: string) {
   if (lastMsg.senderType === "agent") {
-    const senderId = lastMsg.userId ?? lastMsg.user?.id
-    return senderId && senderId === currentUserId ? "Bạn: " : `${lastMsg.user?.name ?? "Agent"}: `
+    const senderId = lastMsg.createdBy ?? lastMsg.createdByUser?.id
+    return senderId && senderId === currentUserId ? "Bạn: " : `${lastMsg.createdByUser?.name ?? "Agent"}: `
   }
 
   if (lastMsg.senderType === "customer") {
@@ -54,23 +50,23 @@ function getSenderPrefix(lastMsg: MessageItem, currentUserId?: string) {
   return ""
 }
 
-export function ConversationItem({ conversation }: { conversation: Conversation }) {
-  const router = useRouter()
-  const isSelected = useChatStore((s) => s.selectedConversation?.id === conversation.id)
-  const { markAsRead } = useConversations()
+export function ConversationItem({
+  conversation,
+  onClick,
+}: {
+  conversation: ConversationItem
+  onClick: (conversation: ConversationItem) => void
+}) {
+  const pathname = usePathname()
+  const isSelected = pathname === `/conversations/${conversation.id}`
   const currentUserId = useAuthStore((s) => s.user?.id)
 
-  const handleClick = () => {
-    if (conversation.unreadCount) {
-      markAsRead(conversation.id)
-    }
-    router.push(ROUTES.conversationDetail.path.replace(":id", conversation.id))
-  }
+  const unreadCount = conversation.countUnreadMessages ?? 0
+  const isUnread = conversation.isUnread
+
   const displayName = getConversationDisplayName(conversation)
   const lastMsg = conversation.messages?.[0]
   const previewText = useMemo(() => getConversationPreview(lastMsg), [lastMsg])
-  const unreadCount = conversation.unreadCount ?? 0
-  const isUnread = unreadCount > 0
 
   const isRecentlyActive = useMemo(() => {
     if (!lastMsg) return false
@@ -80,11 +76,11 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
 
   return (
     <button
-      onClick={handleClick}
+      onClick={() => onClick(conversation)}
       className={cn(
         "flex w-full items-start gap-3 border-b border-border p-3 text-left transition-all duration-200",
         "hover:bg-accent/50",
-        isSelected && "border-l-2 border-l-primary bg-accent/70",
+        isSelected && "border-l-4 border-l-primary bg-primary/12 shadow-xs",
         isUnread && !isSelected && "bg-primary/3"
       )}
     >
@@ -101,15 +97,10 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
       </div>
 
       <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
           <span className={cn("truncate text-sm font-medium", isUnread ? "text-foreground" : "text-foreground/80")}>
             {displayName}
           </span>
-          {lastMsg && (
-            <span className="text-[11px] whitespace-nowrap text-muted-foreground">
-              {formatTimestamp(lastMsg.createdAt)}
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -128,10 +119,21 @@ export function ConversationItem({ conversation }: { conversation: Conversation 
         )}
       </div>
 
-      {isUnread && (
-        <Badge className="mt-1.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary p-0 text-[10px] font-semibold text-primary-foreground">
-          {unreadCount > 99 ? "99+" : unreadCount}
-        </Badge>
+      {(isUnread || !!lastMsg) && (
+        <div className="flex shrink-0 flex-col items-end justify-between gap-1 self-stretch">
+          {isUnread ? (
+            <Badge className="flex size-5 items-center justify-center rounded-full bg-primary p-0 text-[10px] font-semibold text-primary-foreground">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          ) : (
+            <span />
+          )}
+          {lastMsg && (
+            <span className="mt-auto text-[11px] whitespace-nowrap text-muted-foreground">
+              {formatTimestamp(lastMsg.createdAt)}
+            </span>
+          )}
+        </div>
       )}
     </button>
   )

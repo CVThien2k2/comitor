@@ -1,24 +1,18 @@
 "use client"
 
-import { suggestedMessages } from "@/api/suggested-messages"
 import { Icons } from "@/components/global/icons"
 import { useSendConversationMessage } from "@/hooks/use-messages"
-import { useChatStore } from "@/stores/chat-store"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import { useQuery } from "@tanstack/react-query"
 import Image from "next/image"
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
-import { SavedQuickMessagesPopup, type QuickMessageListItem } from "./saved-quick-messages-popup"
-
-const SUGGESTED_MESSAGES_LIMIT = 200
 
 export type ChatComposerProps = {
+  conversationId: string
   onRequestScrollToBottom?: () => void
 }
 
-export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
-  const conversationId = useChatStore((s) => s.selectedConversation?.id ?? "")
+export function ChatComposer({ conversationId, onRequestScrollToBottom }: ChatComposerProps) {
   const { handleSendMessage } = useSendConversationMessage(conversationId)
   const [inputValue, setInputValue] = useState("")
   const [files, setFiles] = useState<File[]>([])
@@ -26,29 +20,6 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [quickOpen, setQuickOpen] = useState(false)
   const quickToolbarRef = useRef<HTMLDivElement>(null)
-
-  const { data: suggestedRes, isLoading: suggestedLoading } = useQuery({
-    queryKey: ["suggested-messages", "list", SUGGESTED_MESSAGES_LIMIT],
-    queryFn: () => suggestedMessages.getAll({ page: 1, limit: SUGGESTED_MESSAGES_LIMIT }),
-    staleTime: 60_000,
-  })
-
-  const quickMessageItems: QuickMessageListItem[] = useMemo(() => {
-    const rows = suggestedRes?.data?.items ?? []
-    return rows.map((row) => ({
-      id: row.id,
-      tag: row.tag,
-      message: row.message,
-    }))
-  }, [suggestedRes?.data?.items])
-
-  const messageByTagLower = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const row of quickMessageItems) {
-      map.set(row.tag.trim().toLowerCase(), row.message)
-    }
-    return map
-  }, [quickMessageItems])
 
   const previewItems = useMemo(() => {
     return files.map((file, index) => {
@@ -85,24 +56,9 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
     void handleSendMessage(content, currentFiles)
   }
 
-  const tryExpandSlashTag = (raw: string): boolean => {
-    const trimmed = raw.trim()
-    const m = /^\/([^\s/]+)$/.exec(trimmed)
-    const tagKey = m?.[1]
-    if (!tagKey) return false
-    const resolved = messageByTagLower.get(tagKey.toLowerCase())
-    if (resolved === undefined) return false
-    setInputValue(resolved)
-    return true
-  }
-
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) return
     if (e.key === "Enter" && !e.shiftKey) {
-      if (tryExpandSlashTag(inputValue)) {
-        e.preventDefault()
-        return
-      }
       e.preventDefault()
       handleSend()
     }
@@ -229,22 +185,11 @@ export function ChatComposer({ onRequestScrollToBottom }: ChatComposerProps) {
 
         <div className="flex items-center justify-between gap-2">
           <div ref={quickToolbarRef} className="relative flex items-center gap-0.5 sm:gap-1">
-            <SavedQuickMessagesPopup
-              open={quickOpen}
-              onOpenChange={setQuickOpen}
-              boundaryRef={quickToolbarRef}
-              items={quickMessageItems}
-              isLoading={suggestedLoading}
-              onApplyMessage={(text) => setInputValue((prev) => (prev.trim() ? `${prev.trim()}\n${text}` : text))}
-            />
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              className={cn(
-                "text-muted-foreground hover:text-foreground",
-                quickOpen && "bg-primary/15 text-primary"
-              )}
+              className={cn("text-muted-foreground hover:text-foreground", quickOpen && "bg-primary/15 text-primary")}
               onClick={() => setQuickOpen((v) => !v)}
               aria-expanded={quickOpen}
               aria-label="Tin nhắn nhanh đã lưu"

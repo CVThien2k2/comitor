@@ -2,15 +2,13 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from "@nes
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { EVENTS } from "../../websocket/socket-events"
 import type { MessageCreatedEvent } from "../../websocket/socket-event-payloads"
-import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
-import { paginate, paginatedResponse } from "../../utils/paginate"
-import { ConversationService } from "../conversation/conversation.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
+import { MessageCursorDirection, MessageCursorQueryDto } from "./dto/message-cursor-query.dto"
+import { MessageSearchQueryDto } from "./dto/message-search-query.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
-import { MessageSender } from "@workspace/database"
-import { MessageStatus } from "@workspace/database"
+import { MessageSender, MessageStatus, Prisma } from "@workspace/database"
 import { MESSAGE_INCLUDE } from "./message.include"
 
 const MIME_BY_EXTENSION: Record<string, string> = {
@@ -101,41 +99,242 @@ export function transformSingleMessage(messages: any[]) {
   }
 }
 
+type MessageCursorMeta = {
+  limit: number
+  hasMore: boolean
+  nextCursor: { time: string; id: string } | null
+  direction: MessageCursorDirection
+}
+
+type MessageCursorResponse = {
+  items: any[]
+  meta: MessageCursorMeta
+}
+
 @Injectable()
 export class MessageService {
   private readonly logger = new Logger(MessageService.name)
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
-    private readonly conversationService: ConversationService
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
-  async findByConversationId(conversationId: string, query: PaginationQueryDto) {
+  private normalizeLimit(limit?: number, fallback = 30) {
+    const value = Number.isFinite(limit) ? Number(limit) : fallback
+    return Math.min(Math.max(value || fallback, 1), 100)
+  }
+
+  private parseCursorTime(value?: string) {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date
+  }
+
+  private buildCursorCondition(
+    cursorTime: Date | null,
+    cursorId: string | undefined,
+    direction: MessageCursorDirection
+  ): Prisma.MessageWhereInput | undefined {
+    if (!cursorTime || !cursorId) return undefined
+
+    if (direction === MessageCursorDirection.older) {
+      return {
+        OR: [{ timestamp: { lt: cursorTime } }, { AND: [{ timestamp: cursorTime }, { id: { lt: cursorId } }] }],
+      }
+    }
+
+    return {
+      OR: [{ timestamp: { gt: cursorTime } }, { AND: [{ timestamp: cursorTime }, { id: { gt: cursorId } }] }],
+    }
+  }
+
+  private formatCursorResponse(
+    direction: MessageCursorDirection,
+    limit: number,
+    rawItems: any[]
+  ): MessageCursorResponse {
+    const hasMore = rawItems.length > limit
+    const sliced = hasMore ? rawItems.slice(0, limit) : rawItems
+    const items = direction === MessageCursorDirection.older ? [...sliced].reverse() : sliced
+    const tail = direction === MessageCursorDirection.older ? sliced[sliced.length - 1] : sliced[sliced.length - 1]
+
+    return {
+      items,
+      meta: {
+        limit,
+        hasMore,
+        direction,
+        nextCursor: tail ? { time: tail.timestamp.toISOString(), id: tail.id } : null,
+      },
+    }
+  }
+
+  async findByConversationId(conversationId: string, query: MessageCursorQueryDto) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id: conversationId },
     })
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
 
-    const { skip, take, page, limit } = paginate(query)
+    const limit = this.normalizeLimit(query.limit, 30)
+    const direction = query.direction ?? MessageCursorDirection.older
+    const cursorTime = this.parseCursorTime(query.cursorTime)
+    const cursorCondition = this.buildCursorCondition(cursorTime, query.cursorId, direction)
 
-    const where: any = { conversationId }
-    if (query.search) {
-      where.content = { contains: query.search, mode: "insensitive" }
-    }
+    const where: Prisma.MessageWhereInput = { conversationId, ...(cursorCondition ?? {}) }
+    const orderBy: Prisma.MessageOrderByWithRelationInput[] =
+      direction === MessageCursorDirection.older
+        ? [{ timestamp: "desc" }, { id: "desc" }]
+        : [{ timestamp: "asc" }, { id: "asc" }]
 
-    const [items, total] = await Promise.all([
-      this.prisma.client.message.findMany({
-        where,
+    const rawItems = await this.prisma.client.message.findMany({
+      where,
+      include: MESSAGE_INCLUDE,
+      orderBy,
+      take: limit + 1,
+    })
+
+    return this.formatCursorResponse(direction, limit, rawItems)
+  }
+
+  async findAroundMessage(conversationId: string, messageId: string, before?: number, after?: number) {
+    const [conversation, anchor] = await Promise.all([
+      this.prisma.client.conversation.findUnique({ where: { id: conversationId } }),
+      this.prisma.client.message.findUnique({
+        where: { id: messageId },
         include: MESSAGE_INCLUDE,
-        orderBy: { timestamp: "desc" },
-        skip,
-        take,
       }),
-      this.prisma.client.message.count({ where }),
     ])
 
-    return paginatedResponse(items, total, page, limit)
+    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+    if (!anchor || anchor.conversationId !== conversationId) {
+      throw new NotFoundException("Không tìm thấy tin nhắn trong cuộc hội thoại")
+    }
+
+    const beforeLimit = this.normalizeLimit(before, 20)
+    const afterLimit = this.normalizeLimit(after, 20)
+
+    const olderCondition: Prisma.MessageWhereInput = {
+      OR: [
+        { timestamp: { lt: anchor.timestamp } },
+        { AND: [{ timestamp: anchor.timestamp }, { id: { lt: anchor.id } }] },
+      ],
+    }
+    const newerCondition: Prisma.MessageWhereInput = {
+      OR: [
+        { timestamp: { gt: anchor.timestamp } },
+        { AND: [{ timestamp: anchor.timestamp }, { id: { gt: anchor.id } }] },
+      ],
+    }
+
+    const [olderRaw, newer] = await Promise.all([
+      this.prisma.client.message.findMany({
+        where: { conversationId, ...olderCondition },
+        include: MESSAGE_INCLUDE,
+        orderBy: [{ timestamp: "desc" }, { id: "desc" }],
+        take: beforeLimit + 1,
+      }),
+      this.prisma.client.message.findMany({
+        where: { conversationId, ...newerCondition },
+        include: MESSAGE_INCLUDE,
+        orderBy: [{ timestamp: "asc" }, { id: "asc" }],
+        take: afterLimit + 1,
+      }),
+    ])
+
+    const hasMoreOlder = olderRaw.length > beforeLimit
+    const hasMoreNewer = newer.length > afterLimit
+
+    const olderSlice = hasMoreOlder ? olderRaw.slice(0, beforeLimit) : olderRaw
+    const newerSlice = hasMoreNewer ? newer.slice(0, afterLimit) : newer
+
+    const olderAsc = [...olderSlice].reverse()
+    const items = [...olderAsc, anchor, ...newerSlice]
+
+    const oldest = items[0] ?? null
+    const newest = items[items.length - 1] ?? null
+
+    return {
+      items,
+      meta: {
+        before: beforeLimit,
+        after: afterLimit,
+        hasMoreOlder,
+        hasMoreNewer,
+        olderCursor: oldest ? { time: oldest.timestamp.toISOString(), id: oldest.id } : null,
+        newerCursor: newest ? { time: newest.timestamp.toISOString(), id: newest.id } : null,
+      },
+    }
+  }
+
+  async searchInConversation(conversationId: string, query: MessageSearchQueryDto) {
+    const conversation = await this.prisma.client.conversation.findUnique({ where: { id: conversationId } })
+    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+
+    const keyword = query.q?.trim()
+    if (!keyword) {
+      return {
+        items: [],
+        meta: {
+          limit: this.normalizeLimit(query.limit, 20),
+          hasMore: false,
+          nextCursor: null,
+        },
+      }
+    }
+
+    const limit = this.normalizeLimit(query.limit, 20)
+    const cursorTime = this.parseCursorTime(query.cursorTime)
+    const cursorId = query.cursorId?.trim()
+
+    const cursorWhere =
+      cursorTime && cursorId
+        ? Prisma.sql`AND (m.timestamp < ${cursorTime} OR (m.timestamp = ${cursorTime} AND m.id < ${cursorId}))`
+        : Prisma.sql``
+
+    type SearchRow = {
+      id: string
+      conversationId: string
+      createdAt: Date
+      timestamp: Date
+      snippet: string | null
+    }
+
+    const rows = await this.prisma.client.$queryRaw<SearchRow[]>(Prisma.sql`
+      SELECT
+        m.id,
+        m.conversation_id AS "conversationId",
+        m.created_at AS "createdAt",
+        m.timestamp AS "timestamp",
+        COALESCE(m.content::text, '') AS snippet
+      FROM messages m
+      WHERE m.conversation_id = ${conversationId}
+        AND COALESCE(m.content::text, '') ILIKE ${`%${keyword}%`}
+        ${cursorWhere}
+      ORDER BY m.timestamp DESC, m.id DESC
+      LIMIT ${limit + 1}
+    `)
+
+    const hasMore = rows.length > limit
+    const items = hasMore ? rows.slice(0, limit) : rows
+    const tail = items[items.length - 1]
+
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        conversationId: row.conversationId,
+        createdAt: row.createdAt.toISOString(),
+        timestamp: row.timestamp.toISOString(),
+        snippet: row.snippet ?? "",
+        rank: 0,
+      })),
+      meta: {
+        limit,
+        hasMore,
+        nextCursor: tail ? { time: tail.timestamp.toISOString(), id: tail.id } : null,
+      },
+    }
   }
 
   async findById(id: string) {

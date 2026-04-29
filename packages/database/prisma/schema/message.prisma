@@ -24,6 +24,7 @@ model Message {
   quotedMessages  Message[]        @relation("QuoteMessage")
 
   @@index([conversationId], name: "conversation_id")
+  @@index([conversationId, timestamp(sort: Desc), id(sort: Desc)], name: "conversation_timestamp_id_desc")
   @@index([accountCustomerId], name: "message_account_customer_id")
   @@map("messages")
 }

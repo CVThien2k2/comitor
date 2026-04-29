@@ -146,7 +146,14 @@ export function ChatMessagesList({
             <Fragment key={`${group.startTime}-${groupIndex}`}>
               <FlowSeparator startTime={group.startTime} />
               {group.items.map((item) => {
-                return <MessageBubble key={item.message.id} message={item.message} showAvatar={item.showAvatar} />
+                return (
+                  <MessageBubble
+                    key={item.message.id}
+                    elementId={`message-${item.message.id}`}
+                    message={item.message}
+                    showAvatar={item.showAvatar}
+                  />
+                )
               })}
             </Fragment>
           ))}

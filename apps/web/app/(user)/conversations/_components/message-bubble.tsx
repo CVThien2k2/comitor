@@ -22,7 +22,15 @@ function getMessageTextContent(content: MessageItem["content"]): string {
 
 // ─── Message Bubble ─────────────────────────────────────
 
-export function MessageBubble({ message, showAvatar = true }: { message: MessageItem; showAvatar?: boolean }) {
+export function MessageBubble({
+  message,
+  showAvatar = true,
+  elementId,
+}: {
+  message: MessageItem
+  showAvatar?: boolean
+  elementId?: string
+}) {
   const isCustomer = message.senderType === "customer"
   const senderName = getSenderName(message)
   const avatarUrl = isCustomer ? message.accountCustomer?.avatarUrl : message.createdByUser?.avatarUrl
@@ -30,7 +38,10 @@ export function MessageBubble({ message, showAvatar = true }: { message: Message
   const hasText = !!contentText
 
   return (
-    <div className={cn("group/msg flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}>
+    <div
+      id={elementId}
+      className={cn("group/msg flex max-w-[85%] gap-2.5", isCustomer ? "self-start" : "flex-row-reverse self-end")}
+    >
       {showAvatar && isCustomer && (
         <div className="mt-1 shrink-0">
           <ConversationAvatar

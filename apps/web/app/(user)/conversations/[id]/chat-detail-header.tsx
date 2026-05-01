@@ -12,7 +12,6 @@ type ChatDetailHeaderProps = {
   conversation: ConversationItem
   showUserInfo: boolean
   onBack: () => void
-  onOpenSearch: () => void
   onToggleUserInfo: () => void
 }
 
@@ -20,7 +19,6 @@ export function ChatDetailHeader({
   conversation,
   showUserInfo,
   onBack,
-  onOpenSearch,
   onToggleUserInfo,
 }: ChatDetailHeaderProps) {
   const displayName = getConversationDisplayName(conversation)
@@ -59,15 +57,6 @@ export function ChatDetailHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={actionButtonClass}
-            onClick={onOpenSearch}
-            aria-label="Tìm kiếm tin nhắn"
-          >
-            <Icons.search className="size-4 md:size-[18px]" />
-          </Button>
           <Button
             variant="ghost"
             size="icon-sm"

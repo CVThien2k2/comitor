@@ -19,15 +19,6 @@ export function useConversations() {
       if (wasUnread) {
         decrementUnreadConversationsCount(1)
       }
-
-      void conversationsApi
-        .markAsRead(conversationId)
-        .catch(() => {})
-        .finally(() => {
-          setTimeout(() => {
-            markingConversationIds.delete(conversationId)
-          }, 800)
-        })
     },
     [decrementUnreadConversationsCount, markConversationAsRead]
   )

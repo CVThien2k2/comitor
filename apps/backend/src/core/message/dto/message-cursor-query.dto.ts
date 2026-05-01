@@ -1,12 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { Type } from "class-transformer"
-import { IsEnum, IsInt, IsOptional, IsString, Min } from "class-validator"
-
-export enum MessageCursorDirection {
-  older = "older",
-  newer = "newer",
-}
-
+import { IsInt, IsOptional, IsString, Min } from "class-validator"
+ 
 export class MessageCursorQueryDto {
   @ApiProperty({ example: 30, required: false, description: "Số lượng tin nhắn mỗi lần tải" })
   @Type(() => Number)
@@ -32,14 +27,4 @@ export class MessageCursorQueryDto {
   @IsString()
   @IsOptional()
   cursorId?: string
-
-  @ApiProperty({
-    example: MessageCursorDirection.older,
-    required: false,
-    enum: MessageCursorDirection,
-    description: "Hướng tải thêm tin nhắn",
-  })
-  @IsEnum(MessageCursorDirection)
-  @IsOptional()
-  direction?: MessageCursorDirection = MessageCursorDirection.older
 }

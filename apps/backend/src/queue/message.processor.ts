@@ -81,6 +81,26 @@ export class MessageProcessor extends WorkerHost {
         select: { id: true },
       })
       const isNewConversation = !existingConversation
+      let groupConversationInfo: GroupConversationInfo | null = null
+      if (isNewConversation && typeConversation === "group") {
+        try {
+          groupConversationInfo = await this.resolveGroupConversationInfo(
+            provider,
+            externalConversationId,
+            linkedAccount
+          )
+        } catch (error) {
+          this.logger.warn(
+            `[MessageProcessor] Không lấy được thông tin nhóm ${externalConversationId}, dùng fallback: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          )
+          groupConversationInfo = {
+            name: "Nhóm hội thoại",
+            avatarUrl: null,
+          }
+        }
+      }
       let realtimeConversation: any = null
 
       await this.prisma.client.$transaction(async (tx) => {
@@ -114,7 +134,10 @@ export class MessageProcessor extends WorkerHost {
             externalId: externalConversationId,
             type: typeConversation,
             ...(typeConversation === "group"
-              ? await this.resolveGroupConversationInfo(provider, externalConversationId, linkedAccount)
+              ? (groupConversationInfo ?? {
+                  name: "Nhóm hội thoại",
+                  avatarUrl: null,
+                })
               : {
                   name: accountCustomer?.name || "Khách hàng",
                   avatarUrl: accountCustomer?.avatarUrl ?? null,

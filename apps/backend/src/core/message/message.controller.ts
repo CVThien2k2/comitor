@@ -47,36 +47,6 @@ export class MessageController {
     return { message: "Lấy danh sách tin nhắn thành công", data }
   }
 
-  @ApiOperation({ summary: "Lấy danh sách tin nhắn chứa từ khóa theo cuộc hội thoại" })
-  @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
-  @Permissions(P.MESSAGE_READ)
-  @Get("conversation/:conversationId/search")
-  async searchInConversation(@Param("conversationId") conversationId: string, @Query() query: MessageSearchQueryDto) {
-    const data = await this.messageService.searchInConversation(conversationId, query)
-    return { message: "Tìm kiếm tin nhắn thành công", data }
-  }
-
-  @ApiOperation({ summary: "Lấy window tin nhắn xung quanh 1 message cụ thể" })
-  @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
-  @Permissions(P.MESSAGE_READ)
-  @Get("conversation/:conversationId/around/:messageId")
-  async findAroundMessage(
-    @Param("conversationId") conversationId: string,
-    @Param("messageId") messageId: string,
-    @Query("before") before?: string,
-    @Query("after") after?: string
-  ) {
-    const data = await this.messageService.findAroundMessage(
-      conversationId,
-      messageId,
-      before ? Number(before) : undefined,
-      after ? Number(after) : undefined
-    )
-    return { message: "Lấy tin nhắn theo anchor thành công", data }
-  }
-
   @ApiOperation({ summary: "Lấy thông tin tin nhắn theo ID" })
   @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
   @ApiNotFoundResponse({ type: NotFoundEntity })

@@ -133,7 +133,7 @@ export function ChatMessagesList({
       {(isFetchingNextPage || isLoading) && <MessageListSkeleton count={10} />}
 
       {isLoading && messageList.length === 0 ? (
-        <MessageListSkeleton count={20} />
+        <MessageListSkeleton count={12} />
       ) : messageList.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
           <Icons.messageSquare className="mb-3 size-10 opacity-40" />

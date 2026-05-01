@@ -28,7 +28,7 @@ import { MessageModule } from "../core/message/message.module"
     BullModule.registerQueue({
       name: QUEUE_NAMES.INCOMING_MESSAGE,
       defaultJobOptions: {
-        attempts: 1,
+        attempts: 2,
         backoff: { type: "exponential", delay: 3000 },
         removeOnComplete: true,
         removeOnFail: true,

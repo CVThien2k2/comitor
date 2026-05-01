@@ -9,45 +9,83 @@ import { useMemo } from "react"
 
 const ATTACHMENT_FALLBACK_TEXT = "[Tệp đính kèm]"
 
-function getMessageTextContent(content: unknown): string {
-  if (!content) return ""
-  if (typeof content === "string") return content.trim()
-
-  if (Array.isArray(content)) {
-    const textParts = content
-      .map((part) => {
-        if (!part || typeof part !== "object") return ""
-        const maybeText = (part as { text?: unknown }).text
-        return typeof maybeText === "string" ? maybeText.trim() : ""
-      })
-      .filter(Boolean)
-    return textParts.join(" ").trim()
-  }
-
-  if (typeof content === "object") {
-    const maybeText = (content as { text?: unknown }).text
-    return typeof maybeText === "string" ? maybeText.trim() : ""
-  }
-
-  return ""
-}
-
-function getConversationPreview(lastMsg: MessageItem | undefined) {
+function getLastMessagePreview(lastMsg: MessageItem | undefined, currentUserId?: string): string {
   if (!lastMsg) return ""
-  return getMessageTextContent(lastMsg.content) || ATTACHMENT_FALLBACK_TEXT
-}
 
-function getSenderPrefix(lastMsg: MessageItem, currentUserId?: string) {
+  // Extract text content
+  let text = ""
+  const { content, type } = lastMsg
+
+  switch (type) {
+    case "image":
+      text = "[Hình ảnh]"
+      break
+    case "video":
+      text = "[Video]"
+      break
+    case "audio":
+      text = "[Âm thanh]"
+      break
+    case "file":
+      text = "[Tệp đính kèm]"
+      break
+    case "sticker":
+      text = "[Nhãn dán]"
+      break
+    case "location":
+      text = "[Vị trí]"
+      break
+    case "gif":
+      text = "[GIF]"
+      break
+    case "template":
+      text = "[Mẫu tin nhắn]"
+      break
+    case "recommended":
+      if (typeof content === "object" && content !== null) {
+        if (Array.isArray(content)) {
+          text = content
+            .map((p) => p?.description)
+            .filter(Boolean)
+            .join(" ")
+            .trim() || "[Đề xuất]"
+        } else {
+          const maybeDesc = (content as { description?: unknown }).description
+          text = typeof maybeDesc === "string" ? maybeDesc.trim() : "[Đề xuất]"
+        }
+      } else {
+        text = "[Đề xuất]"
+      }
+      break
+    default:
+      if (typeof content === "string") {
+        text = content.trim()
+      } else if (Array.isArray(content)) {
+        text = content
+          .map((part) => {
+            if (!part || typeof part !== "object") return ""
+            const maybeText = (part as { text?: unknown }).text
+            return typeof maybeText === "string" ? maybeText.trim() : ""
+          })
+          .filter(Boolean)
+          .join(" ")
+          .trim()
+      } else if (content && typeof content === "object") {
+        const maybeText = (content as { text?: unknown }).text
+        text = typeof maybeText === "string" ? maybeText.trim() : ""
+      }
+  }
+
+  // Build sender prefix
+  let prefix = ""
   if (lastMsg.senderType === "agent") {
     const senderId = lastMsg.createdBy ?? lastMsg.createdByUser?.id
-    return senderId && senderId === currentUserId ? "Bạn: " : `${lastMsg.createdByUser?.name ?? "Agent"}: `
+    prefix = senderId === currentUserId ? "Bạn: " : `${lastMsg.createdByUser?.name ?? "Agent"}: `
+  } else if (lastMsg.senderType === "customer") {
+    prefix = `${lastMsg.accountCustomer?.name ?? "Khách hàng"}: `
   }
 
-  if (lastMsg.senderType === "customer") {
-    return `${lastMsg.accountCustomer?.name ?? "Khách hàng"}: `
-  }
-
-  return ""
+  return `${prefix}${text || ATTACHMENT_FALLBACK_TEXT}`
 }
 
 export function ConversationItem({
@@ -66,7 +104,7 @@ export function ConversationItem({
 
   const displayName = getConversationDisplayName(conversation)
   const lastMsg = conversation.messages?.[0]
-  const previewText = useMemo(() => getConversationPreview(lastMsg), [lastMsg])
+  const previewText = useMemo(() => getLastMessagePreview(lastMsg, currentUserId), [lastMsg, currentUserId])
 
   const isRecentlyActive = useMemo(() => {
     if (!lastMsg) return false
@@ -113,7 +151,6 @@ export function ConversationItem({
 
         {lastMsg && (
           <p className={cn("truncate text-sm", isUnread ? "font-medium text-foreground/90" : "text-muted-foreground")}>
-            {getSenderPrefix(lastMsg, currentUserId)}
             {previewText}
           </p>
         )}

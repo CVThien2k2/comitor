@@ -6,3 +6,8 @@ export type MessageDeliveryEvent = {
   status: MessageStatus
   errorMessage?: string
 }
+
+export type UserStatusEvent = {
+  userId: string
+  timestamp: string
+}

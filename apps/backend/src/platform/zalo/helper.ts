@@ -108,7 +108,7 @@ const normalizeDateOfBirth = (value: unknown): string | undefined => {
     }
   }
 
-  const parts = raw.split(/[\/\-.]/).map((part) => part.trim())
+  const parts = raw.split(/[/\-.]/).map((part) => part.trim())
   if (parts.length === 3 && parts.every((part) => /^\d+$/.test(part))) {
     const [a, b, c] = parts.map(Number)
     if (parts[0].length === 4) return toIsoDate(a, b, c)
@@ -200,7 +200,7 @@ export const mapMessage = (message: any, linkedAccountId: string): MessagePlatfo
       - TH1: Tin nhắn không phải của mình gửi => người khác gửi tới tài khoản zalo mình => uidFrom (Người gửi tin nhắn lưu cho hồ sơ khách hàng), idTo (Tài khoản zalo liên kết nhận tin nhắn)
       - TH2: Tin nhắn của mình gửi => Mình gủi đến tài khoản khách hàng => uidFrom là của linkAccount, idTo là tài khoản của khách hàng
   */
-  const externalConversationId = !isSelf ? (isGroup ? data.idTo : data.uidFrom) : data.uidTo
+  const externalConversationId = !isSelf ? (isGroup ? data.idTo : data.uidFrom) : data.idTo
   const accountCustomerId = isSelf ? (isGroup ? null : data.idTo) : data.uidFrom
 
   if (!externalConversationId || !data.msgId) return null

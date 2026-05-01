@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
-import { EVENTS } from "../../websocket/socket-events"
+import { EMIT_EVENTS } from "../../events/emit-events"
 import type { MessageCreatedEvent } from "../../websocket/socket-event-payloads"
 import { PrismaService, type TransactionClient } from "../../database/prisma.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
@@ -9,7 +9,7 @@ import { MessageSearchQueryDto } from "./dto/message-search-query.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
 import { MessageSender, MessageStatus, Prisma } from "@workspace/database"
-import { MESSAGE_INCLUDE } from "./message.include"
+import { MESSAGE_INCLUDE } from "./include"
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -444,7 +444,7 @@ export class MessageService {
 
     // emit events
     messages.forEach((msg) => {
-      this.eventEmitter.emit(EVENTS.MESSAGE_CREATED, {
+      this.eventEmitter.emit(EMIT_EVENTS.MESSAGE_OUTBOUND_CREATED, {
         message: msg,
         linkedAccount: conversation.linkedAccount,
       } satisfies MessageCreatedEvent)

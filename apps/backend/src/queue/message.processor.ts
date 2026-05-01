@@ -7,6 +7,9 @@ import { PrismaService } from "src/database/prisma.service"
 import { AccountCustomer, type LinkAccount } from "@workspace/database"
 import { AccountCustomerService } from "src/core/account-customer/account-customer.service"
 import { ZaloInstanceRegistry } from "src/platform/zalo/zalo-instance.registry"
+import { CONVERSATION_INCLUDE } from "src/core/message/include"
+import { EVENTS } from "src/websocket/socket-events"
+import { SocketGateway } from "src/websocket/socket.gateway"
 
 type GroupConversationInfo = {
   name: string
@@ -31,7 +34,8 @@ export class MessageProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly accountCustomerService: AccountCustomerService,
-    private readonly zaloInstanceRegistry: ZaloInstanceRegistry
+    private readonly zaloInstanceRegistry: ZaloInstanceRegistry,
+    private readonly socketGateway: SocketGateway
   ) {
     super()
   }
@@ -68,6 +72,16 @@ export class MessageProcessor extends WorkerHost {
 
       const ts = new Date(timestamp)
       const messageTimestamp = Number.isNaN(ts.getTime()) ? new Date() : ts
+      const conversationIdentity = {
+        linkedAccountId: linkedAccount.id,
+        externalId: externalConversationId,
+      } as const
+      const existingConversation = await this.prisma.client.conversation.findUnique({
+        where: { linked_account_external_id: conversationIdentity },
+        select: { id: true },
+      })
+      const isNewConversation = !existingConversation
+      let realtimeConversation: any = null
 
       await this.prisma.client.$transaction(async (tx) => {
         const isCustomerMessage = senderType === "customer"
@@ -93,10 +107,7 @@ export class MessageProcessor extends WorkerHost {
 
         const conversation = await tx.conversation.upsert({
           where: {
-            linked_account_external_id: {
-              linkedAccountId: linkedAccount.id,
-              externalId: externalConversationId,
-            },
+            linked_account_external_id: conversationIdentity,
           },
           create: {
             linkedAccountId: linkedAccount.id,
@@ -120,8 +131,9 @@ export class MessageProcessor extends WorkerHost {
             lastActivityAt: messageTimestamp,
             messages: { create: messageCreateData },
           },
-          select: { id: true },
+          include: CONVERSATION_INCLUDE,
         })
+        realtimeConversation = conversation
 
         if (accountCustomer) {
           await tx.conversationCustomer.createMany({
@@ -135,6 +147,17 @@ export class MessageProcessor extends WorkerHost {
           data: { status: "pending" },
         })
       })
+
+      if (!realtimeConversation) return
+
+      if (isNewConversation) {
+        this.socketGateway.broadcast(EVENTS.CONVERSATION_CREATED, realtimeConversation)
+        return
+      }
+
+      const message = realtimeConversation.messages?.at(0)
+      if (!message) return
+      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, message)
     } catch (error) {
       this.logger.error(
         `[MessageProcessor][process] ${error instanceof Error ? error.message : String(error)} - ${JSON.stringify(job.data)}`

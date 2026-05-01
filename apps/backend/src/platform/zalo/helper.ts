@@ -183,15 +183,27 @@ export const mapMessage = (message: any, linkedAccountId: string): MessagePlatfo
   const type = mapMessageType(message?.data?.msgType)
   const senderType = mapSenderType(message.isSelf)
   const typeConversation = mapConversationType(message.type)
+
+  const isSelf = message.isSelf
+  const isGroup = typeConversation === ConversationType.group
   const data = message.data
   if (!type || !data) return null
   const content = mapContentMessage(data, type)
   if (!content.length) return null
-  const externalConversationId = message.isSelf ? data.idTo : data.uidFrom
-  const accountCustomerId =
-    message.isSelf && typeConversation === ConversationType.group ? null : externalConversationId
-  if (!externalConversationId || !data.msgId) return null
 
+  /* 
+  Id của cuộc trò chuyện:
+    + Nếu là nhóm:
+      - TH1: Tin nhắn không phải của mình gửi => người khác gửi tới nhóm zalo liên kết đang ở => idTo (Nhóm nhận tin nhắn), uidFrom (Người gửi tin nhắn lưu cho hồ sơ khách hàng)
+      - TH2: Tin nhắn của mình gửi => Mình gủi đến nhóm => uidFrom là của linkAccount, idTo là nhóm zalo liên kết đang ở, không có idCustomer
+    + Nếu là cá nhân: 
+      - TH1: Tin nhắn không phải của mình gửi => người khác gửi tới tài khoản zalo mình => uidFrom (Người gửi tin nhắn lưu cho hồ sơ khách hàng), idTo (Tài khoản zalo liên kết nhận tin nhắn)
+      - TH2: Tin nhắn của mình gửi => Mình gủi đến tài khoản khách hàng => uidFrom là của linkAccount, idTo là tài khoản của khách hàng
+  */
+  const externalConversationId = !isSelf ? (isGroup ? data.idTo : data.uidFrom) : data.uidTo
+  const accountCustomerId = isSelf ? (isGroup ? null : data.idTo) : data.uidFrom
+
+  if (!externalConversationId || !data.msgId) return null
   return {
     provider: "zalo_personal" as ChannelType,
     typeConversation,

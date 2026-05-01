@@ -1,9 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common"
 import { OnEvent } from "@nestjs/event-emitter"
 import { UsersService } from "../core/users/users.service"
-import { SocketGateway } from "../websocket/socket.gateway"
-import { EVENTS } from "../websocket/socket-events"
 import type { UserStatusEvent } from "../websocket/socket-event-payloads"
+import { EVENTS } from "../websocket/socket-events"
+import { SocketGateway } from "../websocket/socket.gateway"
+import { EMIT_EVENTS } from "./emit-events"
 
 @Injectable()
 export class UserStatusListener {
@@ -14,7 +15,7 @@ export class UserStatusListener {
     private readonly socketGateway: SocketGateway
   ) {}
 
-  @OnEvent(EVENTS.USER_ONLINE)
+  @OnEvent(EMIT_EVENTS.USER_ONLINE)
   async handleUserOnline(event: UserStatusEvent) {
     try {
       await this.usersService.setOnlineStatus(event.userId, true)
@@ -27,7 +28,7 @@ export class UserStatusListener {
     }
   }
 
-  @OnEvent(EVENTS.USER_OFFLINE)
+  @OnEvent(EMIT_EVENTS.USER_OFFLINE)
   async handleUserOffline(event: UserStatusEvent) {
     try {
       await this.usersService.setOnlineStatus(event.userId, false)

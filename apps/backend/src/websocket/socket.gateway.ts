@@ -10,11 +10,12 @@ import {
   WebSocketServer,
 } from "@nestjs/websockets"
 import { createAdapter } from "@socket.io/redis-adapter"
-import { EVENTS, type SocketEvent } from "./socket-events"
 import Redis from "ioredis"
 import { Namespace, Socket } from "socket.io"
 import { WsExceptionFilter } from "../common/filters/ws-exception.filter"
 import { RoleService } from "../core/role/role.service"
+import { EMIT_EVENTS } from "../events/emit-events"
+import { type SocketEvent } from "./socket-events"
 
 @UseFilters(new WsExceptionFilter())
 @WebSocketGateway({
@@ -106,7 +107,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
       const room = this.server.adapter?.rooms?.get(userRoom)
       if (room && room.size === 1) {
-        this.eventEmitter.emit(EVENTS.USER_ONLINE, { userId })
+        this.eventEmitter.emit(EMIT_EVENTS.USER_ONLINE, { userId })
       }
 
       client.use(([event, ...args], next) => {
@@ -130,7 +131,7 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     setTimeout(() => {
       const room = adapter?.rooms?.get(userRoom)
       if (!room || room.size === 0) {
-        this.eventEmitter.emit(EVENTS.USER_OFFLINE, { userId })
+        this.eventEmitter.emit(EMIT_EVENTS.USER_OFFLINE, { userId })
       }
     }, 5000)
 

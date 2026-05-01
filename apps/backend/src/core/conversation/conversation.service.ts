@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../database/prisma.service"
 import type { ConversationQueryDto } from "./dto/conversation-query.dto"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
+import { CONVERSATION_INCLUDE } from "../message/include"
 
 @Injectable()
 export class ConversationService {
@@ -35,23 +36,7 @@ export class ConversationService {
     const [items, total] = await Promise.all([
       this.prisma.client.conversation.findMany({
         where,
-        include: {
-          linkedAccount: { select: { id: true, provider: true, displayName: true } },
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            include: {
-              createdByUser: { select: { id: true, name: true, avatarUrl: true } },
-              accountCustomer: {
-                select: {
-                  id: true,
-                  avatarUrl: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
+        include: CONVERSATION_INCLUDE,
         orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }],
         take: limit + 1,
       }),
@@ -82,23 +67,7 @@ export class ConversationService {
   async findById(id: string) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id },
-      include: {
-        linkedAccount: { select: { id: true, provider: true, displayName: true } },
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          include: {
-            createdByUser: { select: { id: true, name: true, avatarUrl: true } },
-            accountCustomer: {
-              select: {
-                id: true,
-                avatarUrl: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
+      include: CONVERSATION_INCLUDE,
     })
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")

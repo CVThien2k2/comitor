@@ -12,8 +12,6 @@ export class WebhookService {
   async handleZaloOAWebhook(payload: any) {
     try {
       const message = mapZaloOaWebhook(payload)
-      const id = "2994357122857097520"
-      if (message?.linkedAccountId !== id && message?.accountCustomerId !== id) return
       if (!message) throw new Error()
       await this.queueService.addIncomingMessage(message)
     } catch {

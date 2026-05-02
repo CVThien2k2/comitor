@@ -53,7 +53,7 @@ const mapSenderType = (isSelf: boolean): MessageSender => (isSelf ? MessageSende
 const mapConversationType = (type: number): ConversationType =>
   type === 1 ? ConversationType.group : ConversationType.personal // 1: Group, 0: Personal
 
-const parseJson = (value: unknown): any => {
+const parseJson = (value: unknown): unknown => {
   if (typeof value !== "string") return null
   try {
     return JSON.parse(value)
@@ -63,6 +63,18 @@ const parseJson = (value: unknown): any => {
 }
 
 const firstDefined = (...values: any[]) => values.find((value) => value !== undefined && value !== null && value !== "")
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+const hasKeys = (value: Record<string, unknown>) => Object.keys(value).length > 0
+
+const parseMessageParams = (rawParams: unknown): Record<string, unknown> | undefined => {
+  if (isObject(rawParams)) return hasKeys(rawParams) ? rawParams : undefined
+  if (typeof rawParams !== "string") return undefined
+
+  const parsed = parseJson(rawParams)
+  if (!isObject(parsed) || !hasKeys(parsed)) return undefined
+  return parsed
+}
 
 const normalizeDateOfBirth = (value: unknown): string | undefined => {
   if (value === null || value === undefined || value === "") return undefined
@@ -131,20 +143,21 @@ const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
 
   if (!rawContent || typeof rawContent !== "object") return []
 
-  const params = parseJson(rawContent.params) ?? rawContent.params ?? {}
-  const location = params?.location ?? params?.loc ?? rawContent.location ?? rawContent.coordinates
+  const params = parseMessageParams(rawContent.params)
+  const location = firstDefined(params?.location, params?.loc, rawContent.location, rawContent.coordinates)
+  const locationObject = isObject(location) ? location : undefined
   const latitude = firstDefined(
-    location?.latitude,
-    location?.lat,
+    locationObject?.latitude,
+    locationObject?.lat,
     params?.latitude,
     params?.lat,
     rawContent.latitude,
     rawContent.lat
   )
   const longitude = firstDefined(
-    location?.longitude,
-    location?.lng,
-    location?.long,
+    locationObject?.longitude,
+    locationObject?.lng,
+    locationObject?.long,
     params?.longitude,
     params?.lng,
     params?.long,
@@ -153,23 +166,57 @@ const mapContentMessage = (data: any, type: MessageType): ContentMessage[] => {
     rawContent.long
   )
 
+  const defaultUrl = firstDefined(
+    rawContent.href,
+    rawContent.url,
+    params?.href,
+    params?.url,
+    params?.oriUrl,
+    params?.normalUrl
+  )
+  const defaultThumb = firstDefined(
+    rawContent.thumb,
+    rawContent.thumbnail,
+    rawContent.thumbUrl,
+    params?.thumb,
+    params?.thumbnail,
+    params?.thumbUrl
+  )
+
   const content: ContentMessage = {
     ...base,
     type: rawContent.type ?? data?.msgType,
     text: rawContent.title ?? params?.title ?? params?.text ?? params?.msg,
-    url: firstDefined(rawContent.href, rawContent.url, params?.href, params?.url, params?.oriUrl, params?.normalUrl),
-    thumbnailUrl: firstDefined(
-      rawContent.thumb,
-      rawContent.thumbnail,
-      rawContent.thumbUrl,
-      params?.thumb,
-      params?.thumbnail,
-      params?.thumbUrl
-    ),
+    url:
+      type === MessageType.image
+        ? firstDefined(
+            params?.hd,
+            params?.href,
+            params?.url,
+            params?.oriUrl,
+            params?.normalUrl,
+            rawContent.href,
+            rawContent.url
+          )
+        : type === MessageType.video
+          ? firstDefined(rawContent.href, rawContent.url, params?.href, params?.url, params?.oriUrl, params?.normalUrl)
+          : defaultUrl,
+    thumbnailUrl:
+      type === MessageType.video
+        ? firstDefined(
+            params?.thumb,
+            params?.thumbnail,
+            params?.thumbUrl,
+            rawContent.thumb,
+            rawContent.thumbnail,
+            rawContent.thumbUrl
+          )
+        : defaultThumb,
     name: firstDefined(rawContent.title, rawContent.name, params?.fileName, params?.name),
     description: firstDefined(rawContent.description, params?.description, params?.desc),
     size: firstDefined(rawContent.size, params?.size, params?.fileSize),
     stickerId: firstDefined(rawContent.id, rawContent.stickerId, params?.id, params?.stickerId),
+    params,
     coordinates:
       type === MessageType.location && latitude !== undefined && longitude !== undefined
         ? { latitude: String(latitude), longitude: String(longitude) }

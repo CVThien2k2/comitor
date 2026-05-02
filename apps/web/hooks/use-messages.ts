@@ -11,7 +11,7 @@ export function useSendConversationMessage(conversationId: string) {
       if (!content.trim() || !conversationId) return
 
       // Store đã tối giản, bỏ optimistic message/update status trong client store.
-      await messagesApi.create({ conversationId, content })
+      // await messagesApi.create({ conversationId, content })
     },
     [conversationId]
   )
@@ -28,19 +28,19 @@ export function useSendConversationMessage(conversationId: string) {
             const upload = uploadResults[index]!
             const isImage = file.type.startsWith("image/")
 
-            await messagesApi.create({
-              conversationId,
-              attachments: [
-                {
-                  fileName: file.name,
-                  fileType: isImage ? "image" : file.type,
-                  fileUrl: upload.url,
-                  thumbnailUrl: upload.url,
-                  fileMimeType: file.type,
-                  key: upload.key,
-                },
-              ],
-            })
+            // await messagesApi.create({
+            //   conversationId,
+            //   attachments: [
+            //     {
+            //       fileName: file.name,
+            //       fileType: isImage ? "image" : file.type,
+            //       fileUrl: upload.url,
+            //       thumbnailUrl: upload.url,
+            //       fileMimeType: file.type,
+            //       key: upload.key,
+            //     },
+            //   ],
+            // })
           })
         )
 

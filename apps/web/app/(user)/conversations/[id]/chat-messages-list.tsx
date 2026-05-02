@@ -17,6 +17,7 @@ type ChatMessagesListProps = {
   isFetchingNextPage: boolean
   messageList: MessageItem[]
   onScroll: () => void
+  onMediaContentReady?: () => void
   scrollContainerRef: RefObject<HTMLDivElement | null>
   messagesEndRef: RefObject<HTMLDivElement | null>
 }
@@ -84,6 +85,7 @@ export function ChatMessagesList({
   isFetchingNextPage,
   messageList,
   onScroll,
+  onMediaContentReady,
   scrollContainerRef,
   messagesEndRef,
 }: ChatMessagesListProps) {
@@ -128,6 +130,16 @@ export function ChatMessagesList({
     <div
       ref={scrollContainerRef}
       onScroll={onScroll}
+      onLoadCapture={(event) => {
+        if (!onMediaContentReady) return
+        const target = event.target as HTMLElement | null
+        if (target?.tagName === "IMG") onMediaContentReady()
+      }}
+      onLoadedMetadataCapture={(event) => {
+        if (!onMediaContentReady) return
+        const target = event.target as HTMLElement | null
+        if (target?.tagName === "VIDEO") onMediaContentReady()
+      }}
       className="flex-1 overflow-y-auto bg-background px-2 py-3 sm:px-3 sm:py-4 md:px-4"
     >
       {(isFetchingNextPage || isLoading) && <MessageListSkeleton count={10} />}

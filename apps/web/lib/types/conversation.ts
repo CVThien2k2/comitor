@@ -25,6 +25,9 @@ export type ContentMessage = {
   size?: number | string
   stickerId?: string
   coordinates?: Coordinates
+  /** Payload Zalo (vd. height, width, hd, tracking) khi nền tảng gửi kèm. */
+  params?: Record<string, unknown>
+  actions?: string
 }
 export interface AccountCustomerItem {
   id: string

@@ -45,12 +45,16 @@ export type ContentMessage = {
 
   url?: string // Url của file nếu có
   thumbnailUrl?: string // Thumbnail của file nếu có
+
   name?: string // Tên của file nếu có
   description?: string // Mô tả của file nếu có
   size?: number | string // Kích thước của file nếu có
 
   stickerId?: string // ID của sticker nếu có
   coordinates?: Coordinates // Vị trí của tin nhắn nếu có
+
+  params?: Record<string, unknown> // Tham số của tin nhắn nếu có
+  actions?: string // Hành động của tin nhắn nếu có
 }
 
 type Coordinates = {

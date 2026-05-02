@@ -13,6 +13,7 @@ import { ChatMessagesList } from "./chat-messages-list"
 
 // Khi scroll gần đỉnh container thì nạp thêm page cũ.
 const TOP_FETCH_THRESHOLD_PX = 500
+const BOTTOM_STICKY_THRESHOLD_PX = 140
 
 type ChatDetailMessagesProps = {
   conversation: ConversationItem
@@ -35,6 +36,7 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
   const prevConversationIdRef = useRef("")
   const shouldScrollToBottomRef = useRef(false)
   const shouldKeepScrollPositionRef = useRef(false)
+  const isUserNearBottomRef = useRef(true)
 
   // Seed messages lấy từ conversation detail để có dữ liệu tức thì trước khi query messages trả về.
   const seedMessages = useMemo(() => conversation.messages ?? [], [conversation.messages])
@@ -86,6 +88,7 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
       prevScrollHeightRef.current = 0
       prevMessageCountRef.current = 0
       shouldKeepScrollPositionRef.current = false
+      isUserNearBottomRef.current = true
     }
 
     const el = scrollContainerRef.current
@@ -109,6 +112,7 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
       shouldScrollToBottomRef.current = false
     }
 
+    isUserNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_STICKY_THRESHOLD_PX
     prevMessageCountRef.current = messageList.length
   }, [conversationId, messageList, isLoading, seedMessages.length])
 
@@ -116,6 +120,7 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
     const el = scrollContainerRef.current
     if (!el) return
 
+    isUserNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_STICKY_THRESHOLD_PX
     if (!hasNextPage || isFetchingNextPage) return
     if (el.scrollTop < TOP_FETCH_THRESHOLD_PX) {
       prevScrollHeightRef.current = el.scrollHeight
@@ -126,6 +131,17 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
 
   const requestScrollToBottom = useCallback(() => {
     shouldScrollToBottomRef.current = true
+  }, [])
+
+  const handleMediaContentReady = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+
+    const isNearBottomNow = el.scrollHeight - el.scrollTop - el.clientHeight < BOTTOM_STICKY_THRESHOLD_PX
+    if (isNearBottomNow || isUserNearBottomRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
+      isUserNearBottomRef.current = true
+    }
   }, [])
 
   const handleBack = useCallback(() => router.push(ROUTES.conversations.path), [router])
@@ -143,6 +159,7 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
         isFetchingNextPage={isFetchingMore}
         messageList={messageList}
         onScroll={handleScroll}
+        onMediaContentReady={handleMediaContentReady}
         scrollContainerRef={scrollContainerRef}
         messagesEndRef={messagesEndRef}
       />

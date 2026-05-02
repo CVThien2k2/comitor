@@ -117,12 +117,14 @@ export class MessageProcessor extends WorkerHost {
 
         const messageCreateData = {
           senderType,
-          accountCustomerId: senderType === "customer" ? accountCustomer?.id : null,
           externalId: externalMessageId,
           timestamp: messageTimestamp,
           type,
           content,
           status: "success" as const,
+          ...(senderType === "customer" && accountCustomer
+            ? { accountCustomer: { connect: { id: accountCustomer.id } } }
+            : {}),
         }
 
         const conversation = await tx.conversation.upsert({
@@ -146,13 +148,13 @@ export class MessageProcessor extends WorkerHost {
             isUnread: isCustomerMessage,
             countUnreadMessages: isCustomerMessage ? 1 : 0,
             lastActivityAt: messageTimestamp,
-            messages: { create: messageCreateData },
+            messages: { create: messageCreateData as any },
           },
           update: {
             isUnread: isCustomerMessage,
             countUnreadMessages: isCustomerMessage ? { increment: 1 } : 0,
             lastActivityAt: messageTimestamp,
-            messages: { create: messageCreateData },
+            messages: { create: messageCreateData as any },
           },
           include: CONVERSATION_INCLUDE,
         })

@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,8 +13,12 @@ import {
   BreadcrumbSeparator,
 } from "@workspace/ui/components/breadcrumb"
 import { Button } from "@workspace/ui/components/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@workspace/ui/components/dropdown-menu"
+import { conversations as conversationsApi } from "@/api/conversations"
 import { Icons } from "@/components/global/icons"
 import { getBreadcrumbItems } from "@/lib/app-navigation"
+import { getConversationDisplayName } from "@/lib/helper"
+import { useChatStore } from "@/stores/chat-store"
 
 interface AppHeaderProps {
   isSidebarOpen: boolean
@@ -24,7 +29,29 @@ export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
   const pathname = usePathname()
   const isOpen = isSidebarOpen
   const Icon = isOpen ? Icons.panelLeftClose : Icons.panelLeft
-  const breadcrumbItems = getBreadcrumbItems(pathname)
+  const conversationId = React.useMemo(() => {
+    const match = pathname.match(/^\/conversations\/([^/]+)$/)
+    return match?.[1] ?? null
+  }, [pathname])
+  const conversationFromStore = useChatStore((s) =>
+    conversationId ? s.conversations.find((conversation) => conversation.id === conversationId) ?? null : null
+  )
+  const { data: conversationResponse } = useQuery({
+    queryKey: ["conversations", "detail", conversationId],
+    queryFn: () => conversationsApi.getById(conversationId!),
+    enabled: !!conversationId && !conversationFromStore,
+  })
+  const conversation = conversationFromStore ?? conversationResponse?.data ?? null
+  const breadcrumbItems = React.useMemo(() => {
+    const items = getBreadcrumbItems(pathname)
+    if (!conversationId || !conversation) return items
+
+    const displayName = getConversationDisplayName(conversation)
+    const lastIndex = items.length - 1
+    if (lastIndex < 0) return items
+
+    return items.map((item, index) => (index === lastIndex ? { ...item, label: displayName } : item))
+  }, [conversation, conversationId, pathname])
 
   return (
     <header className="flex h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-sm">
@@ -64,6 +91,26 @@ export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
           })}
         </BreadcrumbList>
       </Breadcrumb>
+
+      <div className="ml-auto shrink-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Thông báo"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Icons.bell className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72 p-3">
+            <DropdownMenuLabel className="px-0 pb-1">Thông báo</DropdownMenuLabel>
+            <p className="text-sm text-muted-foreground">Chưa có thông báo</p>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </header>
   )
 }

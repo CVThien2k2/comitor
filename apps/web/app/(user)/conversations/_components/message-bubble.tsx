@@ -17,12 +17,6 @@ type MessagePart = {
   params?: Record<string, unknown>
 }
 
-const IMAGE_FALLBACK_SIZE = 220
-const IMAGE_MIN_WIDTH = 160
-const IMAGE_MIN_HEIGHT = 120
-const IMAGE_MAX_WIDTH = 320
-const IMAGE_MAX_HEIGHT = 380
-
 const VIDEO_FALLBACK_WIDTH = 360
 const VIDEO_FALLBACK_HEIGHT = 202
 const VIDEO_MIN_WIDTH = 260
@@ -30,7 +24,8 @@ const VIDEO_MIN_HEIGHT = 146
 const VIDEO_MAX_WIDTH = 440
 const VIDEO_MAX_HEIGHT = 560
 
-const IMAGE_BOX_CLASS = "relative block overflow-hidden rounded-lg bg-muted/20 max-w-[min(72vw,22rem)]"
+const IMAGE_MAX_WIDTH_CLASS = "max-w-[min(72vw,22rem)]"
+const IMAGE_MAX_HEIGHT_CLASS = "max-h-[380px]"
 const VIDEO_BOX_CLASS = "relative block overflow-hidden rounded-lg bg-muted/20 max-w-[min(78vw,28rem)]"
 
 function getMessageParts(content: MessageItem["content"]): MessagePart[] {
@@ -117,32 +112,6 @@ function getMediaBoxStyle(size: { width: number; height: number }) {
     width: `${size.width}px`,
     aspectRatio: `${size.width} / ${size.height}`,
   } as const
-}
-
-function getImageDisplaySize(content: MessageItem["content"]): { width: number; height: number } {
-  const parts = getMessageParts(content)
-  for (const part of parts) {
-    const params = part?.params
-    if (!params) continue
-
-    const width = getNumberValue(params.width) ?? getNumberValue(params.thumb_width)
-    const height = getNumberValue(params.height) ?? getNumberValue(params.thumb_height)
-    if (!width || !height) continue
-
-    return fitMediaSize(width, height, {
-      minWidth: IMAGE_MIN_WIDTH,
-      minHeight: IMAGE_MIN_HEIGHT,
-      maxWidth: IMAGE_MAX_WIDTH,
-      maxHeight: IMAGE_MAX_HEIGHT,
-    })
-  }
-
-  return fitMediaSize(IMAGE_FALLBACK_SIZE, IMAGE_FALLBACK_SIZE, {
-    minWidth: IMAGE_MIN_WIDTH,
-    minHeight: IMAGE_MIN_HEIGHT,
-    maxWidth: IMAGE_MAX_WIDTH,
-    maxHeight: IMAGE_MAX_HEIGHT,
-  })
 }
 
 function getVideoDisplaySize(content: MessageItem["content"]): { width: number; height: number } {
@@ -237,13 +206,20 @@ function TextMessageContent({ message, isCustomer }: MessageContentProps) {
 function ImageMessageContent({ message, isCustomer }: MessageContentProps) {
   const url = getPrimaryUrl(message.content)
   if (!url) return <TextMessageContent message={message} isCustomer={isCustomer} />
-  const size = getImageDisplaySize(message.content)
 
   return (
-    <a href={url} target="_blank" rel="noreferrer" className="block">
-      <span className={IMAGE_BOX_CLASS} style={getMediaBoxStyle(size)}>
-        <Image src={url} alt="Image attachment" fill unoptimized className="object-contain" sizes="(max-width: 768px) 72vw, 22rem" />
-      </span>
+    <a href={url} target="_blank" rel="noreferrer" className={cn("block", isCustomer ? "mr-auto" : "ml-auto")}>
+      <img
+        src={url}
+        alt="Image attachment"
+        loading="lazy"
+        className={cn(
+          "block h-auto w-auto rounded-lg",
+          IMAGE_MAX_WIDTH_CLASS,
+          IMAGE_MAX_HEIGHT_CLASS,
+          isCustomer ? "mr-auto" : "ml-auto"
+        )}
+      />
     </a>
   )
 }
@@ -279,7 +255,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
       <button
         type="button"
         onClick={() => setIsLoaded(true)}
-        className="group"
+        className={cn("group", isCustomer ? "mr-auto" : "ml-auto")}
         aria-label="Phát video"
       >
         <span className={VIDEO_BOX_CLASS} style={getMediaBoxStyle(size)}>
@@ -288,7 +264,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
             alt="Video thumbnail"
             fill
             unoptimized
-            className="object-contain"
+            className={cn("object-contain", isCustomer ? "object-left" : "object-right")}
             sizes="(max-width: 768px) 78vw, 28rem"
           />
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover:bg-black/35">
@@ -307,7 +283,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
   }
 
   return (
-    <span className={VIDEO_BOX_CLASS} style={getMediaBoxStyle(size)}>
+    <span className={cn(VIDEO_BOX_CLASS, isCustomer ? "mr-auto" : "ml-auto")} style={getMediaBoxStyle(size)}>
       <video
         src={url}
         controls
@@ -315,7 +291,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
         playsInline
         preload="metadata"
         poster={thumbnailUrl}
-        className="absolute inset-0 h-full w-full object-contain"
+        className={cn("absolute inset-0 h-full w-full object-contain", isCustomer ? "object-left" : "object-right")}
       />
     </span>
   )

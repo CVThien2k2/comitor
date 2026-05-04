@@ -45,8 +45,8 @@ export const APP_MAIN_NAV_ITEMS: AppNavItem[] = [
     label: "Khách hàng",
     icon: Icons.users,
     children: [
-      { label: "Hồ sơ", icon: Icons.users, href: "/profiles" },
-      { label: "Tài khoản", icon: Icons.user, href: "/accounts" },
+      { label: "Hồ sơ", icon: Icons.users, href: "/golden-profiles" },
+      { label: "Tài khoản", icon: Icons.user, href: "/account-customers" },
     ],
     key: "customer",
   },
@@ -82,7 +82,10 @@ export function getResolvedAppNavItems() {
   return [...getResolvedMainNavItems(), ...getResolvedSettingsNavItems()]
 }
 
-export function filterNavItemsByPermissions(items: ResolvedAppNavItem[], permissions: PermissionCode[]): ResolvedAppNavItem[] {
+export function filterNavItemsByPermissions(
+  items: ResolvedAppNavItem[],
+  permissions: PermissionCode[]
+): ResolvedAppNavItem[] {
   return items.flatMap((item) => {
     if (item.isDisabled) {
       return []

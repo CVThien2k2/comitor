@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
 
   return (
     <AuthWrapper>
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="fixed inset-0 flex overflow-hidden bg-background">
         <AppSidebar
           collapsed={isDesktopCollapsed}
           open={isMobileSidebarOpen}
@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
           )}
         >
           {!shouldHideAppHeader && <AppHeader isSidebarOpen={isSidebarOpen} onToggleSidebar={handleToggleSidebar} />}
-          <main className="min-h-0 flex-1 overflow-y-scroll">{children}</main>
+          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</main>
         </div>
       </div>
     </AuthWrapper>

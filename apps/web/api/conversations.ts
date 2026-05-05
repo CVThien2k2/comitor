@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios"
-import type { ApiResponse, ConversationItem, MessageItem } from "@/lib/types"
+import type { ApiResponse, ContentMessage, ConversationItem, MessageItem } from "@/lib/types"
 
 export type { ConversationItem, MessageItem } from "@/lib/types"
 
@@ -52,6 +52,11 @@ export interface MessageCursorResponse {
   items: MessageItem[]
   meta: MessageCursorMeta
 }
+
+export interface CreateMessagePayload {
+  conversationId: string
+  content: ContentMessage
+}
  
 
 // ─── API ────────────────────────────────────────────────
@@ -60,6 +65,9 @@ export const conversations = {
   getAll: (query?: ConversationListQuery) =>
     api.get<ApiResponse<ConversationListResponse>>("/conversations", { params: query }),
   getById: (id: string) => api.get<ApiResponse<ConversationItem>>(`/conversations/${id}`),
+  assign: (id: string) =>
+    api.patch<ApiResponse<ConversationItem>>(`/conversations/${id}/assign`),
+  markRead: (id: string) => api.patch<ApiResponse<number>>(`/conversations/${id}/mark-read`),
 }
 
 export const messagesApi = {
@@ -68,4 +76,5 @@ export const messagesApi = {
       params: query,
     }),
   getById: (id: string) => api.get<ApiResponse<MessageItem>>(`/messages/${id}`),
+  create: (payload: CreateMessagePayload) => api.post<ApiResponse<MessageItem>>("/messages", payload),
 }

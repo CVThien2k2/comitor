@@ -1,15 +1,17 @@
 "use client"
 
-import { messagesApi, type ConversationItem, type MessageCursor } from "@/api/conversations"
+import { conversations as conversationsApi, messagesApi, type ConversationItem, type MessageCursor } from "@/api/conversations"
 import { MESSAGES_PER_PAGE } from "@/lib/constants"
 import { mergeConversationSeedWithFetchedMessages } from "@/lib/helper"
 import { ROUTES } from "@/lib/routes"
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/stores/auth-store"
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react"
 import { ChatComposer } from "./chat-composer"
 import { ChatDetailHeader } from "./chat-detail-header"
 import { ChatMessagesList } from "./chat-messages-list"
+import { toast } from "@workspace/ui/components/sonner"
 
 // Khi scroll gần đỉnh container thì nạp thêm page cũ.
 const TOP_FETCH_THRESHOLD_PX = 500
@@ -23,9 +25,26 @@ type ChatDetailMessagesProps = {
 
 export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInfo }: ChatDetailMessagesProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const currentUser = useAuthStore((s) => s.user)
+
+  // Chỉ người xử lý (processingBy) mới được phép soạn và gửi tin nhắn.
+  const isHandler = !!currentUser && conversation.processingBy === currentUser.id
 
   // Khóa hội thoại hiện tại.
   const conversationId = conversation.id
+
+  const { mutate: assignSelf, isPending: isAssigning } = useMutation({
+    mutationFn: () => conversationsApi.assign(conversationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations", "detail", conversationId] })
+      queryClient.invalidateQueries({ queryKey: ["conversations"] })
+      toast.success("Bạn đã nhận xử lý cuộc hội thoại này.")
+    },
+    onError: () => {
+      toast.error("Không thể nhận xử lý. Vui lòng thử lại.")
+    },
+  })
 
   // Refs phục vụ auto scroll và giữ vị trí khi load page cũ.
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -164,12 +183,31 @@ export function ChatDetailMessages({ conversation, showUserInfo, onToggleUserInf
         messagesEndRef={messagesEndRef}
       />
 
-      {/* Composer */}
-      <ChatComposer
-        key={conversationId}
-        conversationId={conversationId}
-        onRequestScrollToBottom={requestScrollToBottom}
-      />
+      {/* Composer – chỉ hiển thị khi current user là người xử lý */}
+      {isHandler ? (
+        <ChatComposer
+          key={conversationId}
+          conversationId={conversationId}
+          onRequestScrollToBottom={requestScrollToBottom}
+        />
+      ) : conversation.processingBy ? (
+        // Đang được xử lý bởi người khác
+        <div className="flex items-center justify-center border-t border-border bg-muted/40 px-4 py-3">
+          <p className="text-sm text-muted-foreground">Cuộc hội thoại này đang được xử lý bởi người khác.</p>
+        </div>
+      ) : (
+        // Chưa được phân công — hiển thị nút nhận
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3">
+          <p className="text-sm text-muted-foreground">Cuộc hội thoại chưa được phân công.</p>
+          <button
+            onClick={() => assignSelf()}
+            disabled={isAssigning}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {isAssigning ? "Đang nhận..." : "Nhận xử lý"}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

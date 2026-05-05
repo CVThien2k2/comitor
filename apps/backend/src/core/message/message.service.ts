@@ -1,22 +1,41 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { Injectable, Logger, NotFoundException } from "@nestjs/common"
 import { EventEmitter2 } from "@nestjs/event-emitter"
 import { PrismaService } from "../../database/prisma.service"
 import { CreateMessageDto } from "./dto/create-message.dto"
 import { MessageCursorQueryDto } from "./dto/message-cursor-query.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
-import { Prisma } from "@workspace/database"
+import { MessageType, Prisma } from "@workspace/database"
 import { MESSAGE_INCLUDE } from "./include"
+import { EMIT_EVENTS } from "../../events/emit-events"
+import type { ContentMessage } from "../../utils/types/message"
  
  
 
 @Injectable()
 export class MessageService {
+  private readonly logger = new Logger(MessageService.name)
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2
   ) {}
+
+  private resolveMessageType(content: ContentMessage): MessageType {
+    const type = content.type?.toLowerCase()
+    if (type === "text") return MessageType.text
+    if (type === "image") return MessageType.image
+    if (type === "file") return MessageType.file
+    if (type === "video") return MessageType.video
+    if (type === "audio") return MessageType.audio
+    if (type === "sticker") return MessageType.sticker
+    if (type === "gif") return MessageType.gif
+    if (type === "recommended") return MessageType.recommended
+    if (type === "location") return MessageType.location
+    if (type === "template") return MessageType.template
+    if (content.text?.trim()) return MessageType.text
+    return MessageType.file
+  }
  
   async findByConversationId(conversationId: string, query: MessageCursorQueryDto) {
     const conversation = await this.prisma.client.conversation.findUnique({
@@ -87,25 +106,42 @@ export class MessageService {
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
     if (!conversation.linkedAccount) throw new NotFoundException("Tài khoản liên kết không tồn tại")
 
-
-    const messages = await this.prisma.client.$transaction(async (tx) => {
-      const createdMessageIds: string[] = []
- 
-      const fullMessages = await tx.message.findMany({
-        where: {
-          id: { in: createdMessageIds },
-        },
-        include: MESSAGE_INCLUDE,
-        orderBy: {
-          createdAt: "asc",
-        },
-      })
-      await tx.conversation.update({
-        where: { id: dto.conversationId },
-        data: { lastActivityAt: new Date() },
-      })
-      return fullMessages
+    const now = new Date()
+    const createdMessage = await this.prisma.client.message.create({
+      data: {
+        conversationId: dto.conversationId,
+        senderType: "agent",
+        content: dto.content as Prisma.InputJsonValue,
+        status: "processing",
+        type: this.resolveMessageType(dto.content),
+        createdBy: userId,
+        timestamp: now,
+      },
     })
+
+    await this.prisma.client.$transaction([
+      this.prisma.client.conversation.update({
+        where: { id: dto.conversationId },
+        data: { lastActivityAt: now },
+      }),
+      this.prisma.client.conversation.updateMany({
+        where: { id: dto.conversationId, status: "closed" },
+        data: { status: "pending" },
+      }),
+    ])
+
+    const fullMessage = await this.prisma.client.message.findUnique({
+      where: { id: createdMessage.id },
+      include: MESSAGE_INCLUDE,
+    })
+    if (!fullMessage) throw new NotFoundException("Tin nhắn không tồn tại")
+
+    this.eventEmitter.emit(EMIT_EVENTS.MESSAGE_OUTBOUND_CREATED, {
+      message: createdMessage,
+      linkedAccount: conversation.linkedAccount,
+    })
+
+    return fullMessage
   }
 
   async update(id: string, dto: UpdateMessageDto) {

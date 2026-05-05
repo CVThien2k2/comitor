@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, Req } from "@nestjs/common"
+import { Controller, Get, Param, Patch, Query, Req, Body } from "@nestjs/common"
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger"
 import { P } from "@workspace/database"
 import { Permissions } from "../../common/decorators/permissions.decorator"
@@ -32,6 +32,14 @@ export class ConversationController {
   async update(@Param("id") id: string, @Body() dto: UpdateConversationDto) {
     const conversation = await this.conversationService.update(id, dto)
     return { message: "Cập nhật cuộc hội thoại thành công", data: conversation }
+  }
+
+  @ApiOperation({ summary: "Tự nhận xử lý cuộc hội thoại (chỉ khi status là pending)" })
+  @Permissions(P.CONVERSATION_UPDATE)
+  @Patch(":id/assign")
+  async assign(@Param("id") id: string, @Req() req: any) {
+    const conversation = await this.conversationService.assign(id, req.user.id)
+    return { message: "Nhận xử lý cuộc hội thoại thành công", data: conversation }
   }
 
   @ApiOperation({ summary: "Đánh dấu tin nhắn mới nhất trong cuộc hội thoại là đã đọc" })

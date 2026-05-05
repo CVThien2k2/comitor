@@ -11,14 +11,21 @@ export function useConversations() {
   const decrementUnreadConversationsCount = useAppStore((s) => s.decrementConversationsUnreadCount)
 
   const markAsRead = useCallback(
-    (conversationId: string) => {
+    async (conversationId: string) => {
       if (markingConversationIds.has(conversationId)) return
       markingConversationIds.add(conversationId)
 
       const wasUnread = markConversationAsRead(conversationId)
       if (wasUnread) {
         decrementUnreadConversationsCount(1)
+        try {
+          await conversationsApi.markRead(conversationId)
+        } catch (error) {
+          console.error("Failed to mark conversation as read:", error)
+        }
       }
+
+      markingConversationIds.delete(conversationId)
     },
     [decrementUnreadConversationsCount, markConversationAsRead]
   )

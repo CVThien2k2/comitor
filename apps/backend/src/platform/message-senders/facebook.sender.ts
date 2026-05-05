@@ -5,7 +5,24 @@ import type { MessageSender, MessageSenderInput } from "./message-sender.interfa
 export class FacebookSender implements MessageSender {
   private readonly logger = new Logger(FacebookSender.name)
 
-  send(input: MessageSenderInput) {
-    this.logger.log(`[Facebook] Gửi tin nhắn ${input.message.id} đến cuộc hội thoại ${input.message.conversationId}`)
+  async send(input: MessageSenderInput) {
+    switch (input.message.type) {
+      case "text":
+      case "image":
+      case "video":
+      case "audio":
+      case "file":
+      case "sticker":
+      case "gif":
+      case "recommended":
+      case "location":
+      case "template":
+        this.logger.log(
+          `[Facebook] send type=${input.message.type} message=${input.message.id} conversation=${input.message.conversationId}`
+        )
+        return
+      default:
+        throw new Error(`Unsupported Facebook message type: ${input.message.type}`)
+    }
   }
 }

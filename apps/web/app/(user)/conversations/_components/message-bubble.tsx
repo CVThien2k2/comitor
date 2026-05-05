@@ -107,14 +107,20 @@ function fitMediaSize(
   }
 }
 
-function getMediaBoxStyle(size: { width: number; height: number }) {
+function getMediaBoxStyle(size: { width: number; height: number } | null) {
+  if (!size) {
+    return {
+      width: `${VIDEO_FALLBACK_WIDTH}px`,
+      aspectRatio: `${VIDEO_FALLBACK_WIDTH} / ${VIDEO_FALLBACK_HEIGHT}`,
+    } as const
+  }
   return {
     width: `${size.width}px`,
     aspectRatio: `${size.width} / ${size.height}`,
   } as const
 }
 
-function getVideoDisplaySize(content: MessageItem["content"]): { width: number; height: number } {
+function getVideoDisplaySize(content: MessageItem["content"]): { width: number; height: number } | null {
   const parts = getMessageParts(content)
   for (const part of parts) {
     const params = part?.params
@@ -132,12 +138,7 @@ function getVideoDisplaySize(content: MessageItem["content"]): { width: number; 
     })
   }
 
-  return fitMediaSize(VIDEO_FALLBACK_WIDTH, VIDEO_FALLBACK_HEIGHT, {
-    minWidth: VIDEO_MIN_WIDTH,
-    minHeight: VIDEO_MIN_HEIGHT,
-    maxWidth: VIDEO_MAX_WIDTH,
-    maxHeight: VIDEO_MAX_HEIGHT,
-  })
+  return null
 }
 
 function formatVideoDuration(content: MessageItem["content"]): string | null {
@@ -255,7 +256,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
       <button
         type="button"
         onClick={() => setIsLoaded(true)}
-        className={cn("group", isCustomer ? "mr-auto" : "ml-auto")}
+        className={cn("group", !size ? "mx-auto" : isCustomer ? "mr-auto" : "ml-auto")}
         aria-label="Phát video"
       >
         <span className={VIDEO_BOX_CLASS} style={getMediaBoxStyle(size)}>
@@ -264,7 +265,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
             alt="Video thumbnail"
             fill
             unoptimized
-            className={cn("object-contain", isCustomer ? "object-left" : "object-right")}
+            className={cn("object-contain", !size ? "object-center" : isCustomer ? "object-left" : "object-right")}
             sizes="(max-width: 768px) 78vw, 28rem"
           />
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 transition group-hover:bg-black/35">
@@ -283,7 +284,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
   }
 
   return (
-    <span className={cn(VIDEO_BOX_CLASS, isCustomer ? "mr-auto" : "ml-auto")} style={getMediaBoxStyle(size)}>
+    <span className={cn(VIDEO_BOX_CLASS, !size ? "mx-auto" : isCustomer ? "mr-auto" : "ml-auto")} style={getMediaBoxStyle(size)}>
       <video
         src={url}
         controls
@@ -291,7 +292,7 @@ function VideoMessageContent({ message, isCustomer }: MessageContentProps) {
         playsInline
         preload="metadata"
         poster={thumbnailUrl}
-        className={cn("absolute inset-0 h-full w-full object-contain", isCustomer ? "object-left" : "object-right")}
+        className={cn("absolute inset-0 h-full w-full object-contain", !size ? "object-center" : isCustomer ? "object-left" : "object-right")}
       />
     </span>
   )
@@ -302,6 +303,31 @@ function AudioMessageContent({ message, isCustomer }: MessageContentProps) {
   if (!url) return <TextMessageContent message={message} isCustomer={isCustomer} />
 
   return <audio src={url} controls className="max-w-full" />
+}
+
+function RecommendedMessageContent({ message, isCustomer }: MessageContentProps) {
+  const parts = getMessageParts(message.content)
+  const part = parts[0] ?? {}
+  const description = (part as { description?: string }).description?.trim()
+
+  if (!description) return <TextMessageContent message={message} isCustomer={isCustomer} />
+
+  return (
+    <div
+      className={cn(
+        "w-[300px] sm:w-[320px] overflow-hidden rounded-2xl border shadow-sm",
+        isCustomer
+          ? "border-border bg-card text-card-foreground"
+          : "border-primary/30 bg-primary/10 text-foreground",
+        isCustomer ? "rounded-tl-md" : "rounded-tr-md",
+        message.status === "failed" && "border-red-500/70"
+      )}
+    >
+      <div className="p-4">
+        <p className="whitespace-pre-wrap text-[15px] font-medium leading-relaxed">{description}</p>
+      </div>
+    </div>
+  )
 }
 
 function MessageContentByType({ message, isCustomer }: MessageContentProps) {
@@ -316,6 +342,8 @@ function MessageContentByType({ message, isCustomer }: MessageContentProps) {
       return <VideoMessageContent message={message} isCustomer={isCustomer} />
     case "audio":
       return <AudioMessageContent message={message} isCustomer={isCustomer} />
+    case "recommended":
+      return <RecommendedMessageContent message={message} isCustomer={isCustomer} />
     default:
       return <TextMessageContent message={message} isCustomer={isCustomer} />
   }

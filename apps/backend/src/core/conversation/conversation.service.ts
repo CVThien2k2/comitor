@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common"
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../database/prisma.service"
 import type { ConversationQueryDto } from "./dto/conversation-query.dto"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
@@ -91,6 +91,22 @@ export class ConversationService {
     return { ...conversation, unreadCount: conversation.countUnreadMessages }
   }
 
+  async assign(id: string, userId: string) {
+    const existing = await this.prisma.client.conversation.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+    if (existing.status !== "pending") {
+      throw new BadRequestException("Chỉ có thể nhận xử lý cuộc hội thoại ở trạng thái chờ (pending).")
+    }
+
+    const conversation = await this.prisma.client.conversation.update({
+      where: { id },
+      data: { processingBy: userId },
+      include: CONVERSATION_INCLUDE,
+    })
+
+    return conversation
+  }
+
   async markAsRead(conversationId: string) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id: conversationId },
@@ -108,10 +124,16 @@ export class ConversationService {
       return { updatedMessages: 0 }
     }
 
-    await this.prisma.client.message.update({
-      where: { id: latestMessage.id },
-      data: { isRead: true },
-    })
+    await this.prisma.client.$transaction([
+      this.prisma.client.message.update({
+        where: { id: latestMessage.id },
+        data: { isRead: true },
+      }),
+      this.prisma.client.conversation.update({
+        where: { id: conversationId },
+        data: { isUnread: false, countUnreadMessages: 0 },
+      }),
+    ])
 
     return { updatedMessages: 1 }
   }

@@ -6,13 +6,11 @@ export type MessageSenderInput = {
 }
 
 export interface MessageSenderResponse {
-  messageId: string
-  conversationId: string
-  userId: string
+  externalMessageId?: string
 }
 
 export interface MessageSender {
-  send(input: MessageSenderInput)
+  send(input: MessageSenderInput): Promise<MessageSenderResponse | void>
 }
 
 export const MESSAGE_SENDER = Symbol("MESSAGE_SENDER")

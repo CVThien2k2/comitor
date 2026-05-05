@@ -59,16 +59,11 @@ export function handleMessageEvents(socket: Socket) {
     })
 
     socket.on(EVENTS.MESSAGE_DELIVERY_SUCCEEDED, (payload: MessageDeliveryEvent) => {
-      // Store đã tối giản, tạm thời chỉ log event.
-      console.log("MESSAGE_DELIVERY_SUCCEEDED", payload)
+      useChatStore.getState().updateMessageStatus(payload.conversationId, payload.messageId, payload.status)
     })
 
     socket.on(EVENTS.MESSAGE_DELIVERY_FAILED, (payload: MessageDeliveryEvent) => {
-      // Store đã tối giản, tạm thời chỉ log event.
-      console.log("MESSAGE_DELIVERY_FAILED", payload)
-      // if (payload.errorMessage) {
-      // toast.error(payload.errorMessage, { position: "bottom-right" })
-      // }
+      useChatStore.getState().updateMessageStatus(payload.conversationId, payload.messageId, payload.status)
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)

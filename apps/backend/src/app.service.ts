@@ -18,12 +18,15 @@ export class AppService {
 
   async init(user: User) {
     const permissions = await this.permissionService.getPermissionByUserId(user.id)
+    const conversationsUnreadCount = await this.prismaService.client.conversation.count({
+      where: { isUnread: true },
+    })
 
     return {
       user,
       permissions,
       badges: {
-        conversationsUnreadCount: 0,
+        conversationsUnreadCount,
       },
     }
   }

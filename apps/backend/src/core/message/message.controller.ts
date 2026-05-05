@@ -39,7 +39,6 @@ export class MessageController {
 
   @ApiOperation({ summary: "Lấy danh sách tin nhắn theo cuộc hội thoại" })
   @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_READ)
   @Get("conversation/:conversationId")
   async findByConversationId(@Param("conversationId") conversationId: string, @Query() query: MessageCursorQueryDto) {
@@ -49,7 +48,6 @@ export class MessageController {
 
   @ApiOperation({ summary: "Lấy thông tin tin nhắn theo ID" })
   @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_READ)
   @Get(":id")
   async findById(@Param("id") id: string) {
@@ -59,8 +57,6 @@ export class MessageController {
 
   @ApiOperation({ summary: "Gửi tin nhắn" })
   @ApiOkResponse({ type: ApiResponseOf(MessageEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_CREATE)
   @Post()
   async create(@Body() dto: CreateMessageDto, @Request() req: any) {
@@ -70,8 +66,6 @@ export class MessageController {
 
   @ApiOperation({ summary: "Cập nhật tin nhắn" })
   @ApiOkResponse({ type: ApiResponseOf(MessageBaseEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_UPDATE)
   @Patch(":id")
   async update(@Param("id") id: string, @Body() dto: UpdateMessageDto) {
@@ -81,7 +75,6 @@ export class MessageController {
 
   @ApiOperation({ summary: "Xóa tin nhắn" })
   @ApiOkResponse({ type: MessageResponseEntity })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.MESSAGE_DELETE)
   @Delete(":id")
   async delete(@Param("id") id: string) {

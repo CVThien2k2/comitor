@@ -25,6 +25,15 @@ function sortByLastActivity(conversations: ConversationItem[]) {
   })
 }
 
+function sortMessagesDesc(messages: MessageItem[]) {
+  return [...messages].sort((a, b) => {
+    const ta = new Date(a.timestamp || a.createdAt).getTime()
+    const tb = new Date(b.timestamp || b.createdAt).getTime()
+    if (ta !== tb) return tb - ta
+    return b.id.localeCompare(a.id)
+  })
+}
+
 export const useChatStore = create<ChatState & ChatActions>()((set) => ({
   conversations: [],
   bufferedMessageStatuses: {},
@@ -35,9 +44,25 @@ export const useChatStore = create<ChatState & ChatActions>()((set) => ({
     set((state) => {
       const conversations = (() => {
         const byId = new Map(state.conversations.map((conversation) => [conversation.id, conversation] as const))
-        for (const conversation of incoming) {
-          byId.set(conversation.id, conversation)
+
+        for (const incomingConversation of incoming) {
+          const existingConversation = byId.get(incomingConversation.id)
+          if (!existingConversation) {
+            byId.set(incomingConversation.id, incomingConversation)
+            continue
+          }
+
+          const messageById = new Map<string, MessageItem>()
+          for (const message of existingConversation.messages ?? []) messageById.set(message.id, message)
+          for (const message of incomingConversation.messages ?? []) messageById.set(message.id, message)
+
+          byId.set(incomingConversation.id, {
+            ...existingConversation,
+            ...incomingConversation,
+            messages: sortMessagesDesc([...messageById.values()]),
+          })
         }
+
         return sortByLastActivity([...byId.values()])
       })()
       return { conversations }

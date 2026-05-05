@@ -6,11 +6,11 @@ import { MessageCursorQueryDto } from "./dto/message-cursor-query.dto"
 import { UpdateMessageDto } from "./dto/update-message.dto"
 
 import { MessageType, Prisma } from "@workspace/database"
-import { MESSAGE_INCLUDE } from "./include"
+import { CONVERSATION_INCLUDE, MESSAGE_INCLUDE } from "./include"
 import { EMIT_EVENTS } from "../../events/emit-events"
 import type { ContentMessage } from "../../utils/types/message"
- 
- 
+
+
 
 @Injectable()
 export class MessageService {
@@ -19,7 +19,7 @@ export class MessageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2
-  ) {}
+  ) { }
 
   private resolveMessageType(content: ContentMessage): MessageType {
     const type = content.type?.toLowerCase()
@@ -36,7 +36,7 @@ export class MessageService {
     if (content.text?.trim()) return MessageType.text
     return MessageType.file
   }
- 
+
   async findByConversationId(conversationId: string, query: MessageCursorQueryDto) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id: conversationId },
@@ -84,7 +84,7 @@ export class MessageService {
       },
     }
   }
- 
+
 
   async findById(id: string) {
     const message = await this.prisma.client.message.findUnique({
@@ -97,6 +97,15 @@ export class MessageService {
     return message
   }
 
+  async findConversationRealtime(conversationId: string) {
+    const conversation = await this.prisma.client.conversation.findUnique({
+      where: { id: conversationId },
+      include: CONVERSATION_INCLUDE,
+    })
+    if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
+    return conversation
+  }
+
   async create(dto: CreateMessageDto, userId: string) {
     const conversation = await this.prisma.client.conversation.findUnique({
       where: { id: dto.conversationId },
@@ -104,7 +113,7 @@ export class MessageService {
     })
 
     if (!conversation) throw new NotFoundException("Cuộc hội thoại không tồn tại")
-    if (!conversation.linkedAccount) throw new NotFoundException("Tài khoản liên kết không tồn tại")
+    if (!conversation.linkedAccount || conversation.linkedAccount.status == "inactive") throw new NotFoundException("Tài khoản liên kết không tồn tại")
 
     const now = new Date()
     const createdMessage = await this.prisma.client.message.create({

@@ -8,9 +8,10 @@ import { ZaloOaSender } from "../platform/message-senders/zalo-oa.sender"
 import { FacebookSender } from "../platform/message-senders/facebook.sender"
 import { ZaloPersonalSender } from "../platform/message-senders/zalo-personal.sender"
 import { ConversationModule } from "src/core/conversation/conversation.module"
+import { LinkAccountModule } from "src/core/link-account/link-account.module"
 
 @Module({
-  imports: [UsersModule, MessageModule, ConversationModule],
+  imports: [UsersModule, MessageModule, ConversationModule, LinkAccountModule],
   providers: [
     UserStatusListener,
     MessageListener,

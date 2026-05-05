@@ -175,14 +175,7 @@ export class MessageProcessor extends WorkerHost {
 
       if (!realtimeConversation) return
 
-      if (isNewConversation) {
-        this.socketGateway.broadcast(EVENTS.CONVERSATION_CREATED, realtimeConversation)
-        return
-      }
-
-      const message = realtimeConversation.messages?.at(0)
-      if (!message) return
-      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATED, message)
+      this.socketGateway.broadcast(EVENTS.MESSAGE_CREATE, realtimeConversation)
     } catch (error) {
       this.logger.error(
         `[MessageProcessor][process] ${error instanceof Error ? error.message : String(error)} - ${JSON.stringify(job.data)}`

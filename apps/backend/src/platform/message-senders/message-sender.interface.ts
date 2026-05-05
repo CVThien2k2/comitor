@@ -1,8 +1,10 @@
-import type { LinkAccount, Message } from "@workspace/database"
+import type { ConversationType, LinkAccount, Message } from "@workspace/database"
 
 export type MessageSenderInput = {
   message: Message
   linkedAccount: LinkAccount
+  conversationExternalId: string
+  conversationType: ConversationType
 }
 
 export interface MessageSenderResponse {

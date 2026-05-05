@@ -6,9 +6,9 @@ copyright = "Copyright © 2026 Comitor"
 
 nav = [
   { "Overview" = "index.md" },
-  { "Product" = [{ "Product Overview" = "product-overview.md" }, { "Feature Flows" = "feature-flows.md" }, { "Known Gaps & Roadmap" = "known-gaps-roadmap.md" }] },
+  { "Product" = [{ "Product Overview" = "product-overview.md" }, { "Feature Status" = "feature-status.md" }, { "Feature Flows" = "feature-flows.md" }, { "Known Gaps & Roadmap" = "known-gaps-roadmap.md" }] },
   { "Architecture" = [{ "System Architecture" = "architecture-overview.md" }, { "Backend Design" = "backend-design.md" }, { "Frontend Design" = "frontend-design.md" }, { "Database Design" = "database-design.md" }, { "Integration Design" = "integration-design.md" }, { "Security & Permissions" = "security-and-permissions.md" }, { "Deployment & Ops" = "deployment-and-ops.md" }] },
-  { "Engineering Standards" = [{ "Backend Guidelines" = "backend-guidelines.md" }, { "Frontend Guidelines" = "frontend-guidelines.md" }, { "Best Practices" = "best-practices.md" }, { "Markdown Guide" = "markdown.md" }] }
+  { "Engineering Standards" = [{ "Backend Guidelines" = "backend-guidelines.md" }, { "Frontend Guidelines" = "frontend-guidelines.md" }, { "Best Practices" = "best-practices.md" }] }
 ]
 
 [project.theme]

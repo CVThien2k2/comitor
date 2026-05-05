@@ -67,13 +67,36 @@
 - create message
 5. Phát socket event `conversation-created` hoặc `message-created`.
 
-## 5. Conversation workspace
+## 5. Outbound message pipeline
+
+1. FE gửi tin nhắn qua `POST /messages`.
+2. Backend tạo message với trạng thái `processing`, sau đó emit event nội bộ `message-outbound-created`.
+3. `MessageListener` chọn sender theo provider (`zalo_oa`, `zalo_personal`, `facebook`).
+4. Nếu gửi thành công, backend cập nhật `message.status = success` và emit `message-delivery-succeeded`.
+5. Nếu gửi thất bại, backend cập nhật `message.status = failed` và emit `message-delivery-failed`.
+
+Lưu ý hiện tại: outbound sender mới hỗ trợ nội dung `text`.
+
+## 6. Conversation workspace
 
 - FE lấy danh sách hội thoại qua `GET /conversations` (cursor theo `lastActivityAt` + `id`).
 - FE lấy message theo cuộc hội thoại qua `GET /messages/conversation/:conversationId`.
-- FE subscribe socket để chèn dữ liệu realtime vào local store.
+- FE nhận socket events để cập nhật danh sách hội thoại và trạng thái gửi tin realtime.
 
-## 6. Upload media
+## 7. Quản trị hệ thống
+
+- Users: danh sách + tạo/sửa/xóa.
+- Roles: danh sách + chi tiết + tạo/sửa/xóa.
+- Permissions: danh sách + cập nhật mô tả quyền.
+- Suggested messages: danh sách + tạo/sửa/xóa.
+- Agent levels: danh sách + chi tiết + tạo/sửa/xóa.
+
+## 8. Khách hàng và hồ sơ
+
+- Golden profiles: danh sách + chi tiết + cập nhật.
+- Account customers: danh sách.
+
+## 9. Upload media
 
 - FE gọi `POST /upload/presign` hoặc `POST /upload/presign-batch`.
 - Backend cấp pre-signed URL S3.

@@ -43,6 +43,36 @@ Comitor giải quyết nhu cầu vận hành hội thoại khách hàng trên nh
 - QR login + SSE cho Zalo personal.
 - Upload media qua AWS S3 pre-signed URL.
 
+## Danh sách tính năng theo phạm vi hiện tại
+
+### Hội thoại
+
+- Danh sách hội thoại, chi tiết hội thoại, nhận xử lý, đánh dấu đã đọc.
+- Đồng bộ realtime trạng thái/tin nhắn qua Socket.IO.
+
+### Kênh kết nối
+
+- Kết nối Zalo Personal (QR + SSE), Zalo OA (OAuth), Facebook (OAuth).
+- Quản lý link account: tìm kiếm/lọc, thống kê, reconnect, disconnect, xóa.
+
+### Quản trị
+
+- Users, Roles, Agent Levels, Suggested Messages đã có CRUD.
+- Permissions hỗ trợ danh sách + cập nhật mô tả.
+
+### Khách hàng
+
+- Golden Profiles có danh sách/chi tiết/cập nhật.
+- Account Customers hiện hỗ trợ danh sách.
+
+### Hệ thống
+
+- Auth đầy đủ (login/refresh/logout/forgot/reset).
+- Upload qua presigned URL.
+- Health checks: live/ready/health.
+
+Chi tiết theo endpoint và trạng thái có tại trang [Trạng thái tính năng](feature-status.md).
+
 ## Giá trị kỹ thuật
 
 - Monorepo giúp chia sẻ type và contract xuyên suốt FE/BE/DB.

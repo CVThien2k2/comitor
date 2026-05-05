@@ -46,3 +46,6 @@ docker-compose.yml
 .venv/
 site
 .cache
+
+.cursor/
+**/.idea/*

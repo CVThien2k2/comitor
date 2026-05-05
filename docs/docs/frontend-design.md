@@ -32,8 +32,8 @@
 ## Data fetching
 
 - Tất cả API gọi qua `api/*` và `lib/axios.ts`.
-- React Query quản lý cache/invalidation cho danh sách link account, app init, users, conversations.
-- Một số màn hình đang ở trạng thái mock/placeholder (xem phần roadmap).
+- React Query quản lý cache/invalidation cho các module vận hành chính: link accounts, app init, users, roles, permissions, conversations, suggested messages, agent levels, golden profiles.
+- Màn hình `settings` hiện vẫn là placeholder đơn giản.
 
 ## Navigation & permission
 

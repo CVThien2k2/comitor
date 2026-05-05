@@ -5,12 +5,36 @@ import DataTable from "@/components/table/data-table"
 import { DataTableRowAction } from "@/components/table/data-table-row-action"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef, PaginationState, SortingState, Updater } from "@tanstack/react-table"
+import { useRouter } from "next/navigation"
 import { Badge } from "@workspace/ui/components/badge"
+import { cn } from "@workspace/ui/lib/utils"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { toast } from "@workspace/ui/components/sonner"
 import { useMemo, useState } from "react"
 
+const customerTypeMeta: Record<
+  string,
+  {
+    label: string
+    className: string
+  }
+> = {
+  individual: {
+    label: "Khách cá nhân",
+    className: "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  },
+  business: {
+    label: "Khách doanh nghiệp",
+    className: "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  },
+  agent: {
+    label: "Khách đại lý",
+    className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  },
+}
+
 export function ProfileTable() {
+  const router = useRouter()
   const [globalSearch, setGlobalSearch] = useState("")
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
@@ -26,7 +50,17 @@ export function ProfileTable() {
     placeholderData: (previousData) => previousData,
   })
 
-  const items = profilesQuery.data?.data?.items ?? []
+  const items = useMemo(
+    () =>
+      (profilesQuery.data?.data?.items ?? []).map((item) => {
+        const fallbackId = (item as GoldenProfileRecord & { goldenProfileId?: string }).goldenProfileId
+        return {
+          ...item,
+          id: item.id ?? fallbackId ?? "",
+        }
+      }),
+    [profilesQuery.data?.data?.items]
+  )
   const meta = profilesQuery.data?.data?.meta
   const pageCount = Math.max(meta?.totalPages ?? 1, 1)
 
@@ -66,7 +100,18 @@ export function ProfileTable() {
         id: "customerType",
         enableSorting: false,
         header: "Loại khách",
-        cell: ({ row }) => <Badge variant="outline">{row.original.customerType}</Badge>,
+        cell: ({ row }) => {
+          const meta = customerTypeMeta[row.original.customerType] ?? {
+            label: row.original.customerType,
+            className: "border-border bg-muted/40 text-foreground",
+          }
+
+          return (
+            <Badge variant="outline" className={cn("font-medium", meta.className)}>
+              {meta.label}
+            </Badge>
+          )
+        },
       },
       {
         id: "actions",
@@ -75,16 +120,25 @@ export function ProfileTable() {
         header: () => <div className="text-right">Thao tác</div>,
         cell: ({ row }) => {
           const profile = row.original
+          const profileId = profile.id?.trim()
 
           return (
             <div className="flex justify-end">
-              <DataTableRowAction onEdit={() => toast.info(`Chỉnh sửa hồ sơ: ${profile.fullName || profile.id}`)} />
+              <DataTableRowAction
+                onEdit={() => {
+                  if (!profileId) {
+                    toast.error("Không tìm thấy mã hồ sơ để chuyển trang chỉnh sửa.")
+                    return
+                  }
+                  router.push(`/golden-profiles/${profileId}`)
+                }}
+              />
             </div>
           )
         },
       },
     ],
-    [pagination.pageIndex, pagination.pageSize]
+    [pagination.pageIndex, pagination.pageSize, router]
   )
 
   return (
@@ -92,6 +146,7 @@ export function ProfileTable() {
       <CardContent className="px-3">
         <DataTable
           title="Danh sách hồ sơ khách hàng"
+          description="Theo dõi thông tin nhận diện và liên hệ chính của hồ sơ khách hàng (Golden Profile)."
           columns={columns}
           data={items}
           pagination={pagination}

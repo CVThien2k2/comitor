@@ -15,9 +15,29 @@ export type RoleListItem = {
   updatedAt: string
 }
 
+export type RoleDetailItem = RoleListItem & {
+  permissions?: Array<{ id: string; code: string; description?: string | null }>
+}
+
+export type CreateRolePayload = {
+  name: string
+  description?: string
+  permissionIds?: string[]
+}
+
+export type UpdateRolePayload = {
+  name?: string
+  description?: string
+  permissionIds?: string[]
+}
+
 export const roles = {
   getAll: (query?: RolesQuery) =>
     api.get<ApiResponse<PaginatedResponse<RoleListItem>>>("/roles", {
       params: query,
     }),
+  getById: (id: string) => api.get<ApiResponse<RoleDetailItem>>(`/roles/${id}`),
+  create: (payload: CreateRolePayload) => api.post<ApiResponse<RoleDetailItem>>("/roles", payload),
+  update: (id: string, payload: UpdateRolePayload) => api.patch<ApiResponse<RoleDetailItem>>(`/roles/${id}`, payload),
+  delete: (id: string) => api.delete<ApiResponse<null>>(`/roles/${id}`),
 }

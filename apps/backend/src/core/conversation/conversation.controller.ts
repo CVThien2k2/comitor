@@ -1,10 +1,9 @@
-import { Controller, Get, Param, Patch, Query, Req, Body } from "@nestjs/common"
+import { Controller, Get, Param, Patch, Query, Req } from "@nestjs/common"
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger"
 import { P } from "@workspace/database"
 import { Permissions } from "../../common/decorators/permissions.decorator"
 import { ConversationService } from "./conversation.service"
 import { ConversationQueryDto } from "./dto/conversation-query.dto"
-import { UpdateConversationDto } from "./dto/update-conversation.dto"
 
 @ApiTags("Conversations")
 @ApiBearerAuth()
@@ -24,14 +23,6 @@ export class ConversationController {
   async findById(@Param("id") id: string) {
     const conversation = await this.conversationService.findById(id)
     return { message: "Lấy thông tin cuộc hội thoại thành công", data: conversation }
-  }
-
-  @ApiOperation({ summary: "Cập nhật cuộc hội thoại" })
-  @Permissions(P.CONVERSATION_UPDATE)
-  @Patch(":id")
-  async update(@Param("id") id: string, @Body() dto: UpdateConversationDto) {
-    const conversation = await this.conversationService.update(id, dto)
-    return { message: "Cập nhật cuộc hội thoại thành công", data: conversation }
   }
 
   @ApiOperation({ summary: "Tự nhận xử lý cuộc hội thoại (chỉ khi status là pending)" })

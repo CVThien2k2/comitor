@@ -26,6 +26,7 @@ interface DataTableProps<TData> {
   toolbarRight?: ReactNode
   onGlobalSearchChange?: (value: string) => void
   title?: string
+  description?: string
   isLoading?: boolean
   toggleFilter?: () => void
   onRowClick?: (row: TData) => void
@@ -43,6 +44,7 @@ export default function DataTable<TData>({
   onSortingChange,
   onPaginationChange,
   title,
+  description,
   toolbarRight,
   onGlobalSearchChange,
   isLoading = false,
@@ -77,14 +79,13 @@ export default function DataTable<TData>({
   const colCount = table.getAllColumns().filter((col) => col.getIsVisible()).length || columns.length
   const rows = table.getRowModel().rows
   const hasRows = rows.length > 0
-  const loadingSkeletonRows = 5
   const hasLoadedDataRef = useRef(false)
 
   useEffect(() => {
-    if (hasRows) {
+    if (hasRows || !isLoading) {
       hasLoadedDataRef.current = true
     }
-  }, [hasRows])
+  }, [hasRows, isLoading])
 
   const isInitialLoading = isLoading && !hasLoadedDataRef.current && !hasRows
   const isRefreshLoading = isLoading && !isInitialLoading
@@ -104,9 +105,12 @@ export default function DataTable<TData>({
       }}
     >
       <div className="space-y-4">
-        {title && (
+        {(title || description) && (
           <div className="flex flex-wrap items-end justify-between gap-2 px-1">
-            <h2 className="text-xl font-semibold tracking-tight text-primary">{title}</h2>
+            <div className="space-y-1">
+              {title ? <h2 className="text-xl font-semibold tracking-tight text-primary">{title}</h2> : null}
+              {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+            </div>
             <p className="text-xs font-semibold text-primary/80">{rows.length} kết quả trên trang hiện tại</p>
           </div>
         )}
@@ -157,13 +161,14 @@ export default function DataTable<TData>({
                   </TableRow>
                 ))
               ) : isInitialLoading ? (
-                Array.from({ length: loadingSkeletonRows }).map((_, index) => (
-                  <TableRow key={`loading-skeleton-${index}`} className="border-0">
-                    <TableCell colSpan={colCount} className="p-0">
-                      <div className="mx-1 min-h-[84px] w-full animate-pulse rounded-xl border border-border bg-muted/45" />
-                    </TableCell>
-                  </TableRow>
-                ))
+                <TableRow>
+                  <TableCell colSpan={colCount} className="p-0">
+                    <div className="flex min-h-[320px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-primary/20 bg-background/35">
+                      <Icons.spinner className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm font-medium text-primary">Đang tải dữ liệu</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : (
                 <TableRow>
                   <TableCell colSpan={colCount} className="h-48" />

@@ -19,7 +19,7 @@ export const editGoldenProfileSchema = z.object({
   customerType: z.enum(["individual", "business", "agent"]),
   elinesCustomerId: z.string().trim().max(50, "Mã eLines tối đa 50 ký tự"),
   isBlacklisted: z.boolean(),
-  journeyState: z.enum(["searching", "holding", "ticketed", "cancelled"]).or(z.literal("")),
+  journeyState: z.enum(["searching", "holding", "ticketed", "completed", "cancelled"]).or(z.literal("")),
   characteristics: z.string().trim().max(1000, "Đặc điểm tối đa 1000 ký tự"),
   staffNotes: z.string().trim().max(2000, "Ghi chú nội bộ tối đa 2000 ký tự"),
 })

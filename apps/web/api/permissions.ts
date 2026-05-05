@@ -15,9 +15,15 @@ export type PermissionListItem = {
   updatedAt: string
 }
 
+export type UpdatePermissionDescriptionPayload = {
+  description: string
+}
+
 export const permissions = {
   getAll: (query?: PermissionsQuery) =>
     api.get<ApiResponse<PaginatedResponse<PermissionListItem>>>("/permissions", {
       params: query,
     }),
+  updateDescription: (id: string, payload: UpdatePermissionDescriptionPayload) =>
+    api.patch<ApiResponse<PermissionListItem>>(`/permissions/${id}`, payload),
 }

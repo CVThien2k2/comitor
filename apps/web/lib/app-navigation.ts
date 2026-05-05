@@ -29,26 +29,20 @@ export const APP_MAIN_NAV_ITEMS: AppNavItem[] = [
     badgeKey: "conversationsUnreadCount",
     key: "conversation",
   },
-  { label: "Kênh kết nối", icon: Icons.radio, href: "/links" },
+  { label: "Kênh kết nối", icon: Icons.radio, href: "/links", key: "link-account" },
   {
     label: "Người dùng",
     icon: Icons.user,
     href: "/users",
     key: "user",
-    children: [
-      { label: "Tạo mới", href: "/create", isDisabled: true },
-      { label: "Chi tiết", href: "/{id}", isDisabled: true },
-      { label: "Chỉnh sửa", href: "/{id}/update", isDisabled: true },
-    ],
   },
   {
     label: "Khách hàng",
     icon: Icons.users,
     children: [
-      { label: "Hồ sơ", icon: Icons.users, href: "/golden-profiles" },
-      { label: "Tài khoản", icon: Icons.user, href: "/account-customers" },
+      { label: "Hồ sơ", icon: Icons.users, href: "/golden-profiles", key: "golden-profile" },
+      { label: "Tài khoản", icon: Icons.user, href: "/account-customers", key: "account-customer" },
     ],
-    key: "customer",
   },
   {
     label: "Quản lý hệ thống",

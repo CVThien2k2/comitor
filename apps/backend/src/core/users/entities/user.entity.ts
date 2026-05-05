@@ -63,9 +63,23 @@ class RoleSummary {
   name: string
 }
 
+class AgentLevelSummary {
+  @ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })
+  id: string
+
+  @ApiProperty({ example: "senior" })
+  code: string
+
+  @ApiProperty({ example: "Nhân sự có kinh nghiệm cao" })
+  description: string
+}
+
 export class UserListEntity extends UserEntity {
   @ApiProperty({ type: RoleSummary, nullable: true })
   role: RoleSummary | null
+
+  @ApiProperty({ type: AgentLevelSummary, nullable: true })
+  agentLevel: AgentLevelSummary | null
 }
 
 // ─── Detail ──────────────────────────────────────────────
@@ -84,4 +98,7 @@ class RoleDetail {
 export class UserDetailEntity extends UserEntity {
   @ApiProperty({ type: RoleDetail, nullable: true })
   role: RoleDetail | null
+
+  @ApiProperty({ type: AgentLevelSummary, nullable: true })
+  agentLevel: AgentLevelSummary | null
 }

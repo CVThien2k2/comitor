@@ -1,19 +1,31 @@
 "use client"
 
 import { type UserListItem, users } from "@/api"
+import { ConfirmDialog } from "@/components/global/confirm-dialog"
+import { Icons } from "@/components/global/icons"
 import DataTable from "@/components/table/data-table"
 import { DataTableRowAction } from "@/components/table/data-table-row-action"
 import { getAvatarColor, getInitials } from "@/lib/helper"
-import { useQuery } from "@tanstack/react-query"
+import { UserCreateDialogForm } from "./user-create-dialog-form"
+import { UserEditDialogForm } from "./user-edit-dialog-form"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { ColumnDef, PaginationState, SortingState, Updater } from "@tanstack/react-table"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
+import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
 import { Checkbox } from "@workspace/ui/components/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@workspace/ui/components/dialog"
 import { toast } from "@workspace/ui/components/sonner"
 import { useMemo, useState } from "react"
 
 export function UserTable() {
+  const queryClient = useQueryClient()
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<UserListItem | null>(null)
   const [globalSearch, setGlobalSearch] = useState("")
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
@@ -32,6 +44,18 @@ export function UserTable() {
   const items = usersQuery.data?.data?.items ?? []
   const meta = usersQuery.data?.data?.meta
   const pageCount = Math.max(meta?.totalPages ?? 1, 1)
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => users.delete(id),
+    onSuccess: (response) => {
+      toast.success(response.message || "Xóa người dùng thành công")
+      void queryClient.invalidateQueries({ queryKey: ["users", "list"] })
+      setDeleteTarget(null)
+    },
+    onError: (error) => {
+      toast.error((error as { message?: string })?.message ?? "Không thể xóa người dùng.")
+    },
+  })
 
   const columns = useMemo<ColumnDef<UserListItem>[]>(
     () => [
@@ -98,16 +122,27 @@ export function UserTable() {
       {
         id: "role",
         enableSorting: false,
-        header: "Vai trò / Liên hệ",
+        header: "Vai trò / Cấp độ",
         cell: ({ row }) => {
           const user = row.original
 
           return (
             <div className="min-w-52 space-y-2">
-              <Badge variant="outline">{user.role?.name ?? "Chưa phân vai trò"}</Badge>
-              <div className="text-xs text-muted-foreground">
-                <p>{user.phone || "Chưa có số điện thoại"}</p>
-              </div>
+              {user.role?.name ? (
+                <Badge variant="outline" className="w-fit tracking-wide uppercase">
+                  {user.role.name}
+                </Badge>
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa phân vai trò</p>
+              )}
+
+              {user.agentLevel?.code ? (
+                <Badge variant="secondary" className="w-fit tracking-wide uppercase">
+                  {user.agentLevel.code}
+                </Badge>
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa phân cấp độ</p>
+              )}
             </div>
           )
         },
@@ -145,8 +180,11 @@ export function UserTable() {
           return (
             <div className="flex justify-end">
               <DataTableRowAction
-                onEdit={() => toast.info(`Chỉnh sửa: ${user.name}`)}
-                onDelete={() => toast.info(`Xóa: ${user.name}`)}
+                onEdit={() => {
+                  setEditingUser(user)
+                  setIsEditOpen(true)
+                }}
+                onDelete={() => setDeleteTarget(user)}
               />
             </div>
           )
@@ -161,6 +199,7 @@ export function UserTable() {
       <CardContent className="px-3">
         <DataTable
           title="Danh sách người dùng"
+          description="Theo dõi tài khoản nội bộ, vai trò và trạng thái hoạt động của từng người dùng."
           columns={columns}
           data={items}
           pagination={pagination}
@@ -177,8 +216,72 @@ export function UserTable() {
           onPaginationChange={(updater: Updater<PaginationState>) => {
             setPagination((prev) => (typeof updater === "function" ? updater(prev) : updater))
           }}
+          toolbarRight={
+            <Button type="button" className="gap-2" onClick={() => setIsCreateOpen(true)}>
+              <Icons.plus className="size-4" />
+              Thêm mới
+            </Button>
+          }
           isLoading={usersQuery.isFetching}
           viewOptions
+        />
+
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Tạo người dùng mới</DialogTitle>
+              <DialogDescription>
+                Điền thông tin tài khoản. Vai trò và cấp độ nhân viên được tải khi mở từng select.
+              </DialogDescription>
+            </DialogHeader>
+
+            <UserCreateDialogForm
+              open={isCreateOpen}
+              onCancel={() => setIsCreateOpen(false)}
+              onCreated={() => setIsCreateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={isEditOpen}
+          onOpenChange={(open) => {
+            setIsEditOpen(open)
+            if (!open) {
+              setEditingUser(null)
+            }
+          }}
+        >
+          <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+              <DialogDescription>
+                Cập nhật thông tin tài khoản, vai trò, cấp độ nhân viên và trạng thái hoạt động.
+              </DialogDescription>
+            </DialogHeader>
+
+            <UserEditDialogForm
+              open={isEditOpen}
+              user={editingUser}
+              onCancel={() => setIsEditOpen(false)}
+              onUpdated={() => setIsEditOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <ConfirmDialog
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          title="Xóa người dùng"
+          message={`Người dùng sẽ bị xóa khỏi hệ thống. Bạn có chắc chắn muốn tiếp tục?`}
+          confirmText="Xóa"
+          variant="danger"
+          isLoading={deleteUserMutation.isPending}
+          loadingText="Đang xóa người dùng"
+          onConfirm={() => {
+            if (!deleteTarget) return
+            deleteUserMutation.mutate(deleteTarget.id)
+          }}
         />
       </CardContent>
     </Card>

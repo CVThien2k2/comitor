@@ -1,40 +1,31 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common"
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request } from "@nestjs/common"
 import {
   ApiBearerAuth,
-  ApiForbiddenResponse,
-  ApiInternalServerErrorResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
-  ApiBadRequestResponse,
-  ApiNotFoundResponse,
-  ApiConflictResponse,
 } from "@nestjs/swagger"
 import { P } from "@workspace/database"
+import type { User } from "@workspace/database"
+import type { Request as ExpressRequest } from "express"
 import { Permissions } from "../../common/decorators/permissions.decorator"
 import { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import {
   ApiPaginatedResponseOf,
   ApiResponseOf,
-  BadRequestEntity,
-  ConflictEntity,
-  ForbiddenEntity,
-  InternalServerErrorEntity,
   MessageResponseEntity,
-  NotFoundEntity,
-  UnauthorizedEntity,
 } from "../../common/entities/api-response.entity"
 import { RoleEntity, RoleWithPermissionsEntity } from "./entities/role.entity"
 import { RoleService } from "./role.service"
 import { CreateRoleDto } from "./dto/create-role.dto"
 import { UpdateRoleDto } from "./dto/update-role.dto"
 
+interface RequestWithUser extends ExpressRequest {
+  user: User
+}
+
 @ApiTags("Roles")
 @ApiBearerAuth()
-@ApiUnauthorizedResponse({ type: UnauthorizedEntity })
-@ApiForbiddenResponse({ type: ForbiddenEntity })
-@ApiInternalServerErrorResponse({ type: InternalServerErrorEntity })
 @Controller("roles")
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
@@ -50,7 +41,6 @@ export class RoleController {
 
   @ApiOperation({ summary: "Lấy thông tin vai trò theo ID" })
   @ApiOkResponse({ type: ApiResponseOf(RoleWithPermissionsEntity) })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.ROLE_READ)
   @Get(":id")
   async findById(@Param("id") id: string) {
@@ -60,20 +50,15 @@ export class RoleController {
 
   @ApiOperation({ summary: "Tạo vai trò mới" })
   @ApiOkResponse({ type: ApiResponseOf(RoleWithPermissionsEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiConflictResponse({ type: ConflictEntity })
   @Permissions(P.ROLE_CREATE)
   @Post()
-  async create(@Body() dto: CreateRoleDto) {
-    const role = await this.roleService.create(dto)
+  async create(@Body() dto: CreateRoleDto, @Request() req: RequestWithUser) {
+    const role = await this.roleService.create(dto, req.user.id)
     return { message: "Tạo vai trò thành công", data: role }
   }
 
   @ApiOperation({ summary: "Cập nhật vai trò" })
   @ApiOkResponse({ type: ApiResponseOf(RoleWithPermissionsEntity) })
-  @ApiBadRequestResponse({ type: BadRequestEntity })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
-  @ApiConflictResponse({ type: ConflictEntity })
   @Permissions(P.ROLE_UPDATE)
   @Patch(":id")
   async update(@Param("id") id: string, @Body() dto: UpdateRoleDto) {
@@ -83,7 +68,6 @@ export class RoleController {
 
   @ApiOperation({ summary: "Xóa vai trò" })
   @ApiOkResponse({ type: MessageResponseEntity })
-  @ApiNotFoundResponse({ type: NotFoundEntity })
   @Permissions(P.ROLE_DELETE)
   @Delete(":id")
   async delete(@Param("id") id: string) {

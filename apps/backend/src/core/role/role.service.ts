@@ -26,14 +26,17 @@ export class RoleService {
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
 
-    const where = query.search
-      ? {
-          OR: [
-            { name: { contains: query.search, mode: "insensitive" as const } },
-            { description: { contains: query.search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}
+    const where = {
+      isDeleted: false,
+      ...(query.search
+        ? {
+            OR: [
+              { name: { contains: query.search, mode: "insensitive" as const } },
+              { description: { contains: query.search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.client.role.findMany({
@@ -49,8 +52,8 @@ export class RoleService {
   }
 
   async findById(id: string) {
-    const role = await this.prisma.client.role.findUnique({
-      where: { id },
+    const role = await this.prisma.client.role.findFirst({
+      where: { id, isDeleted: false },
       include: {
         rolePermissions: { include: { permission: true } },
       },
@@ -65,46 +68,88 @@ export class RoleService {
     }
   }
 
-  async create(dto: CreateRoleDto) {
+  async create(dto: CreateRoleDto, createdBy: string) {
+    const normalizedName = dto.name.trim()
+    const normalizedDescription = dto.description?.trim()
+
     const existing = await this.prisma.client.role.findUnique({
-      where: { name: dto.name },
+      where: { name: normalizedName },
     })
-    if (existing) throw new ConflictException("Role đã tồn tại")
+    if (existing && !existing.isDeleted) throw new ConflictException("Role đã tồn tại")
 
-    // const role = await this.prisma.client.role.create({
-    //   data: {
-    //     name: dto.name,
-    //     description: dto.description,
-    //     rolePermissions: dto.permissionIds?.length
-    //       ? {
-    //           createMany: {
-    //             data: dto.permissionIds.map((permissionId) => ({ permissionId })),
-    //           },
-    //         }
-    //       : undefined,
-    //   },
-    //   include: {
-    //     rolePermissions: { include: { permission: true } },
-    //   },
-    // })
+    if (existing?.isDeleted) {
+      const updated = await this.prisma.client.$transaction(async (tx) => {
+        if (dto.permissionIds !== undefined) {
+          await tx.rolePermission.deleteMany({ where: { roleId: existing.id } })
+          if (dto.permissionIds.length > 0) {
+            await tx.rolePermission.createMany({
+              data: dto.permissionIds.map((permissionId) => ({
+                roleId: existing.id,
+                permissionId,
+              })),
+            })
+          }
+        }
 
-    // return {
-    //   ...role,
-    //   rolePermissions: undefined,
-    //   permissions: role.rolePermissions.map((rp) => rp.permission),
-    // }
+        return tx.role.update({
+          where: { id: existing.id },
+          data: {
+            name: normalizedName,
+            description: normalizedDescription,
+            isDeleted: false,
+            createdBy,
+          },
+          include: {
+            rolePermissions: { include: { permission: true } },
+          },
+        })
+      })
+
+      return {
+        ...updated,
+        rolePermissions: undefined,
+        permissions: updated.rolePermissions.map((rp) => rp.permission),
+      }
+    }
+
+    const role = await this.prisma.client.role.create({
+      data: {
+        name: normalizedName,
+        description: normalizedDescription,
+        createdBy,
+        rolePermissions: dto.permissionIds?.length
+          ? {
+              createMany: {
+                data: dto.permissionIds.map((permissionId) => ({ permissionId })),
+              },
+            }
+          : undefined,
+      },
+      include: {
+        rolePermissions: { include: { permission: true } },
+      },
+    })
+
+    return {
+      ...role,
+      rolePermissions: undefined,
+      permissions: role.rolePermissions.map((rp) => rp.permission),
+    }
   }
 
   async update(id: string, dto: UpdateRoleDto) {
-    const role = await this.prisma.client.role.findUnique({ where: { id } })
+    const role = await this.prisma.client.role.findFirst({ where: { id, isDeleted: false } })
     if (!role) throw new NotFoundException("Role không tồn tại")
     if (role.name === SYSTEM_ROLE_NAME) throw new ForbiddenException("Không thể chỉnh sửa role hệ thống")
 
-    if (dto.name && dto.name !== role.name) {
+    const nextName = dto.name?.trim()
+    const nextDescription = dto.description?.trim()
+
+    if (nextName && nextName !== role.name) {
       const existing = await this.prisma.client.role.findUnique({
-        where: { name: dto.name },
+        where: { name: nextName },
       })
-      if (existing) throw new ConflictException("Role đã tồn tại")
+      if (existing && !existing.isDeleted) throw new ConflictException("Role đã tồn tại")
     }
 
     const updated = await this.prisma.client.$transaction(async (tx) => {
@@ -123,8 +168,8 @@ export class RoleService {
       return tx.role.update({
         where: { id },
         data: {
-          name: dto.name,
-          description: dto.description,
+          ...(nextName !== undefined ? { name: nextName } : {}),
+          ...(nextDescription !== undefined ? { description: nextDescription } : {}),
         },
         include: {
           rolePermissions: { include: { permission: true } },
@@ -142,12 +187,18 @@ export class RoleService {
   }
 
   async delete(id: string) {
-    const role = await this.prisma.client.role.findUnique({ where: { id } })
+    const role = await this.prisma.client.role.findFirst({ where: { id, isDeleted: false } })
     if (!role) throw new NotFoundException("Role không tồn tại")
     if (role.name === SYSTEM_ROLE_NAME) throw new ForbiddenException("Không thể xóa role hệ thống")
 
+    const linkedUsers = await this.prisma.client.user.count({ where: { roleId: id } })
+    if (linkedUsers > 0) throw new ConflictException("Không thể xóa role đang được gán cho người dùng")
+
     await this.invalidateCacheByRoleId(id)
-    await this.prisma.client.role.delete({ where: { id } })
+    await this.prisma.client.role.update({
+      where: { id },
+      data: { isDeleted: true },
+    })
   }
 
   // ─── Cache dùng chung (PermissionsGuard, SocketGateway) ──

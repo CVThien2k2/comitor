@@ -1,18 +1,15 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { accountCustomers, type AccountCustomerListItem } from "@/api"
+import DataTable from "@/components/table/data-table"
+import { channelMeta, getAvatarColor, getInitials, getProviderLabel } from "@/lib/helper"
 import { useQuery } from "@tanstack/react-query"
 import type { ColumnDef, PaginationState, SortingState, Updater } from "@tanstack/react-table"
-import { accountCustomers, type AccountCustomerListItem } from "@/api"
-import { Icons } from "@/components/global/icons"
-import { DataTableRowAction } from "@/components/table/data-table-row-action"
-import DataTable from "@/components/table/data-table"
-import { getAvatarColor, getInitials } from "@/lib/helper"
 import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar"
 import { Badge } from "@workspace/ui/components/badge"
-import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent } from "@workspace/ui/components/card"
-import { toast } from "@workspace/ui/components/sonner"
+import Image from "next/image"
+import { useMemo, useState } from "react"
 
 export function AccountCustomerTable() {
   const [globalSearch, setGlobalSearch] = useState("")
@@ -82,12 +79,28 @@ export function AccountCustomerTable() {
         id: "channel",
         enableSorting: false,
         header: "Kênh",
-        cell: ({ row }) => (
-          <div className="space-y-1">
-            <Badge variant="outline">{row.original.linkedAccount?.provider || "-"}</Badge>
-            <p className="text-xs text-muted-foreground">{row.original.linkedAccount?.displayName || "-"}</p>
-          </div>
-        ),
+        cell: ({ row }) => {
+          const provider = row.original.linkedAccount?.provider
+          const providerMeta = provider ? channelMeta[provider] : undefined
+
+          return (
+            <div className="space-y-1">
+              <Badge variant="outline" className="w-fit gap-1.5 pr-2 pl-1.5">
+                <span className="flex size-5 items-center justify-center rounded-sm bg-muted/70">
+                  <Image
+                    src={providerMeta?.iconSrc ?? "/icon.png"}
+                    alt={provider ? getProviderLabel(provider) : "Kênh"}
+                    width={14}
+                    height={14}
+                    className="rounded-full object-contain"
+                  />
+                </span>
+                <span>{provider ? getProviderLabel(provider) : "-"}</span>
+              </Badge>
+              <p className="text-xs text-muted-foreground">{row.original.linkedAccount?.displayName || "-"}</p>
+            </div>
+          )
+        },
       },
       {
         id: "status",
@@ -104,17 +117,17 @@ export function AccountCustomerTable() {
           </div>
         ),
       },
-      {
-        id: "actions",
-        enableSorting: false,
-        enableHiding: false,
-        header: () => <div className="text-right">Thao tác</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <DataTableRowAction onEdit={() => toast.info(`Chỉnh sửa tài khoản: ${row.original.accountId}`)} />
-          </div>
-        ),
-      },
+      // {
+      //   id: "actions",
+      //   enableSorting: false,
+      //   enableHiding: false,
+      //   header: () => <div className="text-right">Thao tác</div>,
+      //   cell: ({ row }) => (
+      //     <div className="flex justify-end">
+      //       <DataTableRowAction onEdit={() => toast.info(`Chỉnh sửa tài khoản: ${row.original.accountId}`)} />
+      //     </div>
+      //   ),
+      // },
     ],
     [pagination.pageIndex, pagination.pageSize]
   )
@@ -124,6 +137,7 @@ export function AccountCustomerTable() {
       <CardContent className="px-3">
         <DataTable
           title="Danh sách tài khoản khách hàng"
+          description="Danh sách tài khoản khách theo từng kênh, trạng thái kết nối và liên kết với hồ sơ khách hàng."
           columns={columns}
           data={items}
           pagination={pagination}
@@ -140,16 +154,6 @@ export function AccountCustomerTable() {
           onPaginationChange={(updater: Updater<PaginationState>) => {
             setPagination((prev) => (typeof updater === "function" ? updater(prev) : updater))
           }}
-          toolbarRight={
-            <Button
-              type="button"
-              className="gap-2"
-              onClick={() => toast.info("Chức năng thêm tài khoản khách đang được cập nhật")}
-            >
-              <Icons.plus className="size-4" />
-              Thêm mới
-            </Button>
-          }
           isLoading={customersQuery.isFetching}
           viewOptions
         />

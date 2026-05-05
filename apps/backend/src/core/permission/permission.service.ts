@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import { PrismaService } from "../../database/prisma.service"
 import type { PaginationQueryDto } from "../../common/dto/pagination-query.dto"
 import { paginate, paginatedResponse } from "../../utils/paginate"
+import { UpdatePermissionDescriptionDto } from "./dto/update-permission-description.dto"
 
 @Injectable()
 export class PermissionService {
@@ -46,5 +47,15 @@ export class PermissionService {
     })
 
     return permissions.map((permission) => permission.code)
+  }
+
+  async updateDescription(id: string, dto: UpdatePermissionDescriptionDto) {
+    const existing = await this.prisma.client.permission.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException("Quyền không tồn tại")
+
+    return this.prisma.client.permission.update({
+      where: { id },
+      data: { description: dto.description.trim() },
+    })
   }
 }

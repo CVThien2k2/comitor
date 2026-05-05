@@ -28,7 +28,10 @@ export class UsersService {
       this.prisma.client.user.findMany({
         where,
         omit: { password: true },
-        include: { role: { select: { id: true, name: true } } },
+        include: {
+          role: { select: { id: true, name: true } },
+          agentLevel: { select: { id: true, code: true, description: true } },
+        },
         orderBy: { createdAt: "desc" },
         skip,
         take,
@@ -61,7 +64,10 @@ export class UsersService {
     const user = await this.prisma.client.user.findUnique({
       where: { id },
       omit: { password: true },
-      include: { role: { select: { id: true, name: true, description: true } } },
+      include: {
+        role: { select: { id: true, name: true, description: true } },
+        agentLevel: { select: { id: true, code: true, description: true } },
+      },
     })
 
     if (!user) throw new NotFoundException("Người dùng không tồn tại")
@@ -89,7 +95,7 @@ export class UsersService {
     return this.prisma.client.user.findUnique({ where: { id } })
   }
 
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, createdBy: string) {
     const existingUsername = await this.prisma.client.user.findUnique({ where: { username: dto.username } })
     if (existingUsername) throw new ConflictException("Tên đăng nhập đã tồn tại")
 
@@ -101,19 +107,27 @@ export class UsersService {
       if (existingPhone) throw new ConflictException("Số điện thoại đã tồn tại")
     }
 
+    const agentLevel = await this.prisma.client.agentLevel.findFirst({
+      where: { id: dto.agentLevelId, isDeleted: false },
+      select: { id: true },
+    })
+    if (!agentLevel) throw new NotFoundException("Cấp độ nhân viên không tồn tại")
+
     const hashed = await bcrypt.hash(dto.password, 10)
 
-    // return this.prisma.client.user.create({
-    //   data: {
-    //     name: dto.name,
-    //     email: dto.email,
-    //     username: dto.username,
-    //     password: hashed,
-    //     phone: dto.phone,
-    //     roleId: dto.roleId,
-    //   },
-    //   omit: { password: true },
-    // })
+    return this.prisma.client.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        username: dto.username,
+        password: hashed,
+        phone: dto.phone,
+        roleId: dto.roleId,
+        agentLevelId: dto.agentLevelId,
+        createdBy,
+      },
+      omit: { password: true },
+    })
   }
 
   async update(id: string, dto: UpdateUserDto) {
@@ -130,9 +144,26 @@ export class UsersService {
       if (existing) throw new ConflictException("Số điện thoại đã tồn tại")
     }
 
+    if (dto.agentLevelId) {
+      const agentLevel = await this.prisma.client.agentLevel.findFirst({
+        where: { id: dto.agentLevelId, isDeleted: false },
+        select: { id: true },
+      })
+
+      if (!agentLevel) throw new NotFoundException("Cấp độ nhân viên không tồn tại")
+    }
+
     return this.prisma.client.user.update({
       where: { id },
-      data: dto,
+      data: {
+        name: dto.name,
+        email: dto.email,
+        phone: dto.phone,
+        avatarUrl: dto.avatarUrl,
+        roleId: dto.roleId,
+        agentLevelId: dto.agentLevelId,
+        isActive: dto.isActive,
+      },
       omit: { password: true },
     })
   }

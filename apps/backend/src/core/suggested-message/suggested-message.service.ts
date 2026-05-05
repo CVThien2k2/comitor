@@ -12,19 +12,22 @@ export class SuggestedMessageService {
   async findAll(query: PaginationQueryDto) {
     const { skip, take, page, limit } = paginate(query)
 
-    const where = query.search
-      ? {
-          OR: [
-            { tag: { contains: query.search, mode: "insensitive" as const } },
-            { message: { contains: query.search, mode: "insensitive" as const } },
-          ],
-        }
-      : {}
+    const where = {
+      isDeleted: false,
+      ...(query.search
+        ? {
+            OR: [
+              { tag: { contains: query.search, mode: "insensitive" as const } },
+              { message: { contains: query.search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.client.suggestedMessage.findMany({
         where,
-        orderBy: { id: "desc" },
+        orderBy: { createdAt: "desc" },
         skip,
         take,
       }),
@@ -35,8 +38,8 @@ export class SuggestedMessageService {
   }
 
   async findById(id: string) {
-    const item = await this.prisma.client.suggestedMessage.findUnique({
-      where: { id },
+    const item = await this.prisma.client.suggestedMessage.findFirst({
+      where: { id, isDeleted: false },
     })
 
     if (!item) throw new NotFoundException("Tin nhắn gợi ý không tồn tại")
@@ -44,14 +47,15 @@ export class SuggestedMessageService {
     return item
   }
 
-  async create(dto: CreateSuggestedMessageDto) {
-    // return this.prisma.client.suggestedMessage.create({
-    //   data: {
-    //     tag: dto.tag.trim(),
-    //     message: dto.message.trim(),
-    //     images: dto.images ?? [],
-    //   },
-    // })
+  async create(dto: CreateSuggestedMessageDto, createdBy: string) {
+    return this.prisma.client.suggestedMessage.create({
+      data: {
+        tag: dto.tag.trim(),
+        message: dto.message.trim(),
+        images: (dto.images ?? []).map((item) => item.trim()).filter(Boolean),
+        createdBy,
+      },
+    })
   }
 
   async update(id: string, dto: UpdateSuggestedMessageDto) {
@@ -69,6 +73,9 @@ export class SuggestedMessageService {
 
   async delete(id: string) {
     await this.findById(id)
-    await this.prisma.client.suggestedMessage.delete({ where: { id } })
+    await this.prisma.client.suggestedMessage.update({
+      where: { id },
+      data: { isDeleted: true },
+    })
   }
 }

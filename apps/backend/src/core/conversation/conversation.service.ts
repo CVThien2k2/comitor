@@ -3,10 +3,11 @@ import { PrismaService } from "../../database/prisma.service"
 import type { ConversationQueryDto } from "./dto/conversation-query.dto"
 import { UpdateConversationDto } from "./dto/update-conversation.dto"
 import { CONVERSATION_INCLUDE } from "../message/include"
+import { cursorPaginatedResponse } from "../../utils/paginate"
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll(query: ConversationQueryDto, userId: string) {
     const limit = query.limit ?? 20
@@ -23,14 +24,14 @@ export class ConversationService {
     const where =
       cursorDate && query.cursorId
         ? {
-            ...baseWhere,
-            OR: [
-              { lastActivityAt: { lt: cursorDate } },
-              {
-                AND: [{ lastActivityAt: cursorDate }, { id: { gt: query.cursorId } }],
-              },
-            ],
-          }
+          ...baseWhere,
+          OR: [
+            { lastActivityAt: { lt: cursorDate } },
+            {
+              AND: [{ lastActivityAt: cursorDate }, { id: { gt: query.cursorId } }],
+            },
+          ],
+        }
         : baseWhere
 
     const [items, total] = await Promise.all([
@@ -43,25 +44,10 @@ export class ConversationService {
       this.prisma.client.conversation.count({ where: baseWhere }),
     ])
 
-    const hasMore = items.length > limit
-    const normalizedItems = hasMore ? items.slice(0, limit) : items
-    const lastItem = normalizedItems[normalizedItems.length - 1]
-
-    return {
-      items: normalizedItems,
-      meta: {
-        limit,
-        total,
-        hasMore,
-        nextCursor:
-          hasMore && lastItem
-            ? {
-                lastActivityAt: lastItem.lastActivityAt.toISOString(),
-                id: lastItem.id,
-              }
-            : null,
-      },
-    }
+    return cursorPaginatedResponse(items, total, limit, (lastItem) => ({
+      lastActivityAt: lastItem.lastActivityAt.toISOString(),
+      id: lastItem.id,
+    }))
   }
 
   async findById(id: string) {

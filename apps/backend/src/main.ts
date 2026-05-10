@@ -11,6 +11,7 @@ import { LoggerInterceptor } from "./common/interceptors/logger.interceptor"
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter"
 import { NestExpressApplication } from "@nestjs/platform-express"
+import { RedisIoAdapter } from "./websocket/redis-io.adapter"
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
@@ -25,6 +26,14 @@ async function bootstrap() {
     origin: configService.get<string>("FRONTEND_URL") ?? "http://localhost:3000",
     credentials: true,
   })
+
+  const redisUrl = configService.get<string>("REDIS_URL", "redis://localhost:6379")
+  if (redisUrl) {
+    const isProduction = configService.get<string>("NODE_ENV") === "production"
+    const redisIoAdapter = new RedisIoAdapter(redisUrl, app)
+    await redisIoAdapter.connectToRedis({ required: isProduction })
+    app.useWebSocketAdapter(redisIoAdapter)
+  }
 
   app.useGlobalPipes(
     new ValidationPipe({

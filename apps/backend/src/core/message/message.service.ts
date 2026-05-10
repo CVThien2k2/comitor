@@ -9,6 +9,7 @@ import { MessageType, Prisma } from "@workspace/database"
 import { CONVERSATION_INCLUDE, MESSAGE_INCLUDE } from "./include"
 import { EMIT_EVENTS } from "../../events/emit-events"
 import type { ContentMessage } from "../../utils/types/message"
+import { cursorPaginatedResponse } from "../../utils/paginate"
 
 
 
@@ -70,19 +71,13 @@ export class MessageService {
       take: limit + 1,
     })
 
-    const hasMore = rawItems.length > limit
-    const sliced = hasMore ? rawItems.slice(0, limit) : rawItems
-    const items = [...sliced].reverse()
-    const tail = sliced[sliced.length - 1]
-
-    return {
-      items,
-      meta: {
-        limit,
-        hasMore,
-        nextCursor: tail ? { time: tail.timestamp.toISOString(), id: tail.id } : null,
-      },
-    }
+    return cursorPaginatedResponse(
+      rawItems,
+      undefined,
+      limit,
+      (lastItem) => ({ time: lastItem.timestamp.toISOString(), id: lastItem.id }),
+      { reverse: true }
+    )
   }
 
 

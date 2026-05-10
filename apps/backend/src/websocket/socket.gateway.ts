@@ -9,8 +9,6 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from "@nestjs/websockets"
-import { createAdapter } from "@socket.io/redis-adapter"
-import Redis from "ioredis"
 import { Namespace, Socket } from "socket.io"
 import { WsExceptionFilter } from "../common/filters/ws-exception.filter"
 import { RoleService } from "../core/role/role.service"
@@ -27,50 +25,16 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   server: Namespace
 
   private readonly logger = new Logger(SocketGateway.name)
-  private redisPubClient: Redis | null = null
-  private redisSubClient: Redis | null = null
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly eventEmitter: EventEmitter2,
     private readonly roleService: RoleService
-  ) {}
+  ) { }
 
-  async afterInit(server: Namespace) {
-    const redisUrl = this.configService.get<string>("REDIS_URL", "redis://localhost:6379")
-
-    if (!redisUrl) {
-      this.logger.warn("REDIS_URL chưa được cấu hình, Socket.IO sẽ chạy với memory adapter")
-      return
-    }
-
-    try {
-      this.redisPubClient = new Redis(redisUrl, {
-        lazyConnect: true,
-        db: 2,
-        enableOfflineQueue: false,
-        maxRetriesPerRequest: null,
-        retryStrategy(times: number) {
-          if (times > 5) return 10_000
-          return Math.min(times * 1000, 5000)
-        },
-      })
-      this.redisSubClient = this.redisPubClient.duplicate()
-
-      this.redisPubClient.on("error", (error: Error) => {
-        this.logger.error(`Socket Redis pub error: ${error.message}`)
-      })
-      this.redisSubClient.on("error", (error: Error) => {
-        this.logger.error(`Socket Redis sub error: ${error.message}`)
-      })
-
-      await Promise.all([this.redisPubClient.connect(), this.redisSubClient.connect()])
-      server.server.adapter(createAdapter(this.redisPubClient, this.redisSubClient))
-      this.logger.log("Socket.IO Redis adapter đã được bật")
-    } catch (error) {
-      this.logger.error(`Không thể bật Socket.IO Redis adapter: ${(error as Error).message}`)
-    }
+  async afterInit() {
+    this.logger.log("SocketGateway initialized")
   }
 
   async handleConnection(client: Socket) {
